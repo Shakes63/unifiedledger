@@ -3,9 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ChevronDown, ChevronUp, History, Loader2, User } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { FIELD_LABELS, formatAmount, formatBoolean, formatTransactionType } from '@/lib/transactions/audit-utils';
 
@@ -101,28 +99,13 @@ export function TransactionAuditLog({
   };
 
   const getActionBadge = (actionType: string) => {
-    switch (actionType) {
-      case 'created':
-        return (
-          <Badge className="bg-success/20 text-success border-0">
-            Created
-          </Badge>
-        );
-      case 'updated':
-        return (
-          <Badge className="bg-primary/20 text-primary border-0">
-            Updated
-          </Badge>
-        );
-      case 'deleted':
-        return (
-          <Badge className="bg-error/20 text-error border-0">
-            Deleted
-          </Badge>
-        );
-      default:
-        return null;
-    }
+    const color = actionType === 'created' ? 'var(--color-success)' : actionType === 'deleted' ? 'var(--color-destructive)' : 'var(--color-primary)';
+    const label = actionType === 'created' ? 'Created' : actionType === 'deleted' ? 'Deleted' : 'Updated';
+    return (
+      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `color-mix(in oklch, ${color} 12%, transparent)`, color }}>
+        {label}
+      </span>
+    );
   };
 
   const formatFieldValue = (
@@ -159,11 +142,11 @@ export function TransactionAuditLog({
     const newVal = formatFieldValue(change.field, change.newValue, change.newDisplayValue);
 
     return (
-      <div key={change.field} className="flex items-start gap-2 text-sm">
-        <span className="text-muted-foreground min-w-[100px]">{label}:</span>
-        <span className="text-error line-through">{oldVal}</span>
-        <span className="text-muted-foreground">→</span>
-        <span className="text-success">{newVal}</span>
+      <div key={change.field} className="flex items-start gap-2 text-[12px]">
+        <span className="min-w-[100px]" style={{ color: 'var(--color-muted-foreground)' }}>{label}:</span>
+        <span className="line-through" style={{ color: 'var(--color-destructive)' }}>{oldVal}</span>
+        <span style={{ color: 'var(--color-muted-foreground)' }}>→</span>
+        <span style={{ color: 'var(--color-success)' }}>{newVal}</span>
       </div>
     );
   };
@@ -195,9 +178,9 @@ export function TransactionAuditLog({
           }
 
           return (
-            <div key={key} className="flex items-start gap-2 text-sm">
-              <span className="text-muted-foreground min-w-[100px]">{label}:</span>
-              <span className="text-foreground">{displayValue}</span>
+            <div key={key} className="flex items-start gap-2 text-[12px]">
+              <span className="min-w-[100px]" style={{ color: 'var(--color-muted-foreground)' }}>{label}:</span>
+              <span style={{ color: 'var(--color-foreground)' }}>{displayValue}</span>
             </div>
           );
         })}
@@ -206,146 +189,76 @@ export function TransactionAuditLog({
   };
 
   return (
-    <Card className="border-border bg-card">
-      {/* Header - Always visible */}
-      <button
-        onClick={toggleExpanded}
-        className="w-full flex items-center justify-between p-4 hover:bg-elevated/50 transition-colors rounded-t-xl"
-      >
-        <div className="flex items-center gap-3">
-          <History className="w-5 h-5 text-muted-foreground" />
-          <span className="font-medium text-foreground">Change History</span>
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <button onClick={toggleExpanded} className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:opacity-80" style={{ backgroundColor: expanded ? 'var(--color-elevated)' : 'var(--color-background)' }}>
+        <div className="flex items-center gap-2.5">
+          <History className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+          <span className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Change History</span>
           {total > 0 && (
-            <Badge variant="secondary" className="bg-elevated text-muted-foreground">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}>
               {total} {total === 1 ? 'entry' : 'entries'}
-            </Badge>
+            </span>
           )}
         </div>
-        {expanded ? (
-          <ChevronUp className="w-5 h-5 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
-        )}
+        {expanded ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />}
       </button>
 
-      {/* Content - Expanded */}
       {expanded && (
-        <div className="border-t border-border">
+        <div style={{ borderTop: '1px solid var(--color-border)' }}>
           {loading && (
             <div className="flex items-center justify-center p-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
             </div>
           )}
-
           {error && (
-            <div className="p-4 m-4 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
+            <div className="m-4 px-3 py-2.5 rounded-lg text-[12px]" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 20%, transparent)', color: 'var(--color-destructive)' }}>
               {error}
             </div>
           )}
-
           {!loading && !error && entries.length === 0 && (
-            <div className="text-center p-8 text-muted-foreground">
-              No change history available
-            </div>
+            <div className="text-center p-8 text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>No change history available</div>
           )}
-
           {!loading && !error && entries.length > 0 && (
             <div className="p-4 space-y-4">
-              {/* Timeline */}
               <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute left-[19px] top-6 bottom-6 w-px bg-border" />
-
-                {/* Entries */}
-                {entries.map((entry) => {
+                <div className="absolute left-[19px] top-6 bottom-6 w-px" style={{ backgroundColor: 'var(--color-border)' }} />
+                {entries.map(entry => {
                   const isEntryExpanded = expandedEntries.has(entry.id);
                   const hasDetails = entry.changes?.length || entry.snapshot;
+                  const dotColor = entry.actionType === 'created' ? 'var(--color-success)' : entry.actionType === 'deleted' ? 'var(--color-destructive)' : 'var(--color-primary)';
 
                   return (
-                    <div key={entry.id} className="relative pl-12 pb-6 last:pb-0">
-                      {/* Timeline dot */}
-                      <div
-                        className={`absolute left-3 w-3 h-3 rounded-full border-2 ${
-                          entry.actionType === 'created'
-                            ? 'bg-success border-success'
-                            : entry.actionType === 'deleted'
-                            ? 'bg-error border-error'
-                            : 'bg-primary border-primary'
-                        }`}
-                        style={{ top: '6px' }}
-                      />
-
-                      {/* Entry card */}
-                      <div className="bg-elevated rounded-lg p-4">
-                        {/* Header */}
+                    <div key={entry.id} className="relative pl-12 pb-5 last:pb-0">
+                      <div className="absolute left-3 w-3 h-3 rounded-full border-2" style={{ top: '6px', backgroundColor: dotColor, borderColor: dotColor }} />
+                      <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
                         <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center">
-                                <User className="w-4 h-4 text-muted-foreground" />
-                              </div>
-                              <span className="font-medium text-foreground">
-                                {entry.userName || 'Unknown User'}
-                              </span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)' }}>
+                              <User className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />
                             </div>
+                            <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{entry.userName || 'Unknown User'}</span>
                             {getActionBadge(entry.actionType)}
                           </div>
-                          <div
-                            className="text-sm text-muted-foreground"
-                            title={format(new Date(entry.createdAt), 'PPpp')}
-                          >
-                            {formatDistanceToNow(new Date(entry.createdAt), {
-                              addSuffix: true,
-                            })}
-                          </div>
+                          <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }} title={format(new Date(entry.createdAt), 'PPpp')}>
+                            {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
+                          </span>
                         </div>
-
-                        {/* Details toggle */}
                         {hasDetails && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleEntryExpanded(entry.id)}
-                            className="mt-3 h-8 text-muted-foreground hover:text-foreground"
-                          >
-                            {isEntryExpanded ? (
-                              <>
-                                <ChevronUp className="w-4 h-4 mr-1" />
-                                Hide details
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="w-4 h-4 mr-1" />
-                                {entry.actionType === 'updated'
-                                  ? `Show ${entry.changes?.length || 0} change${
-                                      (entry.changes?.length || 0) === 1 ? '' : 's'
-                                    }`
-                                  : 'Show details'}
-                              </>
-                            )}
+                          <Button variant="ghost" size="sm" onClick={() => toggleEntryExpanded(entry.id)} className="mt-2 h-7 text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                            {isEntryExpanded ? <><ChevronUp className="w-3.5 h-3.5 mr-1" />Hide details</> : <><ChevronDown className="w-3.5 h-3.5 mr-1" />{entry.actionType === 'updated' ? `Show ${entry.changes?.length || 0} change${(entry.changes?.length || 0) === 1 ? '' : 's'}` : 'Show details'}</>}
                           </Button>
                         )}
-
-                        {/* Expanded details */}
                         {isEntryExpanded && hasDetails && (
-                          <div className="mt-3 pt-3 border-t border-border">
-                            {entry.actionType === 'updated' && entry.changes && (
-                              <div className="space-y-2">
-                                {entry.changes.map(change => renderChange(change))}
+                          <div className="mt-2 pt-2 space-y-1.5" style={{ borderTop: '1px solid var(--color-border)' }}>
+                            {entry.actionType === 'updated' && entry.changes && entry.changes.map(change => renderChange(change))}
+                            {(entry.actionType === 'created' || entry.actionType === 'deleted') && entry.snapshot && (
+                              <div>
+                                <p className="text-[11px] mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                                  {entry.actionType === 'created' ? 'Initial values:' : 'Transaction at time of deletion:'}
+                                </p>
+                                {renderSnapshot(entry.snapshot)}
                               </div>
                             )}
-                            {(entry.actionType === 'created' ||
-                              entry.actionType === 'deleted') &&
-                              entry.snapshot && (
-                                <div className="space-y-2">
-                                  <p className="text-sm text-muted-foreground mb-2">
-                                    {entry.actionType === 'created'
-                                      ? 'Initial values:'
-                                      : 'Transaction at time of deletion:'}
-                                  </p>
-                                  {renderSnapshot(entry.snapshot)}
-                                </div>
-                              )}
                           </div>
                         )}
                       </div>
@@ -357,7 +270,7 @@ export function TransactionAuditLog({
           )}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 

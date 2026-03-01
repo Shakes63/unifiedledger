@@ -73,14 +73,15 @@ export function TestModeInitializer({ children }: TestModeInitializerProps) {
   if (error && !initialized) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="rounded-xl border border-error bg-card p-6 text-center">
-          <h2 className="text-lg font-semibold text-error">
+        <div className="rounded-xl border p-6 text-center" style={{ borderColor: 'var(--color-destructive)', backgroundColor: 'var(--color-background)' }}>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--color-destructive)' }}>
             Test Mode Initialization Failed
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+          <p className="mt-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+            className="mt-4 rounded-lg px-4 py-2 text-sm font-medium"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
           >
             Retry
           </button>
@@ -93,7 +94,7 @@ export function TestModeInitializer({ children }: TestModeInitializerProps) {
   if (!initialized) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: 'var(--color-primary)' }} />
       </div>
     );
   }

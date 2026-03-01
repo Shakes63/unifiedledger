@@ -68,12 +68,10 @@ export function CreateDebtStep({
         isFirstStep={false}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8 text-success" />
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 12%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 20%, transparent)' }}>
+            <CheckCircle2 className="w-7 h-7" style={{ color: 'var(--color-success)' }} />
           </div>
-          <p className="text-muted-foreground">
-            Demo debt with payoff projections is ready for you to explore.
-          </p>
+          <p className="text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>Demo debt with payoff projections is ready for you to explore.</p>
         </div>
       </OnboardingStep>
     );
@@ -93,25 +91,16 @@ export function CreateDebtStep({
       isOptional={true}
     >
       <div className="space-y-6">
-        <div className="flex items-center justify-center py-4">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-            <CreditCard className="w-8 h-8 text-primary" />
+        <div className="flex items-center justify-center py-3">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
+            <CreditCard className="w-7 h-7" style={{ color: 'var(--color-primary)' }} />
           </div>
         </div>
 
-        <WhyThisMatters
-          benefits={[
-            'See your estimated payoff date',
-            'Track interest costs and total amount paid',
-            'Celebrate becoming debt-free with milestone alerts',
-            'Compare snowball vs avalanche payoff strategies',
-          ]}
-        />
+        <WhyThisMatters benefits={['See your estimated payoff date', 'Track interest costs and total amount paid', 'Celebrate becoming debt-free with milestone alerts', 'Compare snowball vs avalanche payoff strategies']} />
 
-        <div className="bg-elevated border border-border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">
-            We&apos;ve pre-filled an example debt. Track your progress and see payoff projections!
-          </p>
+        <div className="px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+          <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>We&apos;ve pre-filled an example debt. Track your progress and see payoff projections!</p>
         </div>
 
         <DebtForm

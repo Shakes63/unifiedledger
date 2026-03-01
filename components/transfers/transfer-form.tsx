@@ -5,14 +5,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, parseISO } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, CreditCard, ExternalLink } from 'lucide-react';
+import { Loader2, CreditCard, ArrowDown, ArrowUpDown, ExternalLink } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { getTodayLocalDateString } from '@/lib/utils/local-date';
@@ -56,16 +50,115 @@ interface TransferFormProps {
   onCancel?: () => void;
 }
 
-export function TransferForm({
+// ============================================================================
+// AccountSelector — styled dropdown for the flow visualizer
+// ============================================================================
+function AccountSelector({
   accounts,
-  suggestedPairs = [],
-  onSuccess,
-  onCancel,
-}: TransferFormProps) {
+  value,
+  onChange,
+  excludeId,
+  label,
+  error,
+}: {
+  accounts: Account[];
+  value: string;
+  onChange: (v: string) => void;
+  excludeId?: string;
+  label: string;
+  error?: string;
+}) {
+  const available = accounts.filter((a) => a.id !== excludeId);
+  const selected = accounts.find((a) => a.id === value);
+
+  return (
+    <div className="relative">
+      <label
+        className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5"
+        style={{ color: 'var(--color-muted-foreground)' }}
+      >
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full appearance-none rounded-xl py-3 pl-4 pr-10 text-sm font-medium transition-colors cursor-pointer"
+          style={{
+            backgroundColor: 'color-mix(in oklch, var(--color-elevated) 70%, transparent)',
+            border: `1px solid ${error ? 'var(--color-error)' : 'var(--color-border)'}`,
+            color: value ? 'var(--color-foreground)' : 'var(--color-muted-foreground)',
+            outline: 'none',
+          }}
+        >
+          <option value="" disabled style={{ backgroundColor: 'var(--color-background)' }}>
+            Select account
+          </option>
+          {available.map((acc) => (
+            <option key={acc.id} value={acc.id} style={{ backgroundColor: 'var(--color-background)' }}>
+              {acc.name}
+            </option>
+          ))}
+        </select>
+        {/* Chevron */}
+        <span
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px]"
+          style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          ▾
+        </span>
+      </div>
+      {selected && (
+        <p className="text-[11px] mt-1 font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+          Balance: ${selected.currentBalance.toFixed(2)}
+        </p>
+      )}
+      {error && <p className="text-[11px] mt-1" style={{ color: 'var(--color-error)' }}>{error}</p>}
+    </div>
+  );
+}
+
+// ============================================================================
+// Field — generic labelled input wrapper
+// ============================================================================
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label
+        className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5"
+        style={{ color: 'var(--color-muted-foreground)' }}
+      >
+        {label}
+      </label>
+      {children}
+      {error && <p className="text-[11px] mt-1" style={{ color: 'var(--color-error)' }}>{error}</p>}
+    </div>
+  );
+}
+
+const inputCls = `w-full rounded-xl py-2.5 px-4 text-sm transition-colors`;
+const inputStyle = {
+  backgroundColor: 'color-mix(in oklch, var(--color-elevated) 70%, transparent)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-foreground)',
+  outline: 'none',
+};
+
+// ============================================================================
+// Main form
+// ============================================================================
+export function TransferForm({ accounts, suggestedPairs = [], onSuccess, onCancel }: TransferFormProps) {
   const { postWithHousehold, fetchWithHousehold } = useHouseholdFetch();
   const { selectedHouseholdId } = useHousehold();
   const [isLoading, setIsLoading] = useState(false);
-  // Phase 5: Credit card payment bill detection
   const [paymentBillDetection, setPaymentBillDetection] = useState<PaymentBillDetectionResult | null>(null);
   const [_paymentBillLoading, setPaymentBillLoading] = useState(false);
 
@@ -89,65 +182,55 @@ export function TransferForm({
 
   const fromAccountId = watch('fromAccountId');
   const toAccountId = watch('toAccountId');
+  const amountVal = watch('amount');
 
-  // Get balance of from account
   const fromAccount = accounts.find((a) => a.id === fromAccountId);
-  const fromBalance = fromAccount?.currentBalance || 0;
+  const fromBalance = fromAccount?.currentBalance ?? 0;
 
-  // Auto-select first account if not selected
+  // Auto-select first account
   useEffect(() => {
     if (accounts.length > 0 && !fromAccountId) {
       setValue('fromAccountId', accounts[0].id);
     }
   }, [accounts, fromAccountId, setValue]);
 
-  // Phase 5: Auto-detect payment bills when destination account changes
+  // Credit card payment bill detection
   useEffect(() => {
-    const detectPaymentBill = async () => {
-      if (!toAccountId || !selectedHouseholdId) {
-        setPaymentBillDetection(null);
-        return;
-      }
-
+    const detect = async () => {
+      if (!toAccountId || !selectedHouseholdId) { setPaymentBillDetection(null); return; }
       try {
         setPaymentBillLoading(true);
-        const response = await fetchWithHousehold(
-          `/api/bills/detect-payment?accountId=${toAccountId}`
-        );
-        
-        if (!response.ok) {
-          setPaymentBillDetection(null);
-          return;
-        }
-        
-        const result: PaymentBillDetectionResult = await response.json();
-        setPaymentBillDetection(result);
-      } catch (error) {
-        console.error('Error detecting payment bills:', error);
+        const response = await fetchWithHousehold(`/api/bills/detect-payment?accountId=${toAccountId}`);
+        if (!response.ok) { setPaymentBillDetection(null); return; }
+        setPaymentBillDetection(await response.json());
+      } catch {
         setPaymentBillDetection(null);
       } finally {
         setPaymentBillLoading(false);
       }
     };
-
-    detectPaymentBill();
+    detect();
   }, [toAccountId, selectedHouseholdId, fetchWithHousehold]);
+
+  // Swap accounts
+  const handleSwap = () => {
+    const a = fromAccountId;
+    const b = toAccountId;
+    if (a && b) {
+      setValue('fromAccountId', b);
+      setValue('toAccountId', a);
+    }
+  };
 
   const onSubmit = async (data: TransferFormData) => {
     try {
       setIsLoading(true);
-
-      // Validate balance
       const transferAmount = parseFloat(data.amount);
       const fees = parseFloat(data.fees || '0');
-      const totalDebit = transferAmount + fees;
-
-      if (totalDebit > fromBalance) {
+      if (transferAmount + fees > fromBalance) {
         toast.error(`Insufficient balance. Available: $${fromBalance.toFixed(2)}`);
-        setIsLoading(false);
         return;
       }
-
       const response = await postWithHousehold('/api/transfers', {
         fromAccountId: data.fromAccountId,
         toAccountId: data.toAccountId,
@@ -157,346 +240,400 @@ export function TransferForm({
         fees: data.fees,
         notes: data.notes,
       });
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to create transfer');
       }
-
       const result = await response.json();
-
-      toast.success('Transfer created successfully!');
-      reset({
-        amount: '',
-        date: getTodayLocalDateString(),
-        description: 'Transfer',
-        fees: '0',
-        notes: '',
-      });
+      toast.success('Transfer created!');
+      reset({ amount: '', date: getTodayLocalDateString(), description: 'Transfer', fees: '0', notes: '' });
       onSuccess?.(result.transferId);
     } catch (error) {
-      console.error('Transfer error:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to create transfer'
-      );
+      toast.error(error instanceof Error ? error.message : 'Failed to create transfer');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="p-6 bg-card border-border">
-      <h2 className="text-2xl font-bold text-foreground mb-6">New Transfer</h2>
+    <form onSubmit={handleSubmit(onSubmit)} className="px-5 py-5 space-y-5">
 
-      {/* Suggested Pairs */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Quick suggestions                                                    */}
+      {/* ------------------------------------------------------------------ */}
       {suggestedPairs.length > 0 && (
-        <div className="mb-6 pb-6 border-b border-border">
-          <p className="text-sm text-muted-foreground mb-3">Quick transfers</p>
-          <div className="flex flex-wrap gap-2">
-            {suggestedPairs.slice(0, 5).map((pair) => (
+        <div>
+          <p
+            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+            style={{ color: 'var(--color-muted-foreground)' }}
+          >
+            Recent pairs
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {suggestedPairs.slice(0, 4).map((pair) => (
               <button
                 key={`${pair.fromAccountId}-${pair.toAccountId}`}
+                type="button"
                 onClick={() => {
                   setValue('fromAccountId', pair.fromAccountId);
                   setValue('toAccountId', pair.toAccountId);
                 }}
-                className="px-3 py-2 rounded-lg bg-elevated hover:bg-elevated/80 text-sm text-muted-foreground hover:text-foreground transition border border-border hover:border-ring"
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors"
+                style={{
+                  backgroundColor: 'color-mix(in oklch, var(--color-elevated) 70%, transparent)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-muted-foreground)',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
               >
                 {pair.fromAccountName} → {pair.toAccountName}
-                <span className="ml-2 text-muted-foreground/60">
-                  ({pair.usageCount}x)
+                <span
+                  className="ml-1.5 text-[10px]"
+                  style={{ color: 'var(--color-muted-foreground)' }}
+                >
+                  {pair.usageCount}×
                 </span>
               </button>
             ))}
           </div>
+          <div className="mt-4 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* From Account */}
-        <div>
-          <Label htmlFor="fromAccountId" className="text-foreground mb-2 block">
-            From Account
-          </Label>
-          <Controller
-            name="fromAccountId"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
-                <SelectContent className="bg-elevated border-border">
-                  {accounts.map((account) => (
-                    <SelectItem
-                      key={account.id}
-                      value={account.id}
-                      className="text-foreground"
-                    >
-                      {account.name} ($
-                      {account.currentBalance.toFixed(2)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.fromAccountId && (
-            <p className="text-error text-sm mt-1">
-              {errors.fromAccountId.message}
-            </p>
+      {/* ------------------------------------------------------------------ */}
+      {/* Visual flow selector: From ↕ To                                     */}
+      {/* ------------------------------------------------------------------ */}
+      <div>
+        <Controller
+          name="fromAccountId"
+          control={control}
+          render={({ field }) => (
+            <AccountSelector
+              accounts={accounts}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              excludeId={toAccountId}
+              label="From"
+              error={errors.fromAccountId?.message}
+            />
           )}
-          {fromBalance !== undefined && (
-            <p className="text-muted-foreground text-sm mt-2">
-              Available balance: ${fromBalance.toFixed(2)}
-            </p>
-          )}
+        />
+
+        {/* Swap button + vertical connector */}
+        <div className="flex items-center justify-center my-2 relative">
+          <div
+            className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center"
+          >
+            {/* Top line */}
+            <div className="w-px h-3" style={{ backgroundColor: 'var(--color-border)' }} />
+            {/* Swap button */}
+            <button
+              type="button"
+              onClick={handleSwap}
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-colors z-10"
+              style={{
+                backgroundColor: 'color-mix(in oklch, var(--color-elevated) 90%, transparent)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-muted-foreground)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-primary) 15%, transparent)';
+                e.currentTarget.style.color = 'var(--color-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 90%, transparent)';
+                e.currentTarget.style.color = 'var(--color-muted-foreground)';
+              }}
+              title="Swap accounts"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />
+            </button>
+            {/* Bottom line */}
+            <div className="w-px h-3" style={{ backgroundColor: 'var(--color-border)' }} />
+          </div>
+          {/* Spacer */}
+          <div className="h-[46px]" />
         </div>
 
-        {/* To Account */}
-        <div>
-          <Label htmlFor="toAccountId" className="text-foreground mb-2 block">
-            To Account
-          </Label>
-          <Controller
-            name="toAccountId"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
-                <SelectContent className="bg-elevated border-border">
-                  {accounts
-                    .filter((a) => a.id !== fromAccountId)
-                    .map((account) => (
-                      <SelectItem
-                        key={account.id}
-                        value={account.id}
-                        className="text-foreground"
-                      >
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.toAccountId && (
-            <p className="text-error text-sm mt-1">
-              {errors.toAccountId.message}
-            </p>
+        <Controller
+          name="toAccountId"
+          control={control}
+          render={({ field }) => (
+            <AccountSelector
+              accounts={accounts}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              excludeId={fromAccountId}
+              label="To"
+              error={errors.toAccountId?.message}
+            />
           )}
+        />
 
-          {/* Phase 5: Credit Card Payment Bill Auto-Detection Banner */}
-          {toAccountId && paymentBillDetection && paymentBillDetection.confidence !== 'none' && (
-            <div className={`mt-3 p-3 rounded-lg border flex items-start gap-3 ${
-              paymentBillDetection.detectedBill?.status === 'overdue'
-                ? 'bg-error/10 border-error/30'
-                : paymentBillDetection.confidence === 'high'
-                  ? 'bg-primary/10 border-primary/30'
-                  : paymentBillDetection.confidence === 'medium'
-                    ? 'bg-primary/5 border-primary/20'
-                    : 'bg-elevated border-border'
-            }`}>
-              <CreditCard className={`w-5 h-5 shrink-0 mt-0.5 ${
-                paymentBillDetection.detectedBill?.status === 'overdue'
-                  ? 'text-error'
-                  : 'text-primary'
-              }`} />
-              <div className="flex-1 min-w-0">
-                {paymentBillDetection.detectedBill ? (
-                  <>
-                    <p className={`text-sm font-medium ${
-                      paymentBillDetection.detectedBill.status === 'overdue' 
-                        ? 'text-error' 
-                        : 'text-foreground'
-                    }`}>
-                      {paymentBillDetection.detectedBill.templateName}
-                      {paymentBillDetection.detectedBill.status === 'overdue' && (
-                        <span className="ml-2 text-xs font-normal bg-error/20 px-1.5 py-0.5 rounded">
-                          OVERDUE
-                        </span>
-                      )}
-                      {paymentBillDetection.detectedBill.status === 'partial' && (
-                        <span className="ml-2 text-xs font-normal bg-warning/20 text-warning px-1.5 py-0.5 rounded">
-                          PARTIAL
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Due: {format(parseISO(paymentBillDetection.detectedBill.dueDate), 'MMM d, yyyy')}
-                      {' '}&middot;{' '}
-                      ${(paymentBillDetection.detectedBill.expectedAmountCents / 100).toFixed(2)}
-                      {paymentBillDetection.detectedBill.status === 'partial' && (
-                        <span className="text-warning">
-                          {' '}(${(paymentBillDetection.detectedBill.remainingAmountCents / 100).toFixed(2)} remaining)
-                        </span>
-                      )}
-                    </p>
-                  </>
-                ) : null}
-                <p className={`text-xs mt-1 ${
-                  paymentBillDetection.detectedBill?.status === 'overdue'
-                    ? 'text-error'
-                    : paymentBillDetection.confidence === 'high'
-                      ? 'text-primary'
-                      : 'text-muted-foreground'
-                }`}>
-                  {paymentBillDetection.reason}
-                </p>
-                {paymentBillDetection.confidence === 'low' && !paymentBillDetection.detectedBill && (
-                  <a
-                    href="/dashboard/bills"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+        {/* Bill detection banner */}
+        {toAccountId && paymentBillDetection && paymentBillDetection.confidence !== 'none' && (
+          <div
+            className="mt-3 px-3.5 py-3 rounded-xl flex items-start gap-3"
+            style={{
+              backgroundColor: paymentBillDetection.detectedBill?.status === 'overdue'
+                ? 'color-mix(in oklch, var(--color-error) 8%, transparent)'
+                : 'color-mix(in oklch, var(--color-primary) 8%, transparent)',
+              border: `1px solid ${paymentBillDetection.detectedBill?.status === 'overdue'
+                ? 'color-mix(in oklch, var(--color-error) 25%, transparent)'
+                : 'color-mix(in oklch, var(--color-primary) 20%, transparent)'}`,
+            }}
+          >
+            <CreditCard
+              className="w-4 h-4 shrink-0 mt-0.5"
+              style={{
+                color: paymentBillDetection.detectedBill?.status === 'overdue'
+                  ? 'var(--color-error)'
+                  : 'var(--color-primary)',
+              }}
+            />
+            <div className="flex-1 min-w-0">
+              {paymentBillDetection.detectedBill && (
+                <>
+                  <p
+                    className="text-sm font-medium"
+                    style={{
+                      color: paymentBillDetection.detectedBill.status === 'overdue'
+                        ? 'var(--color-error)'
+                        : 'var(--color-foreground)',
+                    }}
                   >
-                    Set up payment bill <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
+                    {paymentBillDetection.detectedBill.templateName}
+                    {paymentBillDetection.detectedBill.status === 'overdue' && (
+                      <span
+                        className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase"
+                        style={{ backgroundColor: 'color-mix(in oklch, var(--color-error) 15%, transparent)', color: 'var(--color-error)' }}
+                      >
+                        Overdue
+                      </span>
+                    )}
+                    {paymentBillDetection.detectedBill.status === 'partial' && (
+                      <span
+                        className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase"
+                        style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 15%, transparent)', color: 'var(--color-warning)' }}
+                      >
+                        Partial
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                    Due {format(parseISO(paymentBillDetection.detectedBill.dueDate), 'MMM d, yyyy')}
+                    {' · '}
+                    ${(paymentBillDetection.detectedBill.expectedAmountCents / 100).toFixed(2)}
+                    {paymentBillDetection.detectedBill.status === 'partial' && (
+                      <span style={{ color: 'var(--color-warning)' }}>
+                        {' '}(${(paymentBillDetection.detectedBill.remainingAmountCents / 100).toFixed(2)} remaining)
+                      </span>
+                    )}
+                  </p>
+                </>
+              )}
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                {paymentBillDetection.reason}
+              </p>
+              {paymentBillDetection.confidence === 'low' && !paymentBillDetection.detectedBill && (
+                <a
+                  href="/dashboard/bills"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] mt-1"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  Set up payment bill <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        {/* Amount */}
-        <div>
-          <Label htmlFor="amount" className="text-foreground mb-2 block">
-            Amount
-          </Label>
+      {/* ------------------------------------------------------------------ */}
+      {/* Large amount input                                                   */}
+      {/* ------------------------------------------------------------------ */}
+      <div>
+        <label
+          className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5"
+          style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          Amount
+        </label>
+        <div className="relative">
+          <span
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold"
+            style={{ color: 'var(--color-muted-foreground)' }}
+          >
+            $
+          </span>
           <Controller
             name="amount"
             control={control}
             render={({ field }) => (
-              <Input
+              <input
                 {...field}
                 type="number"
                 placeholder="0.00"
                 step="0.01"
-                className="bg-elevated border-border text-foreground placeholder-muted-foreground"
+                min="0"
+                className="w-full rounded-xl py-3 pl-8 pr-4 text-xl font-mono font-semibold tabular-nums transition-colors"
+                style={{
+                  backgroundColor: 'color-mix(in oklch, var(--color-elevated) 70%, transparent)',
+                  border: `1px solid ${errors.amount ? 'var(--color-error)' : 'var(--color-border)'}`,
+                  color: 'var(--color-foreground)',
+                  outline: 'none',
+                }}
               />
             )}
           />
-          {errors.amount && (
-            <p className="text-error text-sm mt-1">
-              {errors.amount.message}
-            </p>
-          )}
         </div>
+        {errors.amount && (
+          <p className="text-[11px] mt-1" style={{ color: 'var(--color-error)' }}>{errors.amount.message}</p>
+        )}
+        {/* Insufficient balance warning */}
+        {amountVal && fromAccount && parseFloat(amountVal) > fromBalance && (
+          <p className="text-[11px] mt-1" style={{ color: 'var(--color-warning)' }}>
+            Exceeds available balance of ${fromBalance.toFixed(2)}
+          </p>
+        )}
+        {/* Arrow showing direction */}
+        {amountVal && parseFloat(amountVal) > 0 && fromAccount && toAccountId && (
+          <div className="flex items-center gap-1.5 mt-2">
+            <span className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
+              {fromAccount.name}
+            </span>
+            <ArrowDown className="w-3 h-3" style={{ color: 'var(--color-primary)' }} />
+            <span className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
+              {accounts.find(a => a.id === toAccountId)?.name}
+            </span>
+            <span className="text-xs font-mono tabular-nums ml-auto" style={{ color: 'var(--color-primary)' }}>
+              ${parseFloat(amountVal).toFixed(2)}
+            </span>
+          </div>
+        )}
+      </div>
 
-        {/* Fees (Optional) */}
-        <div>
-          <Label htmlFor="fees" className="text-foreground mb-2 block">
-            Fees (Optional)
-          </Label>
-          <Controller
-            name="fees"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                type="number"
-                placeholder="0.00"
-                step="0.01"
-                className="bg-elevated border-border text-foreground placeholder-muted-foreground"
-              />
-            )}
-          />
-          {errors.fees && (
-            <p className="text-error text-sm mt-1">
-              {errors.fees.message}
-            </p>
-          )}
-        </div>
-
-        {/* Date */}
-        <div>
-          <Label htmlFor="date" className="text-foreground mb-2 block">
-            Date
-          </Label>
+      {/* ------------------------------------------------------------------ */}
+      {/* Secondary fields — date, description, fees, notes                   */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Date" error={errors.date?.message}>
           <Controller
             name="date"
             control={control}
             render={({ field }) => (
-              <Input
+              <input
                 {...field}
                 type="date"
-                className="bg-elevated border-border text-foreground"
+                className={inputCls}
+                style={inputStyle}
               />
             )}
           />
-          {errors.date && (
-            <p className="text-error text-sm mt-1">
-              {errors.date.message}
-            </p>
-          )}
-        </div>
+        </Field>
 
-        {/* Description */}
-        <div>
-          <Label htmlFor="description" className="text-foreground mb-2 block">
-            Description
-          </Label>
-          <Controller
-            name="description"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                placeholder="Transfer"
-                className="bg-elevated border-border text-foreground placeholder-muted-foreground"
-              />
-            )}
-          />
-        </div>
-
-        {/* Notes */}
-        <div>
-          <Label htmlFor="notes" className="text-foreground mb-2 block">
-            Notes
-          </Label>
-          <Controller
-            name="notes"
-            control={control}
-            render={({ field }) => (
-              <Textarea
-                {...field}
-                placeholder="Optional notes about this transfer"
-                className="bg-elevated border-border text-foreground placeholder-muted-foreground"
-              />
-            )}
-          />
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="flex-1 bg-primary hover:opacity-90 text-primary-foreground"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              'Create Transfer'
-            )}
-          </Button>
-          {onCancel && (
-            <Button
-              type="button"
-              onClick={onCancel}
-              variant="outline"
-              className="flex-1 border-border text-muted-foreground hover:bg-elevated"
+        <Field label="Fees (optional)" error={errors.fees?.message}>
+          <div className="relative">
+            <span
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-sm"
+              style={{ color: 'var(--color-muted-foreground)' }}
             >
-              Cancel
-            </Button>
+              $
+            </span>
+            <Controller
+              name="fees"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="number"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  className="w-full rounded-xl py-2.5 pl-7 pr-3 text-sm font-mono tabular-nums transition-colors"
+                  style={inputStyle}
+                />
+              )}
+            />
+          </div>
+        </Field>
+      </div>
+
+      <Field label="Description" error={errors.description?.message}>
+        <Controller
+          name="description"
+          control={control}
+          render={({ field }) => (
+            <input
+              {...field}
+              type="text"
+              placeholder="Transfer"
+              className={inputCls}
+              style={inputStyle}
+            />
           )}
-        </div>
-      </form>
-    </Card>
+        />
+      </Field>
+
+      <Field label="Notes (optional)">
+        <Controller
+          name="notes"
+          control={control}
+          render={({ field }) => (
+            <textarea
+              {...field}
+              rows={2}
+              placeholder="Optional notes about this transfer"
+              className="w-full rounded-xl py-2.5 px-4 text-sm resize-none transition-colors"
+              style={inputStyle}
+            />
+          )}
+        />
+      </Field>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Actions                                                              */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="flex gap-2.5 pt-1">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 py-3 rounded-xl text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-muted-foreground)',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 50%, transparent)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity flex items-center justify-center gap-2"
+          style={{
+            backgroundColor: 'var(--color-primary)',
+            color: 'var(--color-primary-foreground)',
+            opacity: isLoading ? 0.7 : 1,
+          }}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Creating…
+            </>
+          ) : (
+            'Create Transfer'
+          )}
+        </button>
+      </div>
+    </form>
   );
 }

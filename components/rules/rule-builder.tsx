@@ -112,9 +112,9 @@ function ConditionRow({
   level?: number;
 }) {
   return (
-    <div className="flex gap-2 items-end p-3 bg-elevated rounded-lg border border-border">
+    <div className="flex gap-2 items-end p-3 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
       <Select value={condition.field} onValueChange={(field) => onUpdate({ ...condition, field: field as ConditionField })}>
-        <SelectTrigger className="w-32 bg-card border-border text-foreground">
+        <SelectTrigger className="w-32" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -127,7 +127,7 @@ function ConditionRow({
       </Select>
 
       <Select value={condition.operator} onValueChange={(operator) => onUpdate({ ...condition, operator: operator as ComparisonOperator })}>
-        <SelectTrigger className="w-40 bg-card border-border text-foreground">
+        <SelectTrigger className="w-40" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -143,14 +143,16 @@ function ConditionRow({
         value={condition.value}
         onChange={(e) => onUpdate({ ...condition, value: e.target.value })}
         placeholder="Value"
-        className="flex-1 bg-card border-border text-foreground placeholder:text-muted-foreground"
+        className="flex-1 placeholder-[var(--color-muted-foreground)]"
+        style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
       />
 
       <Button
         variant="ghost"
         size="icon"
         onClick={onRemove}
-        className="text-error hover:bg-error/20"
+        className="hover:opacity-80"
+        style={{ color: 'var(--color-destructive)' }}
       >
         <X className="w-4 h-4" />
       </Button>
@@ -213,21 +215,28 @@ function ConditionGroupEditor({
   };
 
   return (
-    <div className={`space-y-3 p-4 rounded-lg border border-border ${level > 0 ? 'bg-card' : 'bg-background'}`}>
+    <div
+      className="space-y-3 p-4 rounded-lg"
+      style={{
+        border: '1px solid var(--color-border)',
+        backgroundColor: level > 0 ? 'var(--color-elevated)' : 'var(--color-background)',
+      }}
+    >
       {/* Group Logic Toggle */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Logic:</span>
+        <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Logic:</span>
         <div className="flex gap-2">
           {(['AND', 'OR'] as const).map((logic) => (
             <button
               key={logic}
               type="button"
               onClick={() => onUpdate({ ...group, logic })}
-              className={`px-3 py-1 text-sm font-medium rounded-md border-2 transition-colors ${
-                group.logic === logic
-                  ? 'bg-transfer text-white border-transfer hover:opacity-80'
-                  : 'bg-elevated text-foreground border-border hover:bg-elevated hover:border-transfer/30'
-              }`}
+              className="px-3 py-1 text-sm font-medium rounded-md border-2 transition-colors hover:opacity-80"
+              style={{
+                backgroundColor: group.logic === logic ? 'var(--color-transfer)' : 'var(--color-elevated)',
+                color: group.logic === logic ? 'white' : 'var(--color-foreground)',
+                borderColor: group.logic === logic ? 'var(--color-transfer)' : 'var(--color-border)',
+              }}
             >
               {logic}
             </button>
@@ -238,7 +247,8 @@ function ConditionGroupEditor({
             variant="ghost"
             size="icon"
             onClick={onRemove}
-            className="ml-auto text-error hover:bg-error/20"
+            className="ml-auto hover:opacity-80"
+            style={{ color: 'var(--color-destructive)' }}
           >
             <X className="w-4 h-4" />
           </Button>
@@ -251,7 +261,7 @@ function ConditionGroupEditor({
           <div key={condition.id || index}>
             {/* Add logic separator */}
             {index > 0 && (
-              <div className="text-xs text-muted-foreground px-3 py-1">{group.logic}</div>
+              <div className="text-xs px-3 py-1" style={{ color: 'var(--color-muted-foreground)' }}>{group.logic}</div>
             )}
 
             {'conditions' in condition ? (
@@ -276,12 +286,13 @@ function ConditionGroupEditor({
       </div>
 
       {/* Add buttons */}
-      <div className="flex gap-2 pt-2 border-t border-border">
+      <div className="flex gap-2 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
         <Button
           variant="outline"
           size="sm"
           onClick={addCondition}
-          className="bg-elevated text-foreground border-border hover:bg-elevated"
+          className="hover:opacity-90"
+          style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', borderColor: 'var(--color-border)' }}
         >
           <Plus className="w-3 h-3 mr-1" />
           Add Condition
@@ -290,7 +301,8 @@ function ConditionGroupEditor({
           variant="outline"
           size="sm"
           onClick={addGroup}
-          className="bg-elevated text-foreground border-border hover:bg-elevated"
+          className="hover:opacity-90"
+          style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', borderColor: 'var(--color-border)' }}
         >
           <Plus className="w-3 h-3 mr-1" />
           Add Group
@@ -587,8 +599,8 @@ export function RuleBuilder({
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium text-foreground mb-2 block">Conditions</label>
-        <p className="text-xs text-muted-foreground mb-3">
+        <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--color-foreground)' }}>Conditions</label>
+        <p className="text-xs mb-3" style={{ color: 'var(--color-muted-foreground)' }}>
           Define conditions that must match for this rule to apply to a transaction.
         </p>
       </div>
@@ -599,7 +611,7 @@ export function RuleBuilder({
           onUpdate={handleUpdate}
         />
       ) : (
-        <Card className="bg-background border-border">
+        <Card style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
           <div className="p-4">
             <ConditionRow
               condition={conditions as Condition}
@@ -625,8 +637,8 @@ export function RuleBuilder({
         </Card>
       )}
 
-      <div className="text-xs text-muted-foreground p-3 bg-card rounded-lg border border-border flex gap-2">
-        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+      <div className="text-xs p-3 rounded-lg flex gap-2" style={{ color: 'var(--color-muted-foreground)', backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
         <div>
           <p className="mb-1">Tips for writing conditions:</p>
           <ul className="list-disc list-inside space-y-1">
@@ -639,13 +651,13 @@ export function RuleBuilder({
       </div>
 
       {/* Actions Section */}
-      <div className="space-y-4 pt-6 mt-6 border-t border-border">
+      <div className="space-y-4 pt-6 mt-6" style={{ borderTop: '1px solid var(--color-border)' }}>
         <div>
-          <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
+          <label className="text-sm font-medium mb-2 flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
+            <Zap className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
             Actions to Apply
           </label>
-          <p className="text-xs text-muted-foreground mb-3">
+          <p className="text-xs mb-3" style={{ color: 'var(--color-muted-foreground)' }}>
             Define what changes to make when a transaction matches the conditions above.
           </p>
         </div>
@@ -654,7 +666,7 @@ export function RuleBuilder({
         {actions.length > 0 && (
           <div className="space-y-3">
             {actions.map((action, index) => (
-              <div key={index} className="bg-card border border-border rounded-lg p-4">
+              <div key={index} className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
                 <div className="flex items-start gap-4">
                   {/* Action Type Selector */}
                   <div className="w-48">
@@ -670,7 +682,7 @@ export function RuleBuilder({
                         updateAction(index, updated);
                       }}
                     >
-                      <SelectTrigger className="bg-input border-border text-foreground">
+                      <SelectTrigger style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -730,7 +742,7 @@ export function RuleBuilder({
                         </SelectItem>
                         <SelectItem value="set_sales_tax">
                           <div className="flex items-center gap-2">
-                            <Receipt className="h-4 w-4 text-warning" />
+                            <Receipt className="h-4 w-4" style={{ color: 'var(--color-warning)' }} />
                             Set Sales Tax
                           </div>
                         </SelectItem>
@@ -759,14 +771,16 @@ export function RuleBuilder({
                                   cancelCategoryCreation();
                                 }
                               }}
-                              className="flex-1 bg-input border-border text-foreground"
+                              className="flex-1"
+                              style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                             />
                             <Button
                               type="button"
                               size="icon"
                               onClick={() => handleCreateCategory(index)}
                               disabled={creatingCategory || !newCategoryName.trim()}
-                              className="bg-primary hover:opacity-90 text-primary-foreground"
+                              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+                              className="hover:opacity-90"
                             >
                               <Check className="w-4 h-4" />
                             </Button>
@@ -775,7 +789,8 @@ export function RuleBuilder({
                               variant="outline"
                               size="icon"
                               onClick={cancelCategoryCreation}
-                              className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                              className="hover:opacity-90"
+                              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -786,14 +801,14 @@ export function RuleBuilder({
                               value={action.value || ''}
                               onValueChange={(value) => updateAction(index, { ...action, value })}
                             >
-                              <SelectTrigger className="flex-1 bg-input border-border text-foreground">
+                              <SelectTrigger className="flex-1" style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
                                 <SelectValue placeholder="Select category">
                                   {action.value && categories.find(c => c.id === action.value)?.name}
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 {loadingData ? (
-                                  <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                                  <div className="p-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading...</div>
                                 ) : categories.length > 0 ? (
                                   categories.map((category) => (
                                     <SelectItem key={category.id} value={category.id}>
@@ -804,7 +819,7 @@ export function RuleBuilder({
                                     </SelectItem>
                                   ))
                                 ) : (
-                                  <div className="p-2 text-sm text-muted-foreground">No categories found</div>
+                                  <div className="p-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No categories found</div>
                                 )}
                               </SelectContent>
                             </Select>
@@ -813,7 +828,8 @@ export function RuleBuilder({
                               variant="outline"
                               size="icon"
                               onClick={() => startCategoryCreation(index)}
-                              className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                              className="hover:opacity-90"
+                              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
                               title="Create new category"
                             >
                               <Plus className="w-4 h-4" />
@@ -842,14 +858,16 @@ export function RuleBuilder({
                                   cancelMerchantCreation();
                                 }
                               }}
-                              className="flex-1 bg-input border-border text-foreground"
+                              className="flex-1"
+                              style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                             />
                             <Button
                               type="button"
                               size="icon"
                               onClick={() => handleCreateMerchant(index)}
                               disabled={creatingMerchant || !newMerchantName.trim()}
-                              className="bg-primary hover:opacity-90 text-primary-foreground"
+                              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+                              className="hover:opacity-90"
                             >
                               <Check className="w-4 h-4" />
                             </Button>
@@ -858,7 +876,8 @@ export function RuleBuilder({
                               variant="outline"
                               size="icon"
                               onClick={cancelMerchantCreation}
-                              className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                              className="hover:opacity-90"
+                              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -869,14 +888,14 @@ export function RuleBuilder({
                               value={action.value || ''}
                               onValueChange={(value) => updateAction(index, { ...action, value })}
                             >
-                              <SelectTrigger className="flex-1 bg-input border-border text-foreground">
+                              <SelectTrigger className="flex-1" style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
                                 <SelectValue placeholder="Select merchant">
                                   {action.value && merchants.find(m => m.id === action.value)?.name}
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 {loadingData ? (
-                                  <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                                  <div className="p-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading...</div>
                                 ) : merchants.length > 0 ? (
                                   merchants.map((merchant) => (
                                     <SelectItem key={merchant.id} value={merchant.id}>
@@ -887,7 +906,7 @@ export function RuleBuilder({
                                     </SelectItem>
                                   ))
                                 ) : (
-                                  <div className="p-2 text-sm text-muted-foreground">No merchants found</div>
+                                  <div className="p-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No merchants found</div>
                                 )}
                               </SelectContent>
                             </Select>
@@ -896,7 +915,8 @@ export function RuleBuilder({
                               variant="outline"
                               size="icon"
                               onClick={() => startMerchantCreation(index)}
-                              className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                              className="hover:opacity-90"
+                              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
                               title="Create new merchant"
                             >
                               <Plus className="w-4 h-4" />
@@ -918,28 +938,29 @@ export function RuleBuilder({
                               ? 'Text to add before (e.g., "[Work] ")'
                               : 'Text to add after (e.g., " - Personal")'
                           }
-                          className="bg-input border-border text-foreground font-mono text-sm"
+                          className="font-mono text-sm"
+                          style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                         />
-                        <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap gap-1 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                           <span>Variables:</span>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-primary">{'{original}'}</code>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-primary">{'{merchant}'}</code>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-primary">{'{category}'}</code>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-primary">{'{amount}'}</code>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-primary">{'{date}'}</code>
+                          <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-primary)' }}>{'{original}'}</code>
+                          <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-primary)' }}>{'{merchant}'}</code>
+                          <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-primary)' }}>{'{category}'}</code>
+                          <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-primary)' }}>{'{amount}'}</code>
+                          <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-primary)' }}>{'{date}'}</code>
                         </div>
                       </div>
                     )}
 
                     {action.type === 'set_tax_deduction' && (
-                      <div className="flex-1 bg-elevated rounded-lg p-3">
+                      <div className="flex-1 rounded-lg p-3" style={{ backgroundColor: 'var(--color-elevated)' }}>
                         <div className="flex items-start gap-2">
-                          <AlertCircle className="h-4 w-4 text-warning mt-0.5" />
+                          <AlertCircle className="h-4 w-4 mt-0.5" style={{ color: 'var(--color-warning)' }} />
                           <div className="flex-1">
-                            <p className="text-sm text-foreground">
+                            <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                               This action will mark transactions as tax deductible if their category is configured as tax deductible.
                             </p>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                               Requires a category to be set (either manually or via a set_category action).
                             </p>
                           </div>
@@ -951,7 +972,7 @@ export function RuleBuilder({
                       <div className="flex-1 space-y-3">
                         {/* Value Selector */}
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">
+                          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-foreground)' }}>
                             Mark Transaction As
                           </label>
                           <div className="grid grid-cols-2 gap-3">
@@ -959,19 +980,17 @@ export function RuleBuilder({
                             <button
                               type="button"
                               onClick={() => updateActionConfig(index, { value: true })}
-                              className={`
-                                px-4 py-3 rounded-lg border-2 transition-all
-                                ${action.config?.value === true
-                                  ? 'border-success bg-success/10'
-                                  : 'border-border bg-card hover:bg-elevated'
-                                }
-                              `}
+                              className="px-4 py-3 rounded-lg border-2 transition-all hover:opacity-90"
+                              style={{
+                                borderColor: action.config?.value === true ? 'var(--color-success)' : 'var(--color-border)',
+                                backgroundColor: action.config?.value === true ? 'color-mix(in oklch, var(--color-success) 10%, transparent)' : 'var(--color-elevated)',
+                              }}
                             >
                               <div className="flex items-center justify-center gap-2">
-                                <CheckCircle2 className="h-5 w-5 text-success" />
+                                <CheckCircle2 className="h-5 w-5" style={{ color: 'var(--color-success)' }} />
                                 <div className="text-left">
-                                  <div className="font-medium text-foreground">Taxable</div>
-                                  <div className="text-xs text-muted-foreground">Subject to sales tax</div>
+                                  <div className="font-medium" style={{ color: 'var(--color-foreground)' }}>Taxable</div>
+                                  <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Subject to sales tax</div>
                                 </div>
                               </div>
                             </button>
@@ -980,19 +999,17 @@ export function RuleBuilder({
                             <button
                               type="button"
                               onClick={() => updateActionConfig(index, { value: false })}
-                              className={`
-                                px-4 py-3 rounded-lg border-2 transition-all
-                                ${action.config?.value === false
-                                  ? 'border-error bg-error/10'
-                                  : 'border-border bg-card hover:bg-elevated'
-                                }
-                              `}
+                              className="px-4 py-3 rounded-lg border-2 transition-all hover:opacity-90"
+                              style={{
+                                borderColor: action.config?.value === false ? 'var(--color-destructive)' : 'var(--color-border)',
+                                backgroundColor: action.config?.value === false ? 'color-mix(in oklch, var(--color-destructive) 10%, transparent)' : 'var(--color-elevated)',
+                              }}
                             >
                               <div className="flex items-center justify-center gap-2">
-                                <XCircle className="h-5 w-5 text-error" />
+                                <XCircle className="h-5 w-5" style={{ color: 'var(--color-destructive)' }} />
                                 <div className="text-left">
-                                  <div className="font-medium text-foreground">Not Taxable</div>
-                                  <div className="text-xs text-muted-foreground">Exempt from sales tax</div>
+                                  <div className="font-medium" style={{ color: 'var(--color-foreground)' }}>Not Taxable</div>
+                                  <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Exempt from sales tax</div>
                                 </div>
                               </div>
                             </button>
@@ -1000,11 +1017,11 @@ export function RuleBuilder({
                         </div>
 
                         {/* Educational Info */}
-                        <div className="flex items-start gap-2 p-3 bg-card border border-border rounded-lg">
-                          <Lightbulb className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                          <div className="text-sm text-muted-foreground">
+                        <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+                          <Lightbulb className="h-5 w-5 shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+                          <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                             <p className="mb-2">
-                              <strong className="text-foreground">How it works:</strong>
+                              <strong style={{ color: 'var(--color-foreground)' }}>How it works:</strong>
                             </p>
                             <ul className="list-disc list-inside space-y-1 ml-2">
                               <li>Select &quot;Taxable&quot; to mark matching income as subject to sales tax</li>
@@ -1015,11 +1032,11 @@ export function RuleBuilder({
                         </div>
 
                         {/* Examples */}
-                        <div className="flex items-start gap-2 p-3 bg-card border border-border rounded-lg">
-                          <Lightbulb className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                          <div className="text-sm text-muted-foreground">
+                        <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+                          <Lightbulb className="h-5 w-5 shrink-0 mt-0.5" style={{ color: 'var(--color-accent)' }} />
+                          <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                             <p className="mb-2">
-                              <strong className="text-foreground">Common use cases:</strong>
+                              <strong style={{ color: 'var(--color-foreground)' }}>Common use cases:</strong>
                             </p>
                             <ul className="list-disc list-inside space-y-1 ml-2">
                               <li><strong>Taxable:</strong> Product sales, retail transactions, taxable services</li>
@@ -1029,10 +1046,16 @@ export function RuleBuilder({
                         </div>
 
                         {/* Warning for Income Only */}
-                        <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                          <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                          <p className="text-sm text-muted-foreground">
-                            This action only applies to <strong className="text-foreground">income</strong> transactions.
+                        <div
+                          className="flex items-start gap-2 p-3 rounded-lg"
+                          style={{
+                            backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)',
+                            border: '1px solid color-mix(in oklch, var(--color-warning) 25%, transparent)',
+                          }}
+                        >
+                          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+                          <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+                            This action only applies to <strong style={{ color: 'var(--color-foreground)' }}>income</strong> transactions.
                             Expense transactions will be skipped automatically.
                           </p>
                         </div>
@@ -1043,9 +1066,9 @@ export function RuleBuilder({
                       <div className="flex-1 space-y-4">
                         {/* Target Account Selector */}
                         <div className="space-y-2">
-                          <Label className="text-sm text-foreground">
+                          <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                             Target Account
-                            <span className="text-muted-foreground ml-1">(Optional)</span>
+                            <span className="ml-1" style={{ color: 'var(--color-muted-foreground)' }}>(Optional)</span>
                           </Label>
                           <Select
                             value={(action.config as ActionConfig | undefined)?.targetAccountId || ''}
@@ -1056,13 +1079,13 @@ export function RuleBuilder({
                               })
                             }
                           >
-                            <SelectTrigger className="bg-input border-border">
+                            <SelectTrigger style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)' }}>
                               <SelectValue placeholder="Auto-detect or select account" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="">
                                 <div className="flex items-center gap-2">
-                                  <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+                                  <ArrowRightLeft className="h-3 w-3" style={{ color: 'var(--color-muted-foreground)' }} />
                                   <span>Auto-detect account</span>
                                 </div>
                               </SelectItem>
@@ -1071,12 +1094,13 @@ export function RuleBuilder({
                                   <div className="flex items-center gap-2">
                                     {acc.color && (
                                       <div
-                                        className="w-3 h-3 rounded-full border border-border"
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ border: '1px solid var(--color-border)' }}
                                         style={{ backgroundColor: acc.color }}
                                       />
                                     )}
-                                    <span className="text-foreground">{acc.name}</span>
-                                    <span className="text-xs text-muted-foreground">
+                                    <span style={{ color: 'var(--color-foreground)' }}>{acc.name}</span>
+                                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                                       ({acc.type})
                                     </span>
                                   </div>
@@ -1084,18 +1108,18 @@ export function RuleBuilder({
                               ))}
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                             Leave blank to auto-match with any account. Specify an account to only match transfers with that account.
                           </p>
                         </div>
 
                         {/* Auto-Match Toggle */}
-                        <div className="flex items-center justify-between bg-elevated rounded-lg p-3 border border-border">
+                        <div className="flex items-center justify-between rounded-lg p-3" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
                           <div className="flex-1 mr-4">
-                            <Label className="text-sm text-foreground font-medium">
+                            <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                               Auto-Match with Existing Transaction
                             </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                               Search for matching opposite transaction to link as transfer pair (recommended)
                             </p>
                           </div>
@@ -1109,15 +1133,15 @@ export function RuleBuilder({
 
                         {/* Advanced Options - Only show if Auto-Match is enabled */}
                         {Boolean((action.config as ActionConfig | undefined)?.autoMatch ?? true) && (
-                          <div className="space-y-3 border-l-2 border-primary pl-4 mt-4">
+                          <div className="space-y-3 pl-4 mt-4" style={{ borderLeft: '2px solid var(--color-primary)' }}>
                             <div className="flex items-center gap-2 mb-2">
-                              <Settings className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-medium text-foreground">Advanced Matching Options</span>
+                              <Settings className="h-4 w-4" style={{ color: 'var(--color-primary)' }} />
+                              <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Advanced Matching Options</span>
                             </div>
 
                             {/* Amount Tolerance */}
                             <div className="space-y-2">
-                              <Label className="text-sm text-foreground">
+                              <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                                 Amount Tolerance (%)
                               </Label>
                               <Input
@@ -1132,9 +1156,9 @@ export function RuleBuilder({
                                     matchTolerance: parseFloat(e.target.value) || 1,
                                   })
                                 }
-                                className="bg-input border-border"
+                                style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)' }}
                               />
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                                 Allow amount difference up to this percentage (default: 1%).
                                 For $100 transaction with 1% tolerance, will match $99-$101.
                               </p>
@@ -1142,7 +1166,7 @@ export function RuleBuilder({
 
                             {/* Date Range */}
                             <div className="space-y-2">
-                              <Label className="text-sm text-foreground">
+                              <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                                 Date Range (days)
                               </Label>
                               <Input
@@ -1156,21 +1180,21 @@ export function RuleBuilder({
                                     matchDayRange: parseInt(e.target.value) || 7,
                                   })
                                 }
-                                className="bg-input border-border"
+                                style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)' }}
                               />
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                                 Search ±N days from transaction date (default: 7 days).
                                 Larger range = more matches but less precision.
                               </p>
                             </div>
 
                             {/* Create if No Match Toggle */}
-                            <div className="flex items-center justify-between bg-card rounded-lg p-3 border border-border">
+                            <div className="flex items-center justify-between rounded-lg p-3" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
                               <div className="flex-1 mr-4">
-                                <Label className="text-sm text-foreground font-medium">
+                                <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                                   Create Transfer Pair if No Match
                                 </Label>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                                   Automatically create matching transaction if no suitable match is found
                                 </p>
                               </div>
@@ -1185,10 +1209,16 @@ export function RuleBuilder({
                             {/* Warning if Create Pair enabled but no target account */}
                             {Boolean((action.config as ActionConfig | undefined)?.createIfNoMatch ?? true) &&
                               !(action.config as ActionConfig | undefined)?.targetAccountId && (
-                              <div className="flex items-start gap-2 bg-warning/10 border border-warning/30 rounded-lg p-3">
-                                <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                              <div
+                                className="flex items-start gap-2 rounded-lg p-3"
+                                style={{
+                                  backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)',
+                                  border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)',
+                                }}
+                              >
+                                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
                                 <div className="flex-1">
-                                  <p className="text-xs text-foreground">
+                                  <p className="text-xs" style={{ color: 'var(--color-foreground)' }}>
                                     <strong>Note:</strong> To create transfer pairs automatically, you should specify a target account above.
                                     Without a target account, the system can only link with existing transactions.
                                   </p>
@@ -1200,10 +1230,10 @@ export function RuleBuilder({
 
                         {/* Auto-Match Disabled State - Show Info */}
                         {!(action.config?.autoMatch ?? true) && (
-                          <div className="flex items-start gap-2 bg-elevated border border-border rounded-lg p-3">
-                            <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                          <div className="flex items-start gap-2 rounded-lg p-3" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />
                             <div className="flex-1">
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                                 Auto-matching is disabled. The transaction will be converted to a transfer type,
                                 but will not be automatically linked with other transactions.
                                 You can manually link it later.
@@ -1213,10 +1243,10 @@ export function RuleBuilder({
                         )}
 
                         {/* General Information Box */}
-                        <div className="flex items-start gap-2 bg-elevated rounded-lg p-3 mt-4">
-                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <div className="flex items-start gap-2 rounded-lg p-3 mt-4" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                          <Lightbulb className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
                           <div className="flex-1">
-                            <p className="text-xs text-foreground leading-relaxed">
+                            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-foreground)' }}>
                               <strong>How it works:</strong> This action converts transactions to transfers between accounts.
                               It can automatically find and link matching opposite transactions (e.g., expense in one account
                               matching income in another), or create a new transfer pair if none is found.
@@ -1232,10 +1262,10 @@ export function RuleBuilder({
                         {(((action.config as ActionConfig | undefined)?.splits ?? []) as SplitItem[]).length > 0 ? (
                           <div className="space-y-3">
                             {(((action.config as ActionConfig | undefined)?.splits ?? []) as SplitItem[]).map((split: SplitItem, splitIndex: number) => (
-                              <div key={splitIndex} className="bg-elevated border border-border rounded-lg p-4 space-y-3">
+                              <div key={splitIndex} className="rounded-lg p-4 space-y-3" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
                                 {/* Split Header with Remove Button */}
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium text-foreground">
+                                  <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                                     Split {splitIndex + 1}
                                   </span>
                                   <Button
@@ -1243,7 +1273,8 @@ export function RuleBuilder({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => removeSplit(index, splitIndex)}
-                                    className="text-error hover:bg-error/20 h-7 w-7 p-0"
+                                    className="h-7 w-7 p-0 hover:opacity-80"
+                                    style={{ color: 'var(--color-destructive)' }}
                                   >
                                     <X className="h-4 w-4" />
                                   </Button>
@@ -1251,7 +1282,7 @@ export function RuleBuilder({
 
                                 {/* Category Selector */}
                                 <div className="space-y-2">
-                                  <Label className="text-sm text-foreground">Category</Label>
+                                  <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>Category</Label>
                                   {isCreatingCategory && categoryCreationActionIndex === index && categoryCreationSplitIndex === splitIndex ? (
                                     <div className="flex gap-2">
                                       <Input
@@ -1268,14 +1299,16 @@ export function RuleBuilder({
                                             cancelCategoryCreation();
                                           }
                                         }}
-                                        className="flex-1 bg-input border-border text-foreground"
+                                        className="flex-1"
+                              style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                                       />
                                       <Button
                                         type="button"
                                         size="icon"
                                         onClick={() => handleCreateCategory(index, splitIndex)}
                                         disabled={creatingCategory || !newCategoryName.trim()}
-                                        className="bg-primary hover:opacity-90 text-primary-foreground"
+                                        style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+                              className="hover:opacity-90"
                                       >
                                         <Check className="w-4 h-4" />
                                       </Button>
@@ -1284,7 +1317,8 @@ export function RuleBuilder({
                                         variant="outline"
                                         size="icon"
                                         onClick={cancelCategoryCreation}
-                                        className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                                        className="hover:opacity-90"
+                              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
                                       >
                                         <X className="w-4 h-4" />
                                       </Button>
@@ -1297,26 +1331,26 @@ export function RuleBuilder({
                                           updateSplitField(index, splitIndex, 'categoryId', val)
                                         }
                                       >
-                                        <SelectTrigger className="flex-1 bg-input border-border">
+                                        <SelectTrigger className="flex-1" style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)' }}>
                                           <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
                                         <SelectContent>
                                           {loadingData ? (
-                                            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                                            <div className="p-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading...</div>
                                           ) : categories.length > 0 ? (
                                             categories.map((category) => (
                                               <SelectItem key={category.id} value={category.id}>
                                                 <div className="flex items-center gap-2">
                                                   <Tag className="w-3 h-3" />
                                                   {category.name}
-                                                  <span className="text-xs text-muted-foreground">
+                                                  <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                                                     ({category.type})
                                                   </span>
                                                 </div>
                                               </SelectItem>
                                             ))
                                           ) : (
-                                            <div className="p-2 text-sm text-muted-foreground">No categories found</div>
+                                            <div className="p-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No categories found</div>
                                           )}
                                         </SelectContent>
                                       </Select>
@@ -1325,7 +1359,8 @@ export function RuleBuilder({
                                         variant="outline"
                                         size="icon"
                                         onClick={() => startCategoryCreation(index, splitIndex)}
-                                        className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                                        className="hover:opacity-90"
+                              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
                                         title="Create new category"
                                       >
                                         <Plus className="w-4 h-4" />
@@ -1336,7 +1371,7 @@ export function RuleBuilder({
 
                                 {/* Amount Type Toggle (Fixed vs Percentage) */}
                                 <div className="space-y-2">
-                                  <Label className="text-sm text-foreground">Amount Type</Label>
+                                  <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>Amount Type</Label>
                                   <div className="flex gap-2">
                                     <Button
                                       type="button"
@@ -1348,11 +1383,12 @@ export function RuleBuilder({
                                           updateSplitField(index, splitIndex, 'amount', 0);
                                         }
                                       }}
-                                      className={`flex-1 ${
-                                        !split.isPercentage
-                                          ? 'bg-primary text-white border-primary hover:bg-primary hover:opacity-90'
-                                          : 'bg-elevated border-border text-foreground hover:bg-elevated hover:border-primary/30'
-                                      }`}
+                                      className="flex-1 hover:opacity-90"
+                                      style={{
+                                        backgroundColor: !split.isPercentage ? 'var(--color-primary)' : 'var(--color-elevated)',
+                                        color: !split.isPercentage ? 'white' : 'var(--color-foreground)',
+                                        borderColor: !split.isPercentage ? 'var(--color-primary)' : 'var(--color-border)',
+                                      }}
                                     >
                                       <DollarSign className="h-4 w-4 mr-1" />
                                       Fixed Amount
@@ -1367,11 +1403,12 @@ export function RuleBuilder({
                                           updateSplitField(index, splitIndex, 'percentage', 0);
                                         }
                                       }}
-                                      className={`flex-1 ${
-                                        split.isPercentage
-                                          ? 'bg-primary text-white border-primary hover:bg-primary hover:opacity-90'
-                                          : 'bg-elevated border-border text-foreground hover:bg-elevated hover:border-primary/30'
-                                      }`}
+                                      className="flex-1 hover:opacity-90"
+                                      style={{
+                                        backgroundColor: split.isPercentage ? 'var(--color-primary)' : 'var(--color-elevated)',
+                                        color: split.isPercentage ? 'white' : 'var(--color-foreground)',
+                                        borderColor: split.isPercentage ? 'var(--color-primary)' : 'var(--color-border)',
+                                      }}
                                     >
                                       <Percent className="h-4 w-4 mr-1" />
                                       Percentage
@@ -1383,7 +1420,7 @@ export function RuleBuilder({
                                 <div className="space-y-2">
                                   {split.isPercentage ? (
                                     <>
-                                      <Label className="text-sm text-foreground">Percentage (%)</Label>
+                                      <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>Percentage (%)</Label>
                                       <Input
                                         type="number"
                                         min="0.1"
@@ -1399,15 +1436,15 @@ export function RuleBuilder({
                                           )
                                         }
                                         placeholder="e.g., 50"
-                                        className="bg-input border-border"
+                                        style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)' }}
                                       />
-                                      <p className="text-xs text-muted-foreground">
+                                      <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                                         Enter percentage of total transaction amount (0.1% - 100%)
                                       </p>
                                     </>
                                   ) : (
                                     <>
-                                      <Label className="text-sm text-foreground">Amount ($)</Label>
+                                      <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>Amount ($)</Label>
                                       <Input
                                         type="number"
                                         min="0.01"
@@ -1422,9 +1459,9 @@ export function RuleBuilder({
                                           )
                                         }
                                         placeholder="e.g., 25.00"
-                                        className="bg-input border-border"
+                                        style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)' }}
                                       />
-                                      <p className="text-xs text-muted-foreground">
+                                      <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                                         Enter fixed dollar amount
                                       </p>
                                     </>
@@ -1433,9 +1470,9 @@ export function RuleBuilder({
 
                                 {/* Optional Description */}
                                 <div className="space-y-2">
-                                  <Label className="text-sm text-foreground">
+                                  <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                                     Description
-                                    <span className="text-muted-foreground ml-1">(Optional)</span>
+                                    <span className="ml-1" style={{ color: 'var(--color-muted-foreground)' }}>(Optional)</span>
                                   </Label>
                                   <Input
                                     type="text"
@@ -1444,7 +1481,7 @@ export function RuleBuilder({
                                       updateSplitField(index, splitIndex, 'description', e.target.value)
                                     }
                                     placeholder="Optional note for this split"
-                                    className="bg-input border-border"
+                                    style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)' }}
                                   />
                                 </div>
                               </div>
@@ -1452,10 +1489,10 @@ export function RuleBuilder({
                           </div>
                         ) : (
                           // Empty State
-                          <div className="text-center p-6 bg-card border border-border rounded-lg border-dashed">
-                            <Scissors className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
-                            <p className="text-sm text-muted-foreground mb-1">No splits configured</p>
-                            <p className="text-xs text-muted-foreground">
+                          <div className="text-center p-6 rounded-lg border-dashed" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+                            <Scissors className="w-10 h-10 mx-auto mb-3 opacity-50" style={{ color: 'var(--color-muted-foreground)' }} />
+                            <p className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>No splits configured</p>
+                            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                               Add splits to divide this transaction across multiple categories.
                             </p>
                           </div>
@@ -1466,7 +1503,8 @@ export function RuleBuilder({
                           type="button"
                           variant="outline"
                           onClick={() => addSplit(index)}
-                          className="w-full border-dashed border-2 border-border bg-elevated hover:bg-elevated hover:border-primary/30 text-foreground"
+                          className="w-full border-dashed border-2 hover:opacity-90"
+                          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)' }}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Add Split
@@ -1488,26 +1526,24 @@ export function RuleBuilder({
                               if (hasPercentage) {
                                 return (
                                   <div
-                                    className={`flex items-center gap-2 p-3 rounded-lg border ${
-                                      totalPercentage > 100
-                                        ? 'bg-error/10 border-error/30'
-                                        : totalPercentage === 100
-                                        ? 'bg-success/10 border-success/30'
-                                        : 'bg-elevated border-border'
-                                    }`}
+                                    className="flex items-center gap-2 p-3 rounded-lg border"
+                                    style={{
+                                      backgroundColor: totalPercentage > 100 ? 'color-mix(in oklch, var(--color-destructive) 10%, transparent)' : totalPercentage === 100 ? 'color-mix(in oklch, var(--color-success) 10%, transparent)' : 'var(--color-elevated)',
+                                      borderColor: totalPercentage > 100 ? 'color-mix(in oklch, var(--color-destructive) 30%, transparent)' : totalPercentage === 100 ? 'color-mix(in oklch, var(--color-success) 30%, transparent)' : 'var(--color-border)',
+                                    }}
                                   >
-                                    <Percent className="h-4 w-4 text-foreground" />
+                                    <Percent className="h-4 w-4" style={{ color: 'var(--color-foreground)' }} />
                                     <div className="flex-1">
-                                      <p className="text-sm font-medium text-foreground">
+                                      <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                                         Total Percentage: {totalPercentage.toFixed(1)}%
                                       </p>
                                       {totalPercentage > 100 && (
-                                        <p className="text-xs text-error mt-0.5">
+                                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-destructive)' }}>
                                           Total exceeds 100% - please adjust your splits
                                         </p>
                                       )}
                                       {totalPercentage < 100 && (
-                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
                                           {(100 - totalPercentage).toFixed(1)}% will remain unallocated
                                         </p>
                                       )}
@@ -1530,13 +1566,13 @@ export function RuleBuilder({
 
                               if (hasFixed) {
                                 return (
-                                  <div className="flex items-center gap-2 p-3 rounded-lg border bg-elevated border-border">
-                                    <DollarSign className="h-4 w-4 text-foreground" />
+                                  <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+                                    <DollarSign className="h-4 w-4" style={{ color: 'var(--color-foreground)' }} />
                                     <div className="flex-1">
-                                      <p className="text-sm font-medium text-foreground">
+                                      <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                                         Total Fixed Amount: ${totalFixed.toFixed(2)}
                                       </p>
-                                      <p className="text-xs text-muted-foreground mt-0.5">
+                                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
                                         This amount will be allocated regardless of transaction total
                                       </p>
                                     </div>
@@ -1549,10 +1585,10 @@ export function RuleBuilder({
                         )}
 
                         {/* Information Box */}
-                        <div className="flex items-start gap-2 bg-elevated rounded-lg p-3">
-                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <div className="flex items-start gap-2 rounded-lg p-3" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                          <Lightbulb className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
                           <div className="flex-1">
-                            <p className="text-xs text-foreground leading-relaxed">
+                            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-foreground)' }}>
                               <strong>How it works:</strong> This action automatically splits transactions across multiple categories.
                               You can use percentages (e.g., 60% Groceries, 40% Household) or fixed amounts (e.g., $50 Food, $30 Gas).
                               Mixed splits are also supported. Any unallocated amount remains with the original transaction.
@@ -1566,51 +1602,52 @@ export function RuleBuilder({
                       <div className="flex-1 space-y-4">
                         {/* Account Selector */}
                         <div className="space-y-2">
-                          <Label className="text-sm text-foreground">Target Account</Label>
+                          <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>Target Account</Label>
                           <Select
                             value={action.value || ''}
                             onValueChange={(value) => updateAction(index, { ...action, value })}
                           >
-                            <SelectTrigger className="bg-input border-border">
+                            <SelectTrigger style={{ backgroundColor: 'var(--color-input)', borderColor: 'var(--color-border)' }}>
                               <SelectValue placeholder="Select account">
                                 {action.value && accounts.find(a => a.id === action.value)?.name}
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {loadingData ? (
-                                <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                                  <div className="p-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading...</div>
                               ) : accounts.length > 0 ? (
                                 accounts.map((account) => (
                                   <SelectItem key={account.id} value={account.id}>
                                     <div className="flex items-center gap-2">
                                       {account.color && (
                                         <div
-                                          className="w-3 h-3 rounded-full border border-border"
+                                          className="w-3 h-3 rounded-full"
+                                        style={{ border: '1px solid var(--color-border)' }}
                                           style={{ backgroundColor: account.color }}
                                         />
                                       )}
-                                      <span className="text-foreground">{account.name}</span>
-                                      <span className="text-xs text-muted-foreground">
+                                      <span style={{ color: 'var(--color-foreground)' }}>{account.name}</span>
+                                      <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                                         ({account.type})
                                       </span>
                                     </div>
                                   </SelectItem>
                                 ))
                               ) : (
-                                <div className="p-2 text-sm text-muted-foreground">No accounts found</div>
+                                  <div className="p-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No accounts found</div>
                               )}
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                             Transactions matching this rule will be moved to this account
                           </p>
                         </div>
 
                         {/* Warning Box */}
                         <div className="flex items-start gap-2 bg-warning/10 border border-warning/30 rounded-lg p-3">
-                          <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
                           <div className="flex-1">
-                            <p className="text-xs text-foreground">
+                            <p className="text-xs" style={{ color: 'var(--color-foreground)' }}>
                               <strong>Important:</strong> Changing an account will update account balances automatically.
                               Transfer transactions cannot be moved between accounts.
                             </p>
@@ -1618,10 +1655,10 @@ export function RuleBuilder({
                         </div>
 
                         {/* Information Box */}
-                        <div className="flex items-start gap-2 bg-elevated rounded-lg p-3">
-                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <div className="flex items-start gap-2 rounded-lg p-3" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                          <Lightbulb className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
                           <div className="flex-1">
-                            <p className="text-xs text-foreground leading-relaxed">
+                            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-foreground)' }}>
                               <strong>How it works:</strong> This action moves transactions to a different account.
                               Use this to automatically route transactions to the correct account based on merchant,
                               amount, or other criteria. Account balances are updated automatically.
@@ -1631,8 +1668,8 @@ export function RuleBuilder({
 
                         {/* Use Case Examples */}
                         <div className="space-y-2">
-                          <Label className="text-sm text-foreground">Common Use Cases:</Label>
-                          <div className="space-y-1 text-xs text-muted-foreground pl-3">
+                          <Label className="text-sm" style={{ color: 'var(--color-foreground)' }}>Common Use Cases:</Label>
+                          <div className="space-y-1 text-xs pl-3" style={{ color: 'var(--color-muted-foreground)' }}>
                             <p>• Move all business expenses to business account</p>
                             <p>• Route specific merchants to preferred payment card</p>
                             <p>• Organize transactions by account type automatically</p>
@@ -1649,7 +1686,8 @@ export function RuleBuilder({
                     variant="ghost"
                     size="icon"
                     onClick={() => removeAction(index)}
-                    className="text-error hover:bg-error/20 shrink-0"
+                    className="shrink-0 hover:opacity-80"
+                    style={{ color: 'var(--color-destructive)' }}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -1661,10 +1699,10 @@ export function RuleBuilder({
 
         {/* Empty State */}
         {actions.length === 0 && (
-          <div className="text-center p-8 bg-card border border-border rounded-lg">
-            <AlertCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
-            <p className="text-sm text-muted-foreground mb-1">No actions configured</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="text-center p-8 rounded-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+            <AlertCircle className="w-10 h-10 mx-auto mb-3 opacity-50" style={{ color: 'var(--color-muted-foreground)' }} />
+            <p className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>No actions configured</p>
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               Add at least one action to apply when conditions match.
             </p>
           </div>
@@ -1675,15 +1713,16 @@ export function RuleBuilder({
           type="button"
           variant="outline"
           onClick={addAction}
-          className="w-full border-dashed border-2 border-border bg-elevated hover:bg-elevated hover:border-primary/30 text-foreground"
+          className="w-full border-dashed border-2 hover:opacity-90"
+          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)' }}
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Action
         </Button>
 
         {/* Helper Text */}
-        <div className="text-xs text-muted-foreground p-3 bg-card rounded-lg border border-border flex gap-2">
-          <FileEdit className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+        <div className="text-xs p-3 rounded-lg flex gap-2" style={{ color: 'var(--color-muted-foreground)', backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+          <FileEdit className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
           <div>
             <p className="mb-1">About actions:</p>
             <ul className="list-disc list-inside space-y-1">

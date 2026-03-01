@@ -12,14 +12,12 @@ interface Account {
   creditLimit?: number;
   color: string;
   icon: string;
-  // Credit-specific fields
   interestRate?: number;
   interestType?: 'fixed' | 'variable';
   includeInPayoffStrategy?: boolean;
   statementBalance?: number;
   statementDueDate?: string;
   minimumPaymentAmount?: number;
-  // Line of credit fields
   drawPeriodEndDate?: string;
   repaymentPeriodEndDate?: string;
 }
@@ -39,7 +37,6 @@ interface AccountGroupSectionProps {
 
 export function AccountGroupSection({
   title,
-  subtitle,
   accounts,
   totalLabel,
   totalValue,
@@ -49,53 +46,67 @@ export function AccountGroupSection({
   onDelete,
   emptyMessage,
 }: AccountGroupSectionProps) {
-  // Don't render section if no accounts and no empty message
   if (accounts.length === 0 && !emptyMessage) return null;
 
   return (
-    <div className="mb-12">
-      {/* Section Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-          {subtitle && <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>}
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-muted-foreground">{totalLabel}</p>
-          <p className="text-xl font-bold font-mono" style={{ color: totalColor }}>
-            {totalValue}
-          </p>
+    <div className="mb-8">
+      {/* Section header - matching transactions date group style */}
+      <div className="flex items-center gap-3 mb-3 px-1">
+        <span
+          className="text-[11px] font-semibold uppercase tracking-widest shrink-0"
+          style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          {title}
+        </span>
+        <div
+          className="flex-1 h-px"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 50%, transparent)' }}
+        />
+        <div className="flex items-center gap-3 shrink-0">
           {secondaryTotal && (
-            <div className="mt-1">
-              <p className="text-xs text-muted-foreground">{secondaryTotal.label}</p>
-              <p className="text-sm font-medium font-mono" style={{ color: secondaryTotal.color }}>
+            <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              {secondaryTotal.label}{' '}
+              <span className="font-mono tabular-nums font-medium" style={{ color: secondaryTotal.color }}>
                 {secondaryTotal.value}
-              </p>
-            </div>
+              </span>
+            </span>
           )}
+          <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
+            {totalLabel}{' '}
+            <span className="font-mono tabular-nums font-semibold" style={{ color: totalColor }}>
+              {totalValue}
+            </span>
+          </span>
         </div>
       </div>
 
-      {/* Accounts Grid */}
+      {/* Accounts grid */}
       {accounts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {accounts.map((account) => (
-            <AccountCard
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {accounts.map((account, idx) => (
+            <div
               key={account.id}
-              account={account}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
+              className="account-card-enter"
+              style={{ animationDelay: `${idx * 50}ms` }}
+            >
+              <AccountCard
+                account={account}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            </div>
           ))}
         </div>
       ) : (
         emptyMessage && (
-          <div className="p-8 border border-border bg-card rounded-xl text-center">
-            <p className="text-muted-foreground">{emptyMessage}</p>
+          <div
+            className="rounded-xl border py-8 text-center"
+            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-background)' }}
+          >
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>{emptyMessage}</p>
           </div>
         )
       )}
     </div>
   );
 }
-

@@ -38,6 +38,14 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 const TOTAL_STEPS_NON_DEMO = 9;
 const TOTAL_STEPS_DEMO = 10;
 const TOTAL_STEPS_INVITED = 2;
+const ONBOARDING_PROGRESS_STORAGE_KEY = 'unified-ledger:onboarding-progress';
+
+interface OnboardingProgressSnapshot {
+  currentStep: number;
+  completedSteps: number[];
+  skippedSteps: number[];
+  demoDataCleared: boolean;
+}
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
@@ -60,6 +68,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Regular users get the standard flow
   const totalSteps = isInvitedUser ? TOTAL_STEPS_INVITED : (isDemoMode ? TOTAL_STEPS_DEMO : TOTAL_STEPS_NON_DEMO);
 
+  const clearPersistedProgress = useCallback(() => {
+    try {
+      localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
+
   // Check onboarding status on mount
   const checkOnboardingStatus = useCallback(async () => {
     try {
@@ -77,6 +93,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         // If onboarding is not completed, activate it
         setIsOnboardingActive(!data.onboardingCompleted);
+        if (data.onboardingCompleted) {
+          clearPersistedProgress();
+        }
       } else {
         // If error, assume onboarding not completed (safer default)
         setIsOnboardingActive(true);
@@ -89,7 +108,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [clearPersistedProgress]);
 
   // Mark onboarding as complete
   const completeOnboarding = useCallback(async () => {
@@ -112,6 +131,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           : (isDemoMode ? TOTAL_STEPS_DEMO : TOTAL_STEPS_NON_DEMO);
         setCurrentStep(steps);
         setCompletedSteps(new Set([...Array(steps).keys()].map(i => i + 1)));
+        clearPersistedProgress();
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to complete onboarding');
@@ -123,7 +143,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [isDemoMode, isInvitedUser]);
+  }, [clearPersistedProgress, isDemoMode, isInvitedUser]);
 
   // Navigation functions
   const nextStep = useCallback(() => {
@@ -158,7 +178,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setSkippedSteps(new Set());
     setError(null);
     setDemoDataCleared(false);
-  }, []);
+    clearPersistedProgress();
+  }, [clearPersistedProgress]);
 
   // Invitation context methods
   const setInvitationContext = useCallback((householdId: string, token?: string | null) => {
@@ -198,9 +219,47 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Check for invitation context in localStorage on mount
   useEffect(() => {
     try {
+      const savedRaw = localStorage.getItem(ONBOARDING_PROGRESS_STORAGE_KEY);
+      if (!savedRaw) return;
+
+      const saved = JSON.parse(savedRaw) as Partial<OnboardingProgressSnapshot>;
+      if (typeof saved.currentStep === 'number' && Number.isFinite(saved.currentStep)) {
+        setCurrentStep(Math.max(1, Math.floor(saved.currentStep)));
+      }
+      if (Array.isArray(saved.completedSteps)) {
+        setCompletedSteps(new Set(saved.completedSteps.filter((s) => Number.isFinite(s)).map((s) => Math.floor(s))));
+      }
+      if (Array.isArray(saved.skippedSteps)) {
+        setSkippedSteps(new Set(saved.skippedSteps.filter((s) => Number.isFinite(s)).map((s) => Math.floor(s))));
+      }
+      if (typeof saved.demoDataCleared === 'boolean') {
+        setDemoDataCleared(saved.demoDataCleared);
+      }
+    } catch {
+      // Ignore malformed/blocked storage
+    }
+  }, []);
+
+  useEffect(() => {
+    const snapshot: OnboardingProgressSnapshot = {
+      currentStep,
+      completedSteps: Array.from(completedSteps),
+      skippedSteps: Array.from(skippedSteps),
+      demoDataCleared,
+    };
+
+    try {
+      localStorage.setItem(ONBOARDING_PROGRESS_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [completedSteps, currentStep, demoDataCleared, skippedSteps]);
+
+  useEffect(() => {
+    try {
       const token = localStorage.getItem('unified-ledger:invitation-token');
       const householdId = localStorage.getItem('unified-ledger:invitation-household-id');
-      
+
       if (householdId) {
         setIsInvitedUser(true);
         setInvitationHouseholdId(householdId);
@@ -212,6 +271,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       console.error('Failed to read invitation context from localStorage:', error);
     }
   }, []);
+
+  useEffect(() => {
+    setCurrentStep((prev) => Math.min(prev, totalSteps));
+  }, [totalSteps]);
 
   // Check onboarding status on mount
   useEffect(() => {

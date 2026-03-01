@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, ChevronLeft, ChevronRight, Settings2, Copy, ChevronDown, ChevronUp, PiggyBank } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { BudgetSummaryCard, type DebtBudgetData } from '@/components/budgets/budget-summary-card';
 import { CategoryBudgetProgress } from '@/components/budgets/category-budget-progress';
 import { BudgetGroupSection } from '@/components/budgets/budget-group-section';
@@ -9,7 +12,6 @@ import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker'
 import { BudgetAnalyticsSection } from '@/components/budgets/budget-analytics-section';
 import { UnifiedDebtBudgetSection } from '@/components/budgets/unified-debt-budget-section';
 import { RolloverSummary } from '@/components/budgets/rollover-summary';
-import { Settings2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
@@ -29,12 +31,10 @@ interface CategoryData {
   isOverBudget: boolean;
   incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
   shouldShowDailyAverage: boolean;
-  // Rollover fields (Phase 17)
   rolloverEnabled?: boolean;
   rolloverBalance?: number;
   rolloverLimit?: number | null;
   effectiveBudget?: number;
-  // Budget group fields
   parentId?: string | null;
   isBudgetGroup?: boolean;
 }
@@ -69,12 +69,7 @@ interface BudgetGroup {
   name: string;
   type: string;
   targetAllocation: number | null;
-  children: Array<{
-    id: string;
-    name: string;
-    type: string;
-    monthlyBudget: number;
-  }>;
+  children: Array<{ id: string; name: string; type: string; monthlyBudget: number }>;
   totalBudget: number;
   totalSpent: number;
 }
@@ -86,6 +81,116 @@ interface UnifiedDebtBudgetResponse {
   manualDebts: Array<{ id: string }>;
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmt(n: number) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function fmtMonth(monthStr: string) {
+  const [year, month] = monthStr.split('-');
+  return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+// ── Section list container ────────────────────────────────────────────────────
+function SectionContainer({
+  label,
+  totalBudget,
+  totalSpent,
+  categories,
+  daysRemaining,
+  onEdit,
+  accent,
+}: {
+  label: string;
+  totalBudget: number;
+  totalSpent: number;
+  categories: CategoryData[];
+  daysRemaining: number;
+  onEdit: (id: string, v: number) => void;
+  accent: string;
+}) {
+  if (categories.length === 0) return null;
+
+  return (
+    <div>
+      {/* Section header */}
+      <div className="flex items-center gap-3 mb-2">
+        <span
+          className="text-[11px] font-semibold uppercase tracking-widest shrink-0"
+          style={{ color: accent }}
+        >
+          {label}
+        </span>
+        <div className="flex-1 h-px" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 50%, transparent)' }} />
+        <span className="text-[11px] font-mono tabular-nums shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
+          ${fmt(totalSpent)} <span style={{ color: 'color-mix(in oklch, var(--color-muted-foreground) 50%, transparent)' }}>/ ${fmt(totalBudget)}</span>
+        </span>
+      </div>
+
+      {/* Connected list */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+      >
+        {categories.map((cat, i) => (
+          <div
+            key={cat.id}
+            className="tx-row-enter"
+            style={{
+              animationDelay: `${i * 25}ms`,
+              borderBottom: i < categories.length - 1
+                ? '1px solid color-mix(in oklch, var(--color-border) 35%, transparent)'
+                : 'none',
+            }}
+          >
+            <CategoryBudgetProgress
+              category={cat}
+              daysRemaining={daysRemaining}
+              onEdit={onEdit}
+              listRow
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Collapsible section ───────────────────────────────────────────────────────
+function CollapsibleSection({
+  label,
+  expanded,
+  onToggle,
+  children,
+}: {
+  label: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+      <button
+        onClick={onToggle}
+        className="flex items-center justify-between w-full text-left mb-3"
+      >
+        <span className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>
+          {label}
+        </span>
+        {expanded
+          ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+          : <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />}
+      </button>
+      {expanded && children}
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function BudgetsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
@@ -96,210 +201,132 @@ export default function BudgetsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [isManagerModalOpen, setIsManagerModalOpen] = useState(false);
-  
-  // Collapsible section states (collapsed by default, persist to localStorage)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     variableBills: false,
     rollover: false,
     analytics: false,
   });
 
-  // Load collapsed state from localStorage on mount
   useEffect(() => {
-    const savedState = localStorage.getItem('budget-section-expanded');
-    if (savedState) {
-      try {
-        setExpandedSections(JSON.parse(savedState));
-      } catch {
-        // Ignore invalid JSON
-      }
-    }
+    const saved = localStorage.getItem('budget-section-expanded');
+    if (saved) { try { setExpandedSections(JSON.parse(saved)); } catch { /* ignore */ } }
   }, []);
 
-  // Save collapsed state to localStorage when it changes
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
-      const newState = { ...prev, [section]: !prev[section] };
-      localStorage.setItem('budget-section-expanded', JSON.stringify(newState));
-      return newState;
+      const next = { ...prev, [section]: !prev[section] };
+      localStorage.setItem('budget-section-expanded', JSON.stringify(next));
+      return next;
     });
   };
 
-  // Initialize selected month to current month
   useEffect(() => {
     const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-      2,
-      '0'
-    )}`;
-    setSelectedMonth(currentMonth);
+    setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
   }, []);
 
-  // Fetch budget data when month changes
   useEffect(() => {
-    if (!selectedMonth || !selectedHouseholdId) {
-      setLoading(false);
-      return;
-    }
+    if (!selectedMonth || !selectedHouseholdId) { setLoading(false); return; }
 
-    const fetchBudgetData = async () => {
+    const fetch = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Fetch budget overview and budget groups in parallel
-        const [overviewResponse, groupsResponse, debtsResponse] = await Promise.all([
+        const [overviewRes, groupsRes, debtsRes] = await Promise.all([
           fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`),
           fetchWithHousehold(`/api/budget-groups?month=${selectedMonth}`),
           fetchWithHousehold(`/api/budgets/debts-unified?month=${selectedMonth}`),
         ]);
-
-        if (!overviewResponse.ok) {
-          throw new Error('Failed to fetch budget data');
-        }
-
-        const data = await overviewResponse.json();
-        setBudgetData(data);
-
-        if (debtsResponse.ok) {
-          const debtsData = (await debtsResponse.json()) as UnifiedDebtBudgetResponse;
+        if (!overviewRes.ok) throw new Error('Failed to fetch budget data');
+        setBudgetData(await overviewRes.json());
+        if (debtsRes.ok) {
+          const d = (await debtsRes.json()) as UnifiedDebtBudgetResponse;
           setDebtBudgetData({
-            totalRecommendedPayments: debtsData.totalBudgetedPayments,
-            totalActualPaid: debtsData.totalActualPaid,
+            totalRecommendedPayments: d.totalBudgetedPayments,
+            totalActualPaid: d.totalActualPaid,
             debts: [
-              ...debtsData.strategyDebts.items.map((item) => ({ debtId: item.id })),
-              ...debtsData.manualDebts.map((item) => ({ debtId: item.id })),
+              ...d.strategyDebts.items.map(i => ({ debtId: i.id })),
+              ...d.manualDebts.map(i => ({ debtId: i.id })),
             ],
           });
-        } else {
-          setDebtBudgetData(null);
         }
-
-        // Budget groups are optional - don't fail if they don't load
-        if (groupsResponse.ok) {
-          const groupsData = await groupsResponse.json();
-          setBudgetGroups(groupsData.groups || []);
+        if (groupsRes.ok) {
+          const g = await groupsRes.json();
+          setBudgetGroups(g.groups || []);
         }
-      } catch (err) {
-        console.error('Error fetching budget data:', err);
-        if (err instanceof Error && err.message === 'No household selected') {
-          setLoading(false);
-          return;
-        }
-        setError('Failed to load budget data. Please try again.');
+      } catch (e) {
+        console.error(e);
+        if (e instanceof Error && e.message === 'No household selected') { setLoading(false); return; }
+        setError('Failed to load budget data.');
         toast.error('Failed to load budget data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBudgetData();
+    fetch();
   }, [selectedMonth, selectedHouseholdId, fetchWithHousehold]);
 
-  // Navigate to previous month
-  const handlePreviousMonth = () => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const prevDate = new Date(year, month - 2, 1); // month - 2 because months are 0-indexed
-    const prevMonth = `${prevDate.getFullYear()}-${String(
-      prevDate.getMonth() + 1
-    ).padStart(2, '0')}`;
-    setSelectedMonth(prevMonth);
+  const navigate = (dir: 1 | -1) => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + dir, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   };
 
-  // Navigate to next month
-  const handleNextMonth = () => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const nextDate = new Date(year, month, 1); // month is already 1-indexed, so this gives us next month
-    const nextMonth = `${nextDate.getFullYear()}-${String(
-      nextDate.getMonth() + 1
-    ).padStart(2, '0')}`;
-    setSelectedMonth(nextMonth);
-  };
-
-  // Refresh budget data
   const refreshBudgetData = async () => {
-    try {
-      const [overviewResponse, groupsResponse] = await Promise.all([
-        fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`),
-        fetchWithHousehold(`/api/budget-groups?month=${selectedMonth}`),
-      ]);
-      
-      const data = await overviewResponse.json();
-      setBudgetData(data);
-      
-      if (groupsResponse.ok) {
-        const groupsData = await groupsResponse.json();
-        setBudgetGroups(groupsData.groups || []);
-      }
-    } catch (err) {
-      console.error('Error refreshing budget data:', err);
-      if (err instanceof Error && err.message === 'No household selected') {
-        return;
-      }
-      toast.error('Failed to refresh budget data');
-    }
+    if (!selectedMonth) return;
+    const [ovRes, grRes] = await Promise.all([
+      fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`),
+      fetchWithHousehold(`/api/budget-groups?month=${selectedMonth}`),
+    ]);
+    if (ovRes.ok) setBudgetData(await ovRes.json());
+    if (grRes.ok) { const g = await grRes.json(); setBudgetGroups(g.groups || []); }
   };
 
-  // Handle budget edit
   const handleEditBudget = async (categoryId: string, newBudget: number) => {
     try {
-      const response = await postWithHousehold('/api/budgets', {
+      const res = await postWithHousehold('/api/budgets', {
         month: selectedMonth,
         budgets: [{ categoryId, monthlyBudget: newBudget }],
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update budget');
-      }
-
-      toast.success('Budget updated successfully');
+      if (!res.ok) throw new Error('Failed to update budget');
+      toast.success('Budget updated');
       await refreshBudgetData();
-    } catch (err) {
-      console.error('Error updating budget:', err);
-      toast.error('Failed to update budget');
-    }
+    } catch { toast.error('Failed to update budget'); }
   };
 
-  // Handle copy last month
   const handleCopyLastMonth = async () => {
     try {
-      // Calculate last month
-      const [year, monthNum] = selectedMonth.split('-').map(Number);
-      const lastMonthDate = new Date(year, monthNum - 2, 1);
-      const lastMonth = `${lastMonthDate.getFullYear()}-${String(
-        lastMonthDate.getMonth() + 1
-      ).padStart(2, '0')}`;
-
-      const response = await postWithHousehold('/api/budgets/copy', {
-        fromMonth: lastMonth,
-        toMonth: selectedMonth,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to copy budgets');
-      }
-
+      const [y, m] = selectedMonth.split('-').map(Number);
+      const prev = new Date(y, m - 2, 1);
+      const lastMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+      const res = await postWithHousehold('/api/budgets/copy', { fromMonth: lastMonth, toMonth: selectedMonth });
+      if (!res.ok) throw new Error('Failed to copy budgets');
       toast.success('Budgets copied from last month');
       await refreshBudgetData();
-    } catch (error) {
-      console.error('Error copying budgets:', error);
-      toast.error('Failed to copy budgets');
-    }
+    } catch { toast.error('Failed to copy budgets'); }
   };
 
-  // Format month for display
-  const formatMonth = (monthStr: string) => {
-    const [year, month] = monthStr.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
+  // ── Render states ─────────────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-muted-foreground">Loading budget data...</div>
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              <div className="w-32 h-5 rounded animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            </div>
+            <div className="w-28 h-8 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+          <div className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)' }} />
+          <div className="space-y-1">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-12 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', animationDelay: `${i * 50}ms` }} />
+            ))}
           </div>
         </div>
       </div>
@@ -308,136 +335,155 @@ export default function BudgetsPage() {
 
   if (error) {
     return (
-      <div className="p-6 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="text-error mb-2">{error}</div>
-              <button
-                onClick={() => window.location.reload()}
-                className="text-sm text-primary hover:opacity-80"
-              >
-                Try again
-              </button>
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div className="text-center">
+          <p className="text-sm mb-2" style={{ color: 'var(--color-error)' }}>{error}</p>
+          <button onClick={() => window.location.reload()} className="text-sm" style={{ color: 'var(--color-primary)' }}>
+            Try again
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!budgetData) {
-    return null;
-  }
+  if (!budgetData) return null;
 
   const hasAnyBudgets = budgetData.categories.some(c => c.monthlyBudget > 0);
 
+  const groupedCategoryIds = new Set(budgetGroups.flatMap(g => g.children.map(c => c.id)));
+  const ungroupedIncome    = (budgetData.groupedCategories.income ?? []).filter(c => !groupedCategoryIds.has(c.id) && !c.parentId);
+  const ungroupedBills     = (budgetData.groupedCategories.bills ?? []).filter(c => !groupedCategoryIds.has(c.id) && !c.parentId);
+  const ungroupedExpenses  = (budgetData.groupedCategories.expenses ?? []).filter(c => !groupedCategoryIds.has(c.id) && !c.parentId);
+  const ungroupedSavings   = (budgetData.groupedCategories.savings ?? []).filter(c => !groupedCategoryIds.has(c.id) && !c.parentId);
+
   return (
-    <div className="p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header with Month Navigation */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Budgets</h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePreviousMonth}
-              className="p-2 hover:bg-elevated rounded-lg transition-colors"
-              aria-label="Previous month"
-            >
-              <svg
-                className="w-5 h-5 text-foreground"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M15 19l-7-7 7-7"></path>
-              </svg>
-            </button>
-            <div className="text-base font-medium text-foreground min-w-[150px] text-center">
-              {formatMonth(selectedMonth)}
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+
+      {/* ── Sticky header ────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
+        >
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+            {/* Left: back + title */}
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+                Budget Planner
+              </h1>
             </div>
-            <button
-              onClick={handleNextMonth}
-              className="p-2 hover:bg-elevated rounded-lg transition-colors"
-              aria-label="Next month"
-            >
-              <svg
-                className="w-5 h-5 text-foreground"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+
+            {/* Center: month navigation */}
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigate(-1)}>
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </Button>
+              <span
+                className="text-sm font-semibold tabular-nums min-w-[120px] text-center"
+                style={{ color: 'var(--color-foreground)' }}
               >
-                <path d="M9 5l7 7-7 7"></path>
-              </svg>
-            </button>
+                {fmtMonth(selectedMonth)}
+              </span>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigate(1)}>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            {/* Right: actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 px-2.5 text-xs"
+                onClick={handleCopyLastMonth}
+                title="Copy last month's budgets"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Copy</span>
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 px-3 text-xs font-medium"
+                onClick={() => setIsManagerModalOpen(true)}
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+                Set Budgets
+              </Button>
+            </div>
           </div>
         </div>
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-primary) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
+        />
+      </header>
 
-        {/* Monthly Summary */}
-        <BudgetSummaryCard summary={budgetData.summary} month={budgetData.month} debtData={debtBudgetData} />
+      {/* ── Main content ─────────────────────────────────────────────────── */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setIsManagerModalOpen(true)}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
-          >
-            Set Budgets
-          </button>
-          <button
-            onClick={handleCopyLastMonth}
-            className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
-          >
-            Copy Last Month
-          </button>
-        </div>
+        {/* Summary metrics strip */}
+        <BudgetSummaryCard
+          summary={budgetData.summary}
+          month={budgetData.month}
+          debtData={debtBudgetData}
+        />
 
-        {/* Empty State */}
+        {/* Empty state */}
         {!hasAnyBudgets && (
-          <div className="bg-card border border-border rounded-xl p-8 text-center">
-            <div className="text-muted-foreground mb-4">
-              No budgets set for this month
+          <div
+            className="rounded-xl py-16 text-center"
+            style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+          >
+            <div
+              className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
+              style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}
+            >
+              <PiggyBank className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
             </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              Set budgets for your categories to start tracking your spending and staying
-              on top of your finances.
+            <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No budgets set for {fmtMonth(selectedMonth)}</p>
+            <p className="text-sm mb-5" style={{ color: 'var(--color-muted-foreground)' }}>
+              Set budgets for your categories to start tracking spending.
             </p>
-            <button
+            <Button
+              size="sm"
               onClick={() => setIsManagerModalOpen(true)}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
             >
               Set Your First Budget
-            </button>
+            </Button>
           </div>
         )}
 
-        {/* Category Budgets */}
+        {/* Category sections */}
         {hasAnyBudgets && (
           <div className="space-y-6">
-            {/* Budget Groups - Show first if any exist */}
+
+            {/* Budget groups */}
             {budgetGroups.length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Budget Groups</h2>
+                  <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-muted-foreground)' }}>
+                    Budget Groups
+                  </span>
                   <button
                     onClick={() => setIsManagerModalOpen(true)}
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-1 text-xs transition-colors"
+                    style={{ color: 'var(--color-muted-foreground)' }}
                   >
-                    <Settings2 className="w-4 h-4" />
-                    Manage Groups
+                    <Settings2 className="w-3 h-3" />
+                    Manage
                   </button>
                 </div>
                 {budgetGroups.map(group => {
-                  // Find categories that belong to this group
-                  const groupCategories = budgetData.categories.filter(
-                    cat => cat.parentId === group.id
-                  );
+                  const groupCategories = budgetData.categories.filter(c => c.parentId === group.id);
                   if (groupCategories.length === 0) return null;
                   return (
                     <BudgetGroupSection
@@ -453,180 +499,82 @@ export default function BudgetsPage() {
               </div>
             )}
 
-            {/* Ungrouped Categories - Categories without a parent */}
-            {(() => {
-              // Get IDs of categories that are in budget groups
-              const groupedCategoryIds = new Set(
-                budgetGroups.flatMap(g => g.children.map(c => c.id))
-              );
+            {/* Ungrouped categories */}
+            {(ungroupedIncome.length > 0 || ungroupedBills.length > 0 || ungroupedExpenses.length > 0 || ungroupedSavings.length > 0) && (
+              <div className="space-y-5">
+                {budgetGroups.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-muted-foreground)' }}>
+                      Other
+                    </span>
+                    <div className="flex-1 h-px" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 40%, transparent)' }} />
+                  </div>
+                )}
 
-              // Filter ungrouped categories
-              const ungroupedIncome = (budgetData.groupedCategories.income ?? []).filter(
-                (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
-              );
-              const ungroupedBills = (budgetData.groupedCategories.bills ?? []).filter(
-                (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
-              );
-              const ungroupedExpenses = (budgetData.groupedCategories.expenses ?? []).filter(
-                (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
-              );
-              const ungroupedSavings = (budgetData.groupedCategories.savings ?? []).filter(
-                (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
-              );
-
-              const hasUngrouped = ungroupedIncome.length > 0 || 
-                ungroupedBills.length > 0 || 
-                ungroupedExpenses.length > 0 || 
-                ungroupedSavings.length > 0;
-
-              if (!hasUngrouped) return null;
-
-              return (
-                <div className="space-y-6">
-                  {budgetGroups.length > 0 && (
-                    <h2 className="text-lg font-semibold text-foreground">Uncategorized</h2>
-                  )}
-                  
-                  {/* Income */}
-                  {ungroupedIncome.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-medium text-foreground mb-3">Income</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {ungroupedIncome.map((category: CategoryData) => (
-                          <CategoryBudgetProgress
-                            key={category.id}
-                            category={category}
-                            daysRemaining={budgetData.summary.daysRemaining}
-                            onEdit={handleEditBudget}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Essential Expenses */}
-                  {ungroupedBills.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-medium text-foreground mb-3">
-                        Essential Expenses
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {ungroupedBills.map((category: CategoryData) => (
-                          <CategoryBudgetProgress
-                            key={category.id}
-                            category={category}
-                            daysRemaining={budgetData.summary.daysRemaining}
-                            onEdit={handleEditBudget}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Discretionary Spending */}
-                  {ungroupedExpenses.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-medium text-foreground mb-3">
-                        Discretionary Spending
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {ungroupedExpenses.map((category: CategoryData) => (
-                          <CategoryBudgetProgress
-                            key={category.id}
-                            category={category}
-                            daysRemaining={budgetData.summary.daysRemaining}
-                            onEdit={handleEditBudget}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Savings & Goals */}
-                  {ungroupedSavings.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-medium text-foreground mb-3">
-                        Savings & Goals
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {ungroupedSavings.map((category: CategoryData) => (
-                          <CategoryBudgetProgress
-                            key={category.id}
-                            category={category}
-                            daysRemaining={budgetData.summary.daysRemaining}
-                            onEdit={handleEditBudget}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+                <SectionContainer
+                  label="Income"
+                  categories={ungroupedIncome}
+                  totalBudget={ungroupedIncome.reduce((s, c) => s + (c.monthlyBudget || 0), 0)}
+                  totalSpent={ungroupedIncome.reduce((s, c) => s + (c.actualSpent || 0), 0)}
+                  daysRemaining={budgetData.summary.daysRemaining}
+                  onEdit={handleEditBudget}
+                  accent="var(--color-income)"
+                />
+                <SectionContainer
+                  label="Essential Expenses"
+                  categories={ungroupedBills}
+                  totalBudget={ungroupedBills.reduce((s, c) => s + (c.monthlyBudget || 0), 0)}
+                  totalSpent={ungroupedBills.reduce((s, c) => s + (c.actualSpent || 0), 0)}
+                  daysRemaining={budgetData.summary.daysRemaining}
+                  onEdit={handleEditBudget}
+                  accent="var(--color-warning)"
+                />
+                <SectionContainer
+                  label="Discretionary"
+                  categories={ungroupedExpenses}
+                  totalBudget={ungroupedExpenses.reduce((s, c) => s + (c.monthlyBudget || 0), 0)}
+                  totalSpent={ungroupedExpenses.reduce((s, c) => s + (c.actualSpent || 0), 0)}
+                  daysRemaining={budgetData.summary.daysRemaining}
+                  onEdit={handleEditBudget}
+                  accent="var(--color-expense)"
+                />
+                <SectionContainer
+                  label="Savings & Goals"
+                  categories={ungroupedSavings}
+                  totalBudget={ungroupedSavings.reduce((s, c) => s + (c.monthlyBudget || 0), 0)}
+                  totalSpent={ungroupedSavings.reduce((s, c) => s + (c.actualSpent || 0), 0)}
+                  daysRemaining={budgetData.summary.daysRemaining}
+                  onEdit={handleEditBudget}
+                  accent="var(--color-primary)"
+                />
+              </div>
+            )}
           </div>
         )}
 
-        {/* Debt Payments */}
-        <div className="pt-6 border-t border-border">
+        {/* Debt payments */}
+        <div style={{ paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
           <UnifiedDebtBudgetSection month={selectedMonth} />
         </div>
 
-        {/* Variable Bill Tracking - Collapsible */}
-        <div className="pt-6 border-t border-border">
-          <button
-            onClick={() => toggleSection('variableBills')}
-            className="flex items-center justify-between w-full text-left mb-4"
-          >
-            <h2 className="text-lg font-semibold text-foreground">Variable Bill Tracking</h2>
-            {expandedSections.variableBills ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
-            )}
-          </button>
-          {expandedSections.variableBills && <VariableBillTracker hideHeader />}
-        </div>
+        {/* Collapsible sections */}
+        <CollapsibleSection label="Variable Bill Tracking" expanded={expandedSections.variableBills} onToggle={() => toggleSection('variableBills')}>
+          <VariableBillTracker hideHeader />
+        </CollapsibleSection>
+        <CollapsibleSection label="Budget Rollover" expanded={expandedSections.rollover} onToggle={() => toggleSection('rollover')}>
+          <RolloverSummary hideHeader />
+        </CollapsibleSection>
+        <CollapsibleSection label="Budget Analytics & Insights" expanded={expandedSections.analytics} onToggle={() => toggleSection('analytics')}>
+          <BudgetAnalyticsSection hideHeader />
+        </CollapsibleSection>
+      </main>
 
-        {/* Budget Rollover Summary - Collapsible */}
-        <div className="pt-6 border-t border-border">
-          <button
-            onClick={() => toggleSection('rollover')}
-            className="flex items-center justify-between w-full text-left mb-4"
-          >
-            <h2 className="text-lg font-semibold text-foreground">Budget Rollover</h2>
-            {expandedSections.rollover ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
-            )}
-          </button>
-          {expandedSections.rollover && <RolloverSummary hideHeader />}
-        </div>
-
-        {/* Budget Analytics & Insights - Collapsible */}
-        <div className="pt-6 border-t border-border">
-          <button
-            onClick={() => toggleSection('analytics')}
-            className="flex items-center justify-between w-full text-left mb-4"
-          >
-            <h2 className="text-lg font-semibold text-foreground">Budget Analytics & Insights</h2>
-            {expandedSections.analytics ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
-            )}
-          </button>
-          {expandedSections.analytics && <BudgetAnalyticsSection hideHeader />}
-        </div>
-
-        {/* Budget Manager Modal */}
-        <BudgetManagerModal
-          isOpen={isManagerModalOpen}
-          onClose={() => setIsManagerModalOpen(false)}
-          onSave={refreshBudgetData}
-          month={selectedMonth}
-        />
-      </div>
+      <BudgetManagerModal
+        isOpen={isManagerModalOpen}
+        onClose={() => setIsManagerModalOpen(false)}
+        onSave={refreshBudgetData}
+        month={selectedMonth}
+      />
     </div>
   );
 }

@@ -101,26 +101,24 @@ export function DebtReductionChart({
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between p-4 rounded-lg border transition-colors"
         style={{
-          backgroundColor: 'var(--color-card)',
+          backgroundColor: 'var(--color-background)',
           borderColor: 'var(--color-border)',
         }}
       >
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
             Debt Reduction Progress
           </h2>
           {!isExpanded && data && (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
               {Math.round(data.summary.percentageComplete)}% complete
             </span>
           )}
         </div>
         <ChevronDown
           size={20}
-          className="text-muted-foreground transition-transform"
-          style={{
-            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-          }}
+          className="transition-transform"
+          style={{ color: 'var(--color-muted-foreground)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
         />
       </button>
 
@@ -140,52 +138,31 @@ export function DebtReductionChart({
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setViewMode('combined')}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  viewMode === 'combined'
-                    ? 'text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                style={
-                  viewMode === 'combined'
-                    ? { backgroundColor: 'var(--color-primary)' }
-                    : {
-                        backgroundColor: 'var(--color-elevated)',
-                      }
-                }
+                className="px-3 py-2 rounded text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: viewMode === 'combined' ? 'var(--color-primary)' : 'var(--color-elevated)',
+                  color: viewMode === 'combined' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                }}
               >
                 Total Debt
               </button>
               <button
                 onClick={() => setViewMode('individual')}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  viewMode === 'individual'
-                    ? 'text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                style={
-                  viewMode === 'individual'
-                    ? { backgroundColor: 'var(--color-primary)' }
-                    : {
-                        backgroundColor: 'var(--color-elevated)',
-                      }
-                }
+                className="px-3 py-2 rounded text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: viewMode === 'individual' ? 'var(--color-primary)' : 'var(--color-elevated)',
+                  color: viewMode === 'individual' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                }}
               >
                 By Debt
               </button>
               <button
                 onClick={() => setViewMode('both')}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  viewMode === 'both'
-                    ? 'text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                style={
-                  viewMode === 'both'
-                    ? { backgroundColor: 'var(--color-primary)' }
-                    : {
-                        backgroundColor: 'var(--color-elevated)',
-                      }
-                }
+                className="px-3 py-2 rounded text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: viewMode === 'both' ? 'var(--color-primary)' : 'var(--color-elevated)',
+                  color: viewMode === 'both' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                }}
               >
                 Both
               </button>
@@ -195,8 +172,8 @@ export function DebtReductionChart({
           {/* Charts */}
           {error ? (
             <div
-              className="p-4 rounded-lg text-sm text-destructive-foreground"
-              style={{ backgroundColor: 'var(--color-error)' }}
+              className="p-4 rounded-lg text-sm"
+              style={{ backgroundColor: 'var(--color-destructive)', color: 'var(--color-primary-foreground)' }}
             >
               {error}
             </div>
@@ -205,7 +182,7 @@ export function DebtReductionChart({
               {/* Combined view - Total debt chart */}
               {(viewMode === 'combined' || viewMode === 'both') && data && (
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-3">
+                  <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-foreground)' }}>
                     Total Debt Timeline
                   </h3>
                   <TotalDebtChart
@@ -220,7 +197,7 @@ export function DebtReductionChart({
                 data &&
                 data.debtDetails.length > 1 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground mb-3">
+                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-foreground)' }}>
                       Individual Debt Balances
                     </h3>
                     <IndividualDebtsChart
@@ -234,7 +211,7 @@ export function DebtReductionChart({
               {/* Single debt - just show combined view */}
               {data && data.debtDetails.length === 1 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-3">
+                  <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-foreground)' }}>
                     {data.debtDetails[0]?.name} Balance
                   </h3>
                   <TotalDebtChart

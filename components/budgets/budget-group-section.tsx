@@ -45,6 +45,10 @@ interface BudgetGroupSectionProps {
   defaultExpanded?: boolean;
 }
 
+function fmt(n: number) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
 export function BudgetGroupSection({
   group,
   categories,
@@ -55,139 +59,116 @@ export function BudgetGroupSection({
 }: BudgetGroupSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
-  // Calculate aggregate metrics
-  const totalBudget = categories.reduce(
-    (sum, cat) => new Decimal(sum).plus(cat.monthlyBudget || 0).toNumber(),
-    0
-  );
-  const totalSpent = categories.reduce(
-    (sum, cat) => new Decimal(sum).plus(cat.actualSpent || 0).toNumber(),
-    0
-  );
-  const remaining = new Decimal(totalBudget).minus(totalSpent).toNumber();
-  const percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+  const totalBudget = categories.reduce((s, c) => new Decimal(s).plus(c.monthlyBudget || 0).toNumber(), 0);
+  const totalSpent  = categories.reduce((s, c) => new Decimal(s).plus(c.actualSpent || 0).toNumber(), 0);
+  const remaining   = new Decimal(totalBudget).minus(totalSpent).toNumber();
+  const percentage  = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
-  // Calculate target amount if we have monthly income and target allocation
   const targetAmount = group.targetAllocation && monthlyIncome > 0
     ? new Decimal(monthlyIncome).times(group.targetAllocation / 100).toNumber()
     : null;
 
-  // Determine group status based on aggregate
-  const getGroupStatus = (): 'on_track' | 'warning' | 'exceeded' | 'unbudgeted' => {
-    if (totalBudget === 0) return 'unbudgeted';
-    if (percentage > 100) return 'exceeded';
-    if (percentage >= 80) return 'warning';
-    return 'on_track';
-  };
+  const status: 'on_track' | 'warning' | 'exceeded' | 'unbudgeted' =
+    totalBudget === 0 ? 'unbudgeted'
+    : percentage > 100 ? 'exceeded'
+    : percentage >= 80 ? 'warning'
+    : 'on_track';
 
-  const status = getGroupStatus();
+  const barColor =
+    status === 'exceeded' ? 'var(--color-error)'
+    : status === 'warning' ? 'var(--color-warning)'
+    : status === 'on_track' ? 'var(--color-success)'
+    : 'var(--color-muted-foreground)';
 
-  // Get status color
-  const getStatusColor = () => {
-    switch (status) {
-      case 'exceeded':
-        return 'var(--color-error)';
-      case 'warning':
-        return 'var(--color-warning)';
-      case 'on_track':
-        return 'var(--color-success)';
-      default:
-        return 'var(--color-muted-foreground)';
-    }
-  };
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  if (categories.length === 0) {
-    return null;
-  }
+  if (categories.length === 0) return null;
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
-      {/* Group Header - Clickable to expand/collapse */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-elevated transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          {isExpanded ? (
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          )}
-          <div className="text-left">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-foreground">{group.name}</h3>
-              {group.targetAllocation && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-elevated text-muted-foreground">
-                  {group.targetAllocation}% target
-                </span>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {categories.length} {categories.length === 1 ? 'category' : 'categories'}
-            </div>
-          </div>
-        </div>
-
-        {/* Aggregate Progress */}
-        <div className="text-right">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium" style={{ color: getStatusColor() }}>
-              {formatCurrency(totalSpent)}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              / {formatCurrency(totalBudget)}
-            </span>
-          </div>
-          {targetAmount !== null && totalBudget !== targetAmount && (
-            <div className="text-xs text-muted-foreground">
-              Target: {formatCurrency(targetAmount)}
-            </div>
-          )}
-        </div>
-      </button>
-
-      {/* Progress Bar */}
-      <div className="px-4 pb-2">
-        <div className="h-2 bg-elevated rounded-full overflow-hidden">
+    <div>
+      {/* Group header row */}
+      <div className="flex items-center gap-3 mb-2">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 group"
+        >
           <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{
-              width: `${Math.min(percentage, 100)}%`,
-              backgroundColor: getStatusColor(),
-            }}
+            className="w-4 h-4 rounded flex items-center justify-center transition-colors"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 80%, transparent)' }}
+          >
+            {isExpanded
+              ? <ChevronDown className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />
+              : <ChevronRight className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />}
+          </div>
+          <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-foreground)' }}>
+            {group.name}
+          </span>
+          {group.targetAllocation && (
+            <span
+              className="text-[10px] px-1.5 py-px rounded-full"
+              style={{
+                backgroundColor: 'color-mix(in oklch, var(--color-elevated) 80%, transparent)',
+                color: 'var(--color-muted-foreground)',
+              }}
+            >
+              {group.targetAllocation}% target
+            </span>
+          )}
+        </button>
+
+        {/* Progress bar inline */}
+        <div
+          className="flex-1 h-1 rounded-full overflow-hidden"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 80%, transparent)' }}
+        >
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${Math.min(100, percentage)}%`, backgroundColor: barColor }}
           />
         </div>
-        <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-          <span>{percentage.toFixed(0)}% used</span>
-          <span>
-            {remaining >= 0 ? `${formatCurrency(remaining)} left` : `${formatCurrency(Math.abs(remaining))} over`}
-          </span>
-        </div>
+
+        {/* Totals */}
+        <span className="text-[11px] font-mono tabular-nums shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
+          ${fmt(totalSpent)} <span style={{ color: 'color-mix(in oklch, var(--color-muted-foreground) 50%, transparent)' }}>/ ${fmt(totalBudget)}</span>
+        </span>
+        <span
+          className="text-[11px] font-mono tabular-nums shrink-0"
+          style={{ color: barColor }}
+        >
+          {remaining >= 0 ? `$${fmt(remaining)} left` : `$${fmt(Math.abs(remaining))} over`}
+        </span>
       </div>
 
-      {/* Expanded Categories */}
+      {/* Target hint */}
+      {targetAmount !== null && totalBudget !== targetAmount && (
+        <div className="ml-8 mb-2 text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>
+          Target: ${fmt(targetAmount)}
+        </div>
+      )}
+
+      {/* Expanded: connected list of categories */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-border">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {categories.map(category => (
+        <div
+          className="rounded-xl overflow-hidden ml-8"
+          style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+        >
+          {categories.map((cat, i) => (
+            <div
+              key={cat.id}
+              className="tx-row-enter"
+              style={{
+                animationDelay: `${i * 25}ms`,
+                borderBottom: i < categories.length - 1
+                  ? '1px solid color-mix(in oklch, var(--color-border) 35%, transparent)'
+                  : 'none',
+              }}
+            >
               <CategoryBudgetProgress
-                key={category.id}
-                category={category}
+                category={cat}
                 daysRemaining={daysRemaining}
                 onEdit={onEditBudget}
+                listRow
               />
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

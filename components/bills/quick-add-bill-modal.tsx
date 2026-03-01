@@ -261,230 +261,125 @@ export function QuickAddBillModal({
 
   const isWeekBased = frequency === 'weekly' || frequency === 'biweekly';
 
+  const fieldStyle = { backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' };
+  const labelCls = 'text-[11px] font-medium uppercase tracking-wide block mb-1.5';
+  const labelStyle = { color: 'var(--color-muted-foreground)' };
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-[425px] bg-card border-border">
+        <DialogContent className="sm:max-w-[400px]" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <Plus className="w-5 h-5 text-primary" />
+            <DialogTitle className="flex items-center gap-2 text-[15px]" style={{ color: 'var(--color-foreground)' }}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)' }}>
+                <Plus className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+              </div>
               Quick Add Bill
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Add a recurring expense quickly. For advanced options, use the full form.
+            <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              Add a recurring expense quickly. Use the full form for advanced options.
             </DialogDescription>
           </DialogHeader>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSubmit(false);
-            }}
-            className="space-y-4 mt-2"
-          >
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(false); }} className="space-y-3 mt-1">
             {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="quick-add-bill-name" className="text-foreground">
-                Bill Name
-              </Label>
+            <div>
+              <Label htmlFor="quick-add-bill-name" className={labelCls} style={labelStyle}>Bill Name</Label>
               <Input
                 id="quick-add-bill-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Netflix, Electric Bill"
-                className="bg-elevated border-border"
+                className="h-9 text-[13px]"
+                style={fieldStyle}
                 autoFocus
               />
-              {/* Classification Suggestion */}
               {suggestion && suggestion.confidence >= 0.7 && (
-                <div
-                  className="p-2 rounded-lg border flex items-center justify-between gap-2"
-                  style={{
-                    backgroundColor: `${CLASSIFICATION_META[suggestion.classification].color}10`,
-                    borderColor: `${CLASSIFICATION_META[suggestion.classification].color}30`,
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Sparkles
-                      className="w-3.5 h-3.5 shrink-0"
-                      style={{ color: CLASSIFICATION_META[suggestion.classification].color }}
-                    />
-                    <span
-                      className="text-xs"
-                      style={{ color: CLASSIFICATION_META[suggestion.classification].color }}
-                    >
+                <div className="mt-1.5 px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2" style={{ backgroundColor: `${CLASSIFICATION_META[suggestion.classification].color}12`, border: `1px solid ${CLASSIFICATION_META[suggestion.classification].color}30` }}>
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 shrink-0" style={{ color: CLASSIFICATION_META[suggestion.classification].color }} />
+                    <span className="text-[11px]" style={{ color: CLASSIFICATION_META[suggestion.classification].color }}>
                       Auto: <strong>{CLASSIFICATION_META[suggestion.classification].label}</strong>
-                      {suggestion.subcategory && (
-                        <span className="opacity-80">
-                          {' '}
-                          ({formatSubcategory(suggestion.subcategory)})
-                        </span>
-                      )}
+                      {suggestion.subcategory && <span className="opacity-70"> · {formatSubcategory(suggestion.subcategory)}</span>}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSuggestion(null);
-                      setSuggestionDismissed(true);
-                    }}
-                    className="text-muted-foreground hover:text-foreground p-0.5"
-                  >
-                    <X className="w-3 h-3" />
+                  <button type="button" onClick={() => { setSuggestion(null); setSuggestionDismissed(true); }} className="shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+                    <X className="w-3 h-3" style={{ color: CLASSIFICATION_META[suggestion.classification].color }} />
                   </button>
                 </div>
               )}
             </div>
 
             {/* Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="quick-add-bill-amount" className="text-foreground">
-                Amount
-              </Label>
+            <div>
+              <Label htmlFor="quick-add-bill-amount" className={labelCls} style={labelStyle}>Amount</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  id="quick-add-bill-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="pl-7 bg-elevated border-border"
-                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
+                <Input id="quick-add-bill-amount" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="pl-7 h-9 text-[13px] tabular-nums" style={fieldStyle} />
               </div>
             </div>
 
-            {/* Frequency and Due Date Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-foreground">Frequency</Label>
+            {/* Frequency and Due Date */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <Label className={labelCls} style={labelStyle}>Frequency</Label>
                 <Select value={frequency} onValueChange={setFrequency}>
-                  <SelectTrigger className="bg-elevated border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    {QUICK_ADD_FREQUENCIES.map((f) => (
-                      <SelectItem key={f.value} value={f.value}>
-                        {f.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue /></SelectTrigger>
+                  <SelectContent>{QUICK_ADD_FREQUENCIES.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-foreground">
-                  {isWeekBased ? 'Day of Week' : 'Day of Month'}
-                </Label>
+              <div>
+                <Label className={labelCls} style={labelStyle}>{isWeekBased ? 'Day of Week' : 'Day of Month'}</Label>
                 {isWeekBased ? (
                   <Select value={dueDate} onValueChange={setDueDate}>
-                    <SelectTrigger className="bg-elevated border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      {DAY_OF_WEEK_OPTIONS.map((day) => (
-                        <SelectItem key={day.value} value={day.value.toString()}>
-                          {day.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue /></SelectTrigger>
+                    <SelectContent>{DAY_OF_WEEK_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
                   </Select>
                 ) : (
-                  <Input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    placeholder="1"
-                    className="bg-elevated border-border"
-                  />
+                  <Input type="number" min="1" max="31" value={dueDate} onChange={(e) => setDueDate(e.target.value)} placeholder="1" className="h-9 text-[13px]" style={fieldStyle} />
                 )}
               </div>
             </div>
 
-            {/* Category (Optional) */}
-            <div className="space-y-2">
-              <Label className="text-foreground">
-                Category <span className="text-muted-foreground text-xs">(optional)</span>
-              </Label>
-              <Select value={categoryId || 'none'} onValueChange={(val) => setCategoryId(val === 'none' ? '' : val)}>
-                <SelectTrigger className="bg-elevated border-border">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+            {/* Category */}
+            <div>
+              <Label className={labelCls} style={labelStyle}>Category <span style={{ opacity: 0.6 }}>(optional)</span></Label>
+              <Select value={categoryId || 'none'} onValueChange={val => setCategoryId(val === 'none' ? '' : val)}>
+                <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
+                  {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-2 pt-2">
+            {/* Actions */}
+            <div className="flex flex-col gap-2 pt-1">
               <div className="flex gap-2">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Check className="w-4 h-4 mr-2" />
-                  )}
-                  Save
+                <Button type="submit" disabled={loading} className="flex-1 h-9 text-[12px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+                  {loading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1.5" />}Save
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => handleSubmit(true)}
-                  disabled={loading}
-                  variant="outline"
-                  className="flex-1 border-border"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Save & Add Another
+                <Button type="button" onClick={() => handleSubmit(true)} disabled={loading} variant="outline" className="flex-1 h-9 text-[12px]">
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />Save & Add Another
                 </Button>
               </div>
-
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleMoreOptions}
-                className="w-full text-muted-foreground hover:text-foreground"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                More Options (Advanced Form)
+              <Button type="button" variant="ghost" onClick={handleMoreOptions} className="h-8 text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />More Options (Advanced Form)
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Discard Confirmation */}
       <AlertDialog open={showDiscardConfirm} onOpenChange={setShowDiscardConfirm}>
-        <AlertDialogContent className="bg-card border-border">
+        <AlertDialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Discard changes?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              You have unsaved changes. Are you sure you want to close without saving?
-            </AlertDialogDescription>
+            <AlertDialogTitle style={{ color: 'var(--color-foreground)' }}>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription style={{ color: 'var(--color-muted-foreground)' }}>You have unsaved changes. Close without saving?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-border">Keep Editing</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDiscard}
-              className="bg-error hover:bg-error/90 text-white"
-            >
-              Discard
-            </AlertDialogAction>
+            <AlertDialogCancel className="text-[12px]">Keep Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDiscard} className="text-[12px]" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>Discard</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

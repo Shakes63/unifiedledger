@@ -82,8 +82,11 @@ function MonthlyTooltip({
   const total = totalEntry?.value || 0;
 
   return (
-    <div className="bg-elevated border border-border rounded-lg p-3 shadow-lg min-w-[200px]">
-      <p className="text-sm text-muted-foreground mb-2">{monthName}</p>
+    <div
+      className="rounded-lg p-3 shadow-lg min-w-[200px] border"
+      style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
+    >
+      <p className="text-sm mb-2" style={{ color: 'var(--color-muted-foreground)' }}>{monthName}</p>
       
       <div className="space-y-1 mb-2">
         {payload
@@ -95,18 +98,18 @@ function MonthlyTooltip({
                   className="w-2 h-2 rounded-full" 
                   style={{ backgroundColor: entry.color }} 
                 />
-                <span className="text-muted-foreground">{entry.dataKey}</span>
+                <span style={{ color: 'var(--color-muted-foreground)' }}>{entry.dataKey}</span>
               </div>
-              <span className="font-mono font-medium text-foreground">
+              <span className="font-mono font-medium" style={{ color: 'var(--color-foreground)' }}>
                 ${entry.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           ))}
       </div>
       
-      <div className="pt-2 border-t border-border flex justify-between items-center">
-        <span className="text-sm font-medium text-foreground">Total</span>
-        <span className="font-mono font-bold text-error">
+      <div className="pt-2 border-t flex justify-between items-center" style={{ borderColor: 'var(--color-border)' }}>
+        <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Total</span>
+        <span className="font-mono font-bold" style={{ color: 'var(--color-destructive)' }}>
           ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       </div>
@@ -205,21 +208,21 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
       {/* Summary Stats */}
       {hasData && (
         <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="p-3 bg-elevated rounded-lg border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Total ({days} days)</p>
-            <p className="text-lg font-bold font-mono text-error">
+          <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+            <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total ({days} days)</p>
+            <p className="text-lg font-bold font-mono" style={{ color: 'var(--color-destructive)' }}>
               ${data.summary.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="p-3 bg-elevated rounded-lg border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Year-to-Date</p>
-            <p className="text-lg font-bold font-mono text-error">
+          <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+            <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Year-to-Date</p>
+            <p className="text-lg font-bold font-mono" style={{ color: 'var(--color-destructive)' }}>
               ${data.summary.ytdInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="p-3 bg-elevated rounded-lg border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Avg Monthly</p>
-            <p className="text-lg font-bold font-mono text-warning">
+          <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+            <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Avg Monthly</p>
+            <p className="text-lg font-bold font-mono" style={{ color: 'var(--color-warning)' }}>
               ${data.summary.averageMonthly.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
@@ -238,11 +241,12 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
             <button
               key={value}
               onClick={() => setDays(value)}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
+              className="px-3 py-1 rounded text-sm transition-colors border"
+              style={
                 days === value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-              }`}
+                  ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)', borderColor: 'var(--color-primary)' }
+                  : { backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }
+              }
             >
               {label}
             </button>
@@ -254,21 +258,23 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
           <div className="flex gap-2">
             <button
               onClick={() => setViewMode('monthly')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
+              className="px-3 py-1 rounded text-sm transition-colors border"
+              style={
                 viewMode === 'monthly'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-              }`}
+                  ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)', borderColor: 'var(--color-primary)' }
+                  : { backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }
+              }
             >
               Monthly
             </button>
             <button
               onClick={() => setViewMode('byAccount')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
+              className="px-3 py-1 rounded text-sm transition-colors border"
+              style={
                 viewMode === 'byAccount'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-              }`}
+                  ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)', borderColor: 'var(--color-primary)' }
+                  : { backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }
+              }
             >
               By Account
             </button>
@@ -277,7 +283,7 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
       </div>
 
       {!hasData ? (
-        <div className="flex items-center justify-center h-64 text-muted-foreground">
+        <div className="flex items-center justify-center h-64" style={{ color: 'var(--color-muted-foreground)' }}>
           <p>No interest charges found. This is a good thing!</p>
         </div>
       ) : viewMode === 'monthly' ? (
@@ -366,31 +372,32 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
 
       {/* Account Details Table */}
       {hasData && data.byAccount.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <h4 className="text-sm font-medium text-foreground mb-3">Account Breakdown</h4>
+        <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          <h4 className="text-sm font-medium mb-3" style={{ color: 'var(--color-foreground)' }}>Account Breakdown</h4>
           <div className="space-y-2">
             {data.byAccount.map((acc) => (
               <div 
                 key={acc.accountId} 
-                className="flex items-center justify-between p-2 rounded-lg bg-elevated"
+                className="flex items-center justify-between p-2 rounded-lg"
+                style={{ backgroundColor: 'var(--color-elevated)' }}
               >
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-3 h-3 rounded-full" 
                     style={{ backgroundColor: acc.accountColor }} 
                   />
-                  <span className="text-sm text-foreground">{acc.accountName}</span>
+                  <span className="text-sm" style={{ color: 'var(--color-foreground)' }}>{acc.accountName}</span>
                   {acc.interestRate && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       ({acc.interestRate.toFixed(2)}% APR)
                     </span>
                   )}
                 </div>
                 <div className="text-right">
-                  <span className="font-mono text-sm text-error">
+                  <span className="font-mono text-sm" style={{ color: 'var(--color-destructive)' }}>
                     ${acc.interestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="text-xs text-muted-foreground ml-2">
+                  <span className="text-xs ml-2" style={{ color: 'var(--color-muted-foreground)' }}>
                     ({acc.transactionCount} charge{acc.transactionCount !== 1 ? 's' : ''})
                   </span>
                 </div>

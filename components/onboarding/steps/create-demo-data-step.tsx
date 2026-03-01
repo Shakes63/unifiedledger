@@ -87,23 +87,23 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
       <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
         {loading && (
           <>
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-foreground font-medium">{progress}</p>
+            <Loader2 className="w-12 h-12 animate-spin" style={{ color: 'var(--color-primary)' }} />
+            <p className="font-medium" style={{ color: 'var(--color-foreground)' }}>{progress}</p>
           </>
         )}
 
         {result && !loading && (
           <>
-            <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-success" />
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)' }}>
+              <CheckCircle2 className="w-8 h-8" style={{ color: 'var(--color-success)' }} />
             </div>
             <div className="space-y-4 max-w-md">
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                 Demo Data Created!
               </h3>
-              <div className="bg-elevated border border-border rounded-lg p-4 space-y-2 text-left">
-                <p className="text-sm font-medium text-foreground mb-3">Created:</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
+              <div className="rounded-lg p-4 space-y-2 text-left border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+                <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-foreground)' }}>Created:</p>
+                <ul className="text-sm space-y-1" style={{ color: 'var(--color-muted-foreground)' }}>
                   <li>• {result.accountsCreated} accounts</li>
                   <li>• {result.categoriesCreated} categories</li>
                   <li>• {result.merchantsCreated} merchants</li>
@@ -113,7 +113,7 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
                   <li>• {result.transactionsCreated} transactions</li>
                 </ul>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 All demo data is clearly marked and won&apos;t affect real household finances.
               </p>
             </div>
@@ -121,9 +121,9 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
         )}
 
         {error && !loading && (
-          <div className="w-full max-w-md bg-error/10 border border-error/30 rounded-lg p-4">
-            <p className="text-sm text-error">{error}</p>
-            <p className="text-xs text-muted-foreground mt-2">
+          <div className="w-full max-w-md rounded-lg p-4 border" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)', borderColor: 'color-mix(in oklch, var(--color-destructive) 30%, transparent)' }}>
+            <p className="text-sm" style={{ color: 'var(--color-destructive)' }}>{error}</p>
+            <p className="text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
               You can continue with onboarding anyway.
             </p>
           </div>

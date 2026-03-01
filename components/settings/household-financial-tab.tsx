@@ -12,16 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { Loader2, CreditCard, ExternalLink, Info, Calendar } from 'lucide-react';
-import { useHousehold } from '@/contexts/household-context';
-import Link from 'next/link';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
+import { Loader2, CreditCard, Calendar, ExternalLink, Info, CheckCircle2, DollarSign } from 'lucide-react';
+import { useHousehold } from '@/contexts/household-context';
+import Link from 'next/link';
 
 interface HouseholdFinancialSettings {
   defaultBudgetMethod: string;
@@ -34,6 +34,64 @@ interface DebtStrategySettings {
   extraMonthlyPayment: number;
   paymentFrequency: 'weekly' | 'biweekly' | 'monthly';
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  footer,
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+      </div>
+      <div className="px-4 py-4 space-y-4">{children}</div>
+      {footer && (
+        <div className="px-4 py-3 flex items-center justify-end gap-2" style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 35%, transparent)' }}>
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, helper, id, children }: { label: string; helper?: string; id?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      {id
+        ? <Label htmlFor={id} className="text-[11px] font-medium uppercase tracking-wide block" style={{ color: 'var(--color-muted-foreground)' }}>{label}</Label>
+        : <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>{label}</p>
+      }
+      {children}
+      {helper && <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>{helper}</p>}
+    </div>
+  );
+}
+
+function SwitchRow({ label, description, id, checked, onCheckedChange }: { label: string; description?: string; id: string; checked: boolean; onCheckedChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-1">
+      <div className="flex-1 min-w-0">
+        <Label htmlFor={id} className="text-[13px] font-medium cursor-pointer" style={{ color: 'var(--color-foreground)' }}>{label}</Label>
+        {description && <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>{description}</p>}
+      </div>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function HouseholdFinancialTab() {
   const { selectedHouseholdId } = useHousehold();
@@ -53,128 +111,80 @@ export function HouseholdFinancialTab() {
 
   const fetchSettings = useCallback(async () => {
     if (!selectedHouseholdId) return;
-    
     try {
-      // Fetch user settings
-      const userResponse = await fetch('/api/user/settings', { credentials: 'include' });
-      if (userResponse.ok) {
-        const data = await userResponse.json();
-        setSettings({
-          defaultBudgetMethod: data.settings.defaultBudgetMethod || 'monthly',
-          autoCategorization: data.settings.autoCategorization !== false,
-        });
+      const [userRes, hhRes] = await Promise.all([
+        fetch('/api/user/settings', { credentials: 'include' }),
+        fetch(`/api/households/${selectedHouseholdId}/settings`, { credentials: 'include' }),
+      ]);
+      if (userRes.ok) {
+        const d = await userRes.json();
+        setSettings({ defaultBudgetMethod: d.settings.defaultBudgetMethod || 'monthly', autoCategorization: d.settings.autoCategorization !== false });
       }
-
-      // Fetch household settings for debt strategy
-      const householdResponse = await fetch(
-        `/api/households/${selectedHouseholdId}/settings`,
-        { credentials: 'include' }
-      );
-      if (householdResponse.ok) {
-        const data = await householdResponse.json();
+      if (hhRes.ok) {
+        const d = await hhRes.json();
         setDebtSettings({
-          debtStrategyEnabled: data.settings.debtStrategyEnabled ?? false,
-          debtPayoffMethod: data.settings.debtPayoffMethod ?? 'avalanche',
-          extraMonthlyPayment: data.settings.extraMonthlyPayment ?? 0,
-          paymentFrequency: data.settings.paymentFrequency ?? 'monthly',
+          debtStrategyEnabled: d.settings.debtStrategyEnabled ?? false,
+          debtPayoffMethod:    d.settings.debtPayoffMethod    ?? 'avalanche',
+          extraMonthlyPayment: d.settings.extraMonthlyPayment ?? 0,
+          paymentFrequency:    d.settings.paymentFrequency    ?? 'monthly',
         });
       }
-    } catch (error) {
-      console.error('Error fetching settings:', error);
+    } catch {
       toast.error('Failed to load financial settings');
     } finally {
       setLoading(false);
     }
   }, [selectedHouseholdId]);
 
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(settings),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to save settings');
-      }
-
-      toast.success('Financial settings saved successfully');
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save settings');
-    } finally {
-      setSaving(false);
-    }
+      const res = await fetch('/api/user/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(settings) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
+      toast.success('Financial settings saved');
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save'); }
+    finally { setSaving(false); }
   };
 
   const handleSaveDebtStrategy = async () => {
     if (!selectedHouseholdId) return;
-    
     setSavingDebt(true);
     try {
-      const response = await fetch(
-        `/api/households/${selectedHouseholdId}/settings`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(debtSettings),
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to save debt strategy settings');
-      }
-
-      toast.success('Debt strategy settings saved');
-    } catch (error) {
-      console.error('Error saving debt strategy:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save debt strategy');
-    } finally {
-      setSavingDebt(false);
-    }
+      const res = await fetch(`/api/households/${selectedHouseholdId}/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(debtSettings) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
+      toast.success('Debt strategy saved');
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save debt strategy'); }
+    finally { setSavingDebt(false); }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-4">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-48 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', animationDelay: `${i * 100}ms` }} />
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">Household Financial Settings</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Budget and financial settings shared by all members of this household
-        </p>
-      </div>
+    <div className="space-y-4">
 
-      <div className="space-y-6">
-        {/* Budget Method */}
-        <div className="space-y-2">
-          <Label htmlFor="budgetMethod" className="text-foreground">Default Budget Method</Label>
-          <Select
-            value={settings.defaultBudgetMethod}
-            onValueChange={(value) => setSettings({ ...settings, defaultBudgetMethod: value })}
-          >
-            <SelectTrigger
-              id="budgetMethod"
-              name="budgetMethod"
-              aria-label="Select budget method"
-              className="bg-background border-border text-foreground"
-            >
+      {/* ── Budget Settings ─────────────────────────────────────────────── */}
+      <Section
+        icon={DollarSign}
+        label="Budget Settings"
+        footer={
+          <Button onClick={handleSave} disabled={saving} size="sm" className="text-[12px] h-8 px-4 font-medium" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+            {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving…</> : <><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Save Settings</>}
+          </Button>
+        }
+      >
+        <Field label="Default Budget Method" helper="Budgeting methodology used by all household members." id="budgetMethod">
+          <Select value={settings.defaultBudgetMethod} onValueChange={v => setSettings({ ...settings, defaultBudgetMethod: v })}>
+            <SelectTrigger id="budgetMethod" name="budgetMethod" aria-label="Select budget method" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -183,49 +193,11 @@ export function HouseholdFinancialTab() {
               <SelectItem value="50/30/20">50/30/20 Rule</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            Budgeting methodology used by all household members
-          </p>
-        </div>
+        </Field>
 
-        {/* Budget Schedule Info */}
-        <div className="p-4 bg-card border border-border rounded-xl">
-          <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">Budget Schedule</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                To configure your budget cycle (weekly, bi-weekly, semi-monthly, or monthly), 
-                go to the Personal Preferences tab.
-              </p>
-              <Link
-                href="/dashboard/settings?section=households&tab=personal"
-                className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80 transition-opacity mt-2"
-              >
-                Configure Budget Schedule
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Auto-categorization */}
-        <div className="space-y-2">
-          <Label htmlFor="autoCategorization" className="text-foreground">
-            Auto-Categorization
-          </Label>
-          <Select
-            value={settings.autoCategorization ? 'enabled' : 'disabled'}
-            onValueChange={(value) =>
-              setSettings({ ...settings, autoCategorization: value === 'enabled' })
-            }
-          >
-            <SelectTrigger
-              id="autoCategorization"
-              name="autoCategorization"
-              aria-label="Select auto-categorization setting"
-              className="bg-background border-border text-foreground"
-            >
+        <Field label="Auto-Categorization" helper="Automatically apply rules to new transactions for all members." id="autoCategorization">
+          <Select value={settings.autoCategorization ? 'enabled' : 'disabled'} onValueChange={v => setSettings({ ...settings, autoCategorization: v === 'enabled' })}>
+            <SelectTrigger id="autoCategorization" name="autoCategorization" aria-label="Select auto-categorization setting" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -233,213 +205,108 @@ export function HouseholdFinancialTab() {
               <SelectItem value="disabled">Disabled</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            Automatically apply categorization rules to new transactions for all household members
-          </p>
-        </div>
+        </Field>
 
-        {/* Save Button */}
-        <div className="pt-4">
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-primary hover:bg-primary/90"
-          >
-            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save Financial Settings
+        {/* Budget schedule note */}
+        <div className="flex items-start gap-2.5 rounded-lg px-3 py-2.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 6%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
+          <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-medium" style={{ color: 'var(--color-foreground)' }}>Budget Schedule</p>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>Configure your budget cycle in Personal Preferences.</p>
+            <Link href="/dashboard/settings?section=households&tab=personal" className="inline-flex items-center gap-1 text-[11px] mt-1" style={{ color: 'var(--color-primary)' }}>
+              Configure <ExternalLink className="w-2.5 h-2.5" />
+            </Link>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── Debt Strategy ───────────────────────────────────────────────── */}
+      <Section
+        icon={CreditCard}
+        label={
+          <>
+            Debt Payoff Strategy
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="ml-1.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                    <Info className="w-3 h-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-[12px]">
+                  When enabled, debts are managed with a centralized payoff strategy. In budget view, debts appear as a single &quot;Debt Payments&quot; line.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </>
+        }
+        accent="var(--color-destructive)"
+        footer={
+          <Button onClick={handleSaveDebtStrategy} disabled={savingDebt} size="sm" variant="outline" className="text-[12px] h-8 px-4 font-medium" style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
+            {savingDebt ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving…</> : <><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Save Strategy</>}
           </Button>
-        </div>
-      </div>
+        }
+      >
+        <SwitchRow
+          id="debtStrategy"
+          label="Use Debt Payoff Strategy"
+          description={debtSettings.debtStrategyEnabled ? 'Debts are managed by your payoff strategy.' : 'Each debt appears as an individual budget line.'}
+          checked={debtSettings.debtStrategyEnabled}
+          onCheckedChange={v => setDebtSettings({ ...debtSettings, debtStrategyEnabled: v })}
+        />
 
-      {/* Debt Payoff Strategy Section */}
-      <div className="pt-6 border-t border-border">
-        <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-5 h-5 text-expense" />
-          <h3 className="text-lg font-semibold text-foreground">Debt Payoff Strategy</h3>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground transition-colors">
-                  <Info className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>
-                  When enabled, your debts are managed with a centralized payoff strategy.
-                  In budget view, debts appear as a single &quot;Debt Payments&quot; line
-                  instead of individual items.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        {debtSettings.debtStrategyEnabled ? (
+          <div
+            className="space-y-4 rounded-lg px-3 py-3"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 70%, transparent)', border: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}
+          >
+            <Field label="Payoff Method" id="payoffMethod" helper={debtSettings.debtPayoffMethod === 'avalanche' ? 'Pays highest interest debts first to minimize total interest.' : 'Pays smallest balances first for quick wins and motivation.'}>
+              <Select value={debtSettings.debtPayoffMethod} onValueChange={(v: 'snowball' | 'avalanche') => setDebtSettings({ ...debtSettings, debtPayoffMethod: v })}>
+                <SelectTrigger id="payoffMethod" name="payoffMethod" aria-label="Select payoff method" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="avalanche">Avalanche — Highest Interest First</SelectItem>
+                  <SelectItem value="snowball">Snowball — Lowest Balance First</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
 
-        <div className="space-y-6">
-          {/* Strategy Toggle */}
-          <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
-            <div className="flex-1">
-              <Label htmlFor="debtStrategy" className="text-foreground font-medium">
-                Use Debt Payoff Strategy
-              </Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                {debtSettings.debtStrategyEnabled
-                  ? 'Debts are managed by your payoff strategy'
-                  : 'Each debt appears as an individual budget line'}
-              </p>
-            </div>
-            <Switch
-              id="debtStrategy"
-              checked={debtSettings.debtStrategyEnabled}
-              onCheckedChange={(checked) =>
-                setDebtSettings({ ...debtSettings, debtStrategyEnabled: checked })
-              }
-            />
+            <Field label="Extra Monthly Payment" helper="Additional amount applied to focus debt each month." id="extraPayment">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
+                <Input id="extraPayment" type="number" min="0" step="10" value={debtSettings.extraMonthlyPayment} onChange={e => setDebtSettings({ ...debtSettings, extraMonthlyPayment: parseFloat(e.target.value) || 0 })} className="pl-7 h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }} placeholder="0" />
+              </div>
+            </Field>
+
+            <Field label="Payment Frequency" helper="How often you make debt payments." id="paymentFrequency">
+              <Select value={debtSettings.paymentFrequency} onValueChange={(v: 'weekly' | 'biweekly' | 'monthly') => setDebtSettings({ ...debtSettings, paymentFrequency: v })}>
+                <SelectTrigger id="paymentFrequency" name="paymentFrequency" aria-label="Select payment frequency" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="biweekly">Bi-Weekly</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Link href="/dashboard/debts" className="inline-flex items-center gap-1 text-[12px]" style={{ color: 'var(--color-primary)' }}>
+              Manage individual debts <ExternalLink className="w-3 h-3" />
+            </Link>
           </div>
-
-          {/* Strategy Options (shown when enabled) */}
-          {debtSettings.debtStrategyEnabled && (
-            <div className="space-y-4 p-4 bg-elevated rounded-xl">
-              {/* Payoff Method */}
-              <div className="space-y-2">
-                <Label htmlFor="payoffMethod" className="text-foreground">
-                  Payoff Method
-                </Label>
-                <Select
-                  value={debtSettings.debtPayoffMethod}
-                  onValueChange={(value: 'snowball' | 'avalanche') =>
-                    setDebtSettings({ ...debtSettings, debtPayoffMethod: value })
-                  }
-                >
-                  <SelectTrigger
-                    id="payoffMethod"
-                    name="payoffMethod"
-                    aria-label="Select payoff method"
-                    className="bg-background border-border text-foreground"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="avalanche">
-                      Avalanche (Highest Interest First)
-                    </SelectItem>
-                    <SelectItem value="snowball">
-                      Snowball (Lowest Balance First)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {debtSettings.debtPayoffMethod === 'avalanche'
-                    ? 'Pays off highest interest debts first to minimize total interest paid'
-                    : 'Pays off smallest balances first for quick wins and motivation'}
-                </p>
-              </div>
-
-              {/* Extra Monthly Payment */}
-              <div className="space-y-2">
-                <Label htmlFor="extraPayment" className="text-foreground">
-                  Extra Monthly Payment
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    $
-                  </span>
-                  <Input
-                    id="extraPayment"
-                    type="number"
-                    min="0"
-                    step="10"
-                    value={debtSettings.extraMonthlyPayment}
-                    onChange={(e) =>
-                      setDebtSettings({
-                        ...debtSettings,
-                        extraMonthlyPayment: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="pl-7 bg-background border-border text-foreground"
-                    placeholder="0.00"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Additional amount to put toward debt each month (applied to focus debt)
-                </p>
-              </div>
-
-              {/* Payment Frequency */}
-              <div className="space-y-2">
-                <Label htmlFor="paymentFrequency" className="text-foreground">
-                  Payment Frequency
-                </Label>
-                <Select
-                  value={debtSettings.paymentFrequency}
-                  onValueChange={(value: 'weekly' | 'biweekly' | 'monthly') =>
-                    setDebtSettings({ ...debtSettings, paymentFrequency: value })
-                  }
-                >
-                  <SelectTrigger
-                    id="paymentFrequency"
-                    name="paymentFrequency"
-                    aria-label="Select payment frequency"
-                    className="bg-background border-border text-foreground"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="biweekly">Bi-Weekly</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  How often you make debt payments
-                </p>
-              </div>
-
-              {/* Link to Debts Page */}
-              <div className="pt-2">
-                <Link
-                  href="/dashboard/debts"
-                  className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80 transition-opacity"
-                >
-                  Manage individual debts
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Set which debts are included in the payoff strategy
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Manual Mode Info (shown when disabled) */}
-          {!debtSettings.debtStrategyEnabled && (
-            <div className="p-4 bg-muted/30 border border-border rounded-xl">
-              <p className="text-sm text-muted-foreground">
-                With strategy mode disabled, each debt appears as a separate line in your budget.
-                You can set custom payment amounts for each debt individually.
-              </p>
-              <Link
-                href="/dashboard/debts"
-                className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80 transition-opacity mt-2"
-              >
-                View and manage debts
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-          )}
-
-          {/* Save Debt Strategy Button */}
-          <div className="pt-2">
-            <Button
-              onClick={handleSaveDebtStrategy}
-              disabled={savingDebt}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {savingDebt && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Save Debt Strategy Settings
-            </Button>
+        ) : (
+          <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 60%, transparent)', border: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+            <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              With strategy disabled, each debt appears as a separate line in your budget. You can set custom payment amounts individually.
+            </p>
+            <Link href="/dashboard/debts" className="inline-flex items-center gap-1 text-[12px] mt-1.5" style={{ color: 'var(--color-primary)' }}>
+              View and manage debts <ExternalLink className="w-3 h-3" />
+            </Link>
           </div>
-        </div>
-      </div>
+        )}
+      </Section>
     </div>
   );
 }

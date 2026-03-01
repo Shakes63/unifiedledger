@@ -138,26 +138,27 @@ export function TransactionLinkSelector({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Loading transactions...</span>
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-primary)' }} />
+        <span className="ml-2" style={{ color: 'var(--color-muted-foreground)' }}>Loading transactions...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
         Showing expenses within 7 days of due date ({format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')})
       </div>
 
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
         <Input
           placeholder="Search transactions..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 bg-card border-border"
+          className="pl-9"
+          style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
         />
       </div>
 
@@ -168,21 +169,24 @@ export function TransactionLinkSelector({
           onClick={() => onSelect(null, null)}
           className={cn(
             'w-full p-3 rounded-lg border text-left transition-colors',
-            selectedId === null
-              ? 'border-primary bg-primary/10'
-              : 'border-border bg-card hover:bg-elevated'
+            selectedId !== null && 'hover:bg-[var(--color-elevated)]'
           )}
+          style={{
+            border: '1px solid var(--color-border)',
+            backgroundColor: selectedId === null ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'var(--color-background)',
+            ...(selectedId === null && { borderColor: 'var(--color-primary)' }),
+          }}
         >
           <div className="flex items-center gap-3">
-            <div className={cn(
-              'w-5 h-5 rounded-full border-2 flex items-center justify-center',
-              selectedId === null ? 'border-primary' : 'border-muted-foreground'
-            )}>
+            <div
+              className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+              style={{ borderColor: selectedId === null ? 'var(--color-primary)' : 'var(--color-muted-foreground)' }}
+            >
               {selectedId === null && (
-                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />
               )}
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
               <Link2Off className="w-4 h-4" />
               <span>Unlink current transaction</span>
             </div>
@@ -192,7 +196,7 @@ export function TransactionLinkSelector({
 
       {/* Transaction List */}
       {filteredTransactions.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8" style={{ color: 'var(--color-muted-foreground)' }}>
           <p>No matching transactions found.</p>
           <p className="text-sm mt-1">Try adjusting the search or check if the payment was recorded.</p>
         </div>
@@ -205,47 +209,56 @@ export function TransactionLinkSelector({
               onClick={() => onSelect(tx.id, tx)}
               className={cn(
                 'w-full p-3 rounded-lg border text-left transition-colors',
-                selectedId === tx.id
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border bg-card hover:bg-elevated'
+                selectedId !== tx.id && 'hover:bg-[var(--color-elevated)]'
               )}
+              style={{
+                borderColor: selectedId === tx.id ? 'var(--color-primary)' : 'var(--color-border)',
+                backgroundColor: selectedId === tx.id ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'var(--color-background)',
+              }}
             >
               <div className="flex items-center gap-3">
                 {/* Radio indicator */}
-                <div className={cn(
-                  'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0',
-                  selectedId === tx.id ? 'border-primary' : 'border-muted-foreground'
-                )}>
+                <div
+                  className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
+                  style={{ borderColor: selectedId === tx.id ? 'var(--color-primary)' : 'var(--color-muted-foreground)' }}
+                >
                   {selectedId === tx.id && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />
                   )}
                 </div>
 
                 {/* Transaction details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-foreground truncate">
+                    <span className="font-medium truncate" style={{ color: 'var(--color-foreground)' }}>
                       {tx.description}
                     </span>
-                    <span className="font-mono text-foreground shrink-0">
+                    <span className="font-mono shrink-0" style={{ color: 'var(--color-foreground)' }}>
                       ${tx.amount.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1">
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                       {format(parseISO(tx.date), 'MMM d, yyyy')}
                       {accounts[tx.accountId] && (
                         <span className="ml-2">• {accounts[tx.accountId].name}</span>
                       )}
                     </span>
-                    <span className={cn(
-                      'text-xs px-2 py-0.5 rounded-full',
-                      tx.matchScore && tx.matchScore >= 90
-                        ? 'bg-success/20 text-success'
-                        : tx.matchScore && tx.matchScore >= 70
-                        ? 'bg-warning/20 text-warning'
-                        : 'bg-muted text-muted-foreground'
-                    )}>
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: tx.matchScore && tx.matchScore >= 90
+                          ? 'color-mix(in oklch, var(--color-success) 20%, transparent)'
+                          : tx.matchScore && tx.matchScore >= 70
+                          ? 'color-mix(in oklch, var(--color-warning) 20%, transparent)'
+                          : 'var(--color-elevated)',
+                        color: tx.matchScore && tx.matchScore >= 90
+                          ? 'var(--color-success)'
+                          : tx.matchScore && tx.matchScore >= 70
+                          ? 'var(--color-warning)'
+                          : 'var(--color-muted-foreground)',
+                      }}
+                    >
                       {tx.matchScore}% match
                     </span>
                   </div>

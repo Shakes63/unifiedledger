@@ -71,13 +71,14 @@ export function ScenarioBuilder({
   };
 
   return (
-    <div className="bg-card rounded-xl p-6 border border-border">
+    <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <Input
           value={scenario.name}
           onChange={(e) => handleNameChange(e.target.value)}
-          className="text-lg font-semibold bg-elevated border-border text-foreground flex-1 mr-3"
+          className="text-lg font-semibold flex-1 mr-3"
+          style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
           placeholder="Scenario name"
         />
         {!isBaseline && (
@@ -85,7 +86,8 @@ export function ScenarioBuilder({
             variant="ghost"
             size="sm"
             onClick={onDelete}
-            className="text-error hover:text-error/80 hover:bg-error/10"
+            style={{ color: 'var(--color-destructive)' }}
+            className="hover:opacity-80 hover:bg-[color-mix(in_oklch,var(--color-destructive)_10%,transparent)]"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -93,18 +95,26 @@ export function ScenarioBuilder({
       </div>
 
       {isBaseline && (
-        <div className="mb-4 p-2 bg-primary/10 border border-primary/30 rounded text-sm text-primary">
+        <div
+          className="mb-4 p-2 rounded text-sm"
+          style={{
+            backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)',
+            border: '1px solid color-mix(in oklch, var(--color-primary) 25%, transparent)',
+            color: 'var(--color-primary)',
+          }}
+        >
           This is your baseline scenario for comparison
         </div>
       )}
 
       {/* Extra Monthly Payment */}
       <div className="mb-4">
-        <Label htmlFor={`extra-${scenario.id}`} className="text-foreground mb-2 block">
+        <Label htmlFor={`extra-${scenario.id}`} className="mb-2 block" style={{ color: 'var(--color-foreground)' }}>
           Extra {scenario.paymentFrequency === 'biweekly' ? 'Per Payment' : 'Monthly Payment'}
         </Label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--color-muted-foreground)' }}>$</span>
           <Input
             id={`extra-${scenario.id}`}
             type="number"
@@ -112,11 +122,12 @@ export function ScenarioBuilder({
             step="10"
             value={scenario.extraMonthlyPayment}
             onChange={(e) => handleExtraPaymentChange(e.target.value)}
-            className="pl-7 bg-elevated border-border text-foreground"
+            className="pl-7"
+            style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
             placeholder="0.00"
           />
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           {scenario.paymentFrequency === 'biweekly'
             ? `Per payment (${(scenario.extraMonthlyPayment * 26).toFixed(0)}/year)`
             : 'Amount above minimum payments to apply toward debts'}
@@ -125,50 +136,62 @@ export function ScenarioBuilder({
 
       {/* Payment Frequency */}
       <div className="mb-4">
-        <Label className="text-foreground mb-2 block">Payment Frequency</Label>
+        <Label className="mb-2 block" style={{ color: 'var(--color-foreground)' }}>Payment Frequency</Label>
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => handleFrequencyChange('weekly')}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              scenario.paymentFrequency === 'weekly'
-                ? 'bg-success text-white'
-                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
+              scenario.paymentFrequency === 'weekly' ? 'text-white' : '[&:hover]:[color:var(--color-foreground)]'
             }`}
+            style={{
+              backgroundColor: scenario.paymentFrequency === 'weekly' ? 'var(--color-success)' : 'var(--color-elevated)',
+              color: scenario.paymentFrequency === 'weekly' ? undefined : 'var(--color-muted-foreground)',
+              border: scenario.paymentFrequency === 'weekly' ? undefined : '1px solid var(--color-border)',
+            }}
           >
             Weekly
           </button>
           <button
             onClick={() => handleFrequencyChange('biweekly')}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              scenario.paymentFrequency === 'biweekly'
-                ? 'bg-primary text-white'
-                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
+              scenario.paymentFrequency === 'biweekly' ? 'text-white' : '[&:hover]:[color:var(--color-foreground)]'
             }`}
+            style={{
+              backgroundColor: scenario.paymentFrequency === 'biweekly' ? 'var(--color-primary)' : 'var(--color-elevated)',
+              color: scenario.paymentFrequency === 'biweekly' ? undefined : 'var(--color-muted-foreground)',
+              border: scenario.paymentFrequency === 'biweekly' ? undefined : '1px solid var(--color-border)',
+            }}
           >
             Bi-Weekly
           </button>
           <button
             onClick={() => handleFrequencyChange('monthly')}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              (scenario.paymentFrequency || 'monthly') === 'monthly'
-                ? 'bg-accent text-accent-foreground'
-                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
+              (scenario.paymentFrequency || 'monthly') === 'monthly' ? '' : '[&:hover]:[color:var(--color-foreground)]'
             }`}
+            style={{
+              backgroundColor: (scenario.paymentFrequency || 'monthly') === 'monthly' ? 'var(--color-accent)' : 'var(--color-elevated)',
+              color: (scenario.paymentFrequency || 'monthly') === 'monthly' ? 'var(--color-accent-foreground)' : 'var(--color-muted-foreground)',
+              border: (scenario.paymentFrequency || 'monthly') === 'monthly' ? undefined : '1px solid var(--color-border)',
+            }}
           >
             Monthly
           </button>
           <button
             onClick={() => handleFrequencyChange('quarterly')}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              scenario.paymentFrequency === 'quarterly'
-                ? 'bg-warning text-white'
-                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
+              scenario.paymentFrequency === 'quarterly' ? 'text-white' : '[&:hover]:[color:var(--color-foreground)]'
             }`}
+            style={{
+              backgroundColor: scenario.paymentFrequency === 'quarterly' ? 'var(--color-warning)' : 'var(--color-elevated)',
+              color: scenario.paymentFrequency === 'quarterly' ? undefined : 'var(--color-muted-foreground)',
+              border: scenario.paymentFrequency === 'quarterly' ? undefined : '1px solid var(--color-border)',
+            }}
           >
             Quarterly
           </button>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           {scenario.paymentFrequency === 'weekly' && '52 payments/year - Fastest payoff'}
           {scenario.paymentFrequency === 'biweekly' && '26 payments/year - 1 extra annually'}
           {(scenario.paymentFrequency === 'monthly' || !scenario.paymentFrequency) && '12 payments/year - Standard'}
@@ -178,30 +201,36 @@ export function ScenarioBuilder({
 
       {/* Payment Method */}
       <div className="mb-4">
-        <Label className="text-foreground mb-2 block">Payment Method</Label>
+        <Label className="mb-2 block" style={{ color: 'var(--color-foreground)' }}>Payment Method</Label>
         <div className="flex gap-2">
           <button
             onClick={() => handleMethodChange('snowball')}
             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              scenario.method === 'snowball'
-                ? 'bg-transfer text-primary-foreground'
-                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
+              scenario.method === 'snowball' ? '' : '[&:hover]:[color:var(--color-foreground)]'
             }`}
+            style={{
+              backgroundColor: scenario.method === 'snowball' ? 'var(--color-transfer)' : 'var(--color-elevated)',
+              color: scenario.method === 'snowball' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+              border: scenario.method === 'snowball' ? undefined : '1px solid var(--color-border)',
+            }}
           >
             Snowball
           </button>
           <button
             onClick={() => handleMethodChange('avalanche')}
             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              scenario.method === 'avalanche'
-                ? 'bg-transfer text-primary-foreground'
-                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
+              scenario.method === 'avalanche' ? '' : '[&:hover]:[color:var(--color-foreground)]'
             }`}
+            style={{
+              backgroundColor: scenario.method === 'avalanche' ? 'var(--color-transfer)' : 'var(--color-elevated)',
+              color: scenario.method === 'avalanche' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+              border: scenario.method === 'avalanche' ? undefined : '1px solid var(--color-border)',
+            }}
           >
             Avalanche
           </button>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           {scenario.method === 'snowball'
             ? 'Pay smallest balance first (quick wins)'
             : 'Pay highest interest first (save most money)'}
@@ -211,13 +240,14 @@ export function ScenarioBuilder({
       {/* Lump Sum Payments */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <Label className="text-foreground">Lump Sum Payments</Label>
+          <Label style={{ color: 'var(--color-foreground)' }}>Lump Sum Payments</Label>
           {!showLumpSumForm && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowLumpSumForm(true)}
-              className="text-primary hover:text-primary/80 h-auto py-1"
+              style={{ color: 'var(--color-primary)' }}
+              className="hover:opacity-80 h-auto py-1"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add
@@ -231,13 +261,14 @@ export function ScenarioBuilder({
             {scenario.lumpSumPayments.map((lumpSum, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-elevated rounded-lg"
+                className="flex items-center justify-between p-3 rounded-lg"
+                style={{ backgroundColor: 'var(--color-elevated)' }}
               >
                 <div className="flex-1">
-                  <span className="text-foreground font-medium">
+                  <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                     ${lumpSum.amount.toLocaleString()}
                   </span>
-                  <span className="text-muted-foreground ml-2 text-sm">
+                  <span className="ml-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     in month {lumpSum.month}
                   </span>
                 </div>
@@ -245,7 +276,8 @@ export function ScenarioBuilder({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveLumpSum(index)}
-                  className="text-error hover:text-error/80 h-auto p-1"
+                  style={{ color: 'var(--color-destructive)' }}
+                  className="hover:opacity-80 h-auto p-1"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -256,13 +288,17 @@ export function ScenarioBuilder({
 
         {/* Add lump sum form */}
         {showLumpSumForm && (
-          <div className="p-4 bg-elevated rounded-lg border border-border space-y-3">
+          <div
+            className="p-4 rounded-lg space-y-3"
+            style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}
+          >
             <div>
-              <Label htmlFor={`lump-amount-${scenario.id}`} className="text-foreground mb-1 block text-sm">
+              <Label htmlFor={`lump-amount-${scenario.id}`} className="mb-1 block text-sm" style={{ color: 'var(--color-foreground)' }}>
                 Amount
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--color-muted-foreground)' }}>$</span>
                 <Input
                   id={`lump-amount-${scenario.id}`}
                   type="number"
@@ -272,14 +308,15 @@ export function ScenarioBuilder({
                   onChange={(e) =>
                     setNewLumpSum({ ...newLumpSum, amount: parseFloat(e.target.value) || 0 })
                   }
-                  className="pl-7 bg-card border-border text-foreground"
+                  className="pl-7"
+                  style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                   placeholder="5000"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor={`lump-month-${scenario.id}`} className="text-foreground mb-1 block text-sm">
+              <Label htmlFor={`lump-month-${scenario.id}`} className="mb-1 block text-sm" style={{ color: 'var(--color-foreground)' }}>
                 Apply in Month
               </Label>
               <Input
@@ -291,10 +328,10 @@ export function ScenarioBuilder({
                 onChange={(e) =>
                   setNewLumpSum({ ...newLumpSum, month: parseInt(e.target.value) || 1 })
                 }
-                className="bg-card border-border text-foreground"
+                style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                 placeholder="3"
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                 Which month from now to apply this payment
               </p>
             </div>
@@ -302,7 +339,8 @@ export function ScenarioBuilder({
             <div className="flex gap-2">
               <Button
                 onClick={handleAddLumpSum}
-                className="flex-1 bg-primary hover:opacity-90 text-white"
+                className="flex-1 hover:opacity-90 text-white"
+                style={{ backgroundColor: 'var(--color-primary)' }}
                 disabled={newLumpSum.amount <= 0 || newLumpSum.month < 1}
               >
                 Add
@@ -313,7 +351,8 @@ export function ScenarioBuilder({
                   setNewLumpSum({ month: 1, amount: 0 });
                 }}
                 variant="outline"
-                className="flex-1 border-border text-muted-foreground hover:text-foreground"
+                className="flex-1 [&:hover]:[color:var(--color-foreground)]"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
               >
                 Cancel
               </Button>
@@ -322,7 +361,7 @@ export function ScenarioBuilder({
         )}
 
         {scenario.lumpSumPayments.length === 0 && !showLumpSumForm && (
-          <p className="text-sm text-muted-foreground italic">
+          <p className="text-sm italic" style={{ color: 'var(--color-muted-foreground)' }}>
             No lump sum payments added
           </p>
         )}

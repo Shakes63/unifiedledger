@@ -128,7 +128,7 @@ export function TreemapChart({
           </RechartsTreemap>
         </ResponsiveContainer>
       ) : (
-        <div className="flex items-center justify-center h-[320px] text-muted-foreground">
+        <div className="flex items-center justify-center h-[320px]" style={{ color: 'var(--color-muted-foreground)' }}>
           No data available for treemap
         </div>
       )}

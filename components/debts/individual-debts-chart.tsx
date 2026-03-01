@@ -77,11 +77,11 @@ function CustomTooltip({
     <div
       className="p-3 rounded-lg border"
       style={{
-        backgroundColor: 'var(--color-card)',
+        backgroundColor: 'var(--color-background)',
         borderColor: 'var(--color-border)',
       }}
     >
-      <p className="font-semibold text-foreground text-sm mb-2">
+      <p className="font-semibold text-sm mb-2" style={{ color: 'var(--color-foreground)' }}>
         {data.month}
       </p>
       {sortedPayload.map((entry: TooltipPayloadItem, index: number) => {
@@ -137,9 +137,9 @@ export function IndividualDebtsChart({
     return (
       <div
         className="w-full h-96 rounded-lg flex items-center justify-center"
-        style={{ backgroundColor: 'var(--color-card)' }}
+        style={{ backgroundColor: 'var(--color-background)' }}
       >
-        <p className="text-muted-foreground">Loading chart...</p>
+        <p style={{ color: 'var(--color-muted-foreground)' }}>Loading chart...</p>
       </div>
     );
   }
@@ -148,15 +148,15 @@ export function IndividualDebtsChart({
     return (
       <div
         className="w-full h-96 rounded-lg flex items-center justify-center"
-        style={{ backgroundColor: 'var(--color-card)' }}
+        style={{ backgroundColor: 'var(--color-background)' }}
       >
-        <p className="text-muted-foreground">No debt data available</p>
+        <p style={{ color: 'var(--color-muted-foreground)' }}>No debt data available</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full rounded-lg p-4" style={{ backgroundColor: 'var(--color-card)' }}>
+    <div className="w-full rounded-lg p-4" style={{ backgroundColor: 'var(--color-background)' }}>
       <ResponsiveContainer width="100%" height={400}>
         <AreaChart
           data={sortedData}
@@ -234,7 +234,7 @@ export function IndividualDebtsChart({
 
       {/* Summary by debt */}
       <div className="mt-4">
-        <p className="text-xs text-muted-foreground mb-2">Current Balances</p>
+        <p className="text-xs mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Current Balances</p>
         <div className="grid grid-cols-2 gap-2">
           {debtDetails.map(debt => {
             const latestBalance =
@@ -248,10 +248,10 @@ export function IndividualDebtsChart({
                   borderLeft: `3px solid ${debt.color}`,
                 }}
               >
-                <p className="text-muted-foreground text-xs truncate">
+                <p className="text-xs truncate" style={{ color: 'var(--color-muted-foreground)' }}>
                   {debt.name}
                 </p>
-                <p className="font-semibold text-foreground">
+                <p className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   {formatCurrency(latestBalance)}
                 </p>
               </div>

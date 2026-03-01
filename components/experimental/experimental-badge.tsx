@@ -40,14 +40,15 @@ export function ExperimentalBadge({ className = '' }: ExperimentalBadgeProps) {
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className={`border-warning text-warning bg-warning/10 ${className}`}
+            style={{ borderColor: 'var(--color-warning)', color: 'var(--color-warning)', backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)' }}
+            className={`border ${className}`}
           >
             <Beaker className="w-3 h-3 mr-1" />
             EXPERIMENTAL
           </Badge>
         </TooltipTrigger>
-        <TooltipContent className="bg-card border-border">
-          <p className="text-xs text-muted-foreground max-w-xs">
+        <TooltipContent style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }} className="border">
+          <p className="text-xs max-w-xs" style={{ color: 'var(--color-muted-foreground)' }}>
             This feature is experimental and may change or be removed in future updates.
             Enable &quot;Experimental Features&quot; in Settings → Advanced to access.
           </p>

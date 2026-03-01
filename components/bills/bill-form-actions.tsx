@@ -20,13 +20,14 @@ export function BillFormActions({
   onCancel,
 }: BillFormActionsProps) {
   return (
-    <div className="space-y-2 pt-4 border-t border-border">
+    <div className="space-y-2 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
       <div className="flex gap-2">
         <Button
           type="submit"
           onClick={onSave}
           disabled={isLoading}
-          className="flex-1 text-white hover:opacity-90 font-medium bg-primary"
+          className="flex-1 hover:opacity-90 font-medium"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
         >
           {hasExistingBill
             ? isLoading && saveMode === 'save'
@@ -41,7 +42,8 @@ export function BillFormActions({
             type="submit"
             onClick={onSaveAndAdd}
             disabled={isLoading}
-            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium"
+            className="flex-1 hover:opacity-90 font-medium"
+            style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-foreground)' }}
           >
             {isLoading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
           </Button>
@@ -51,7 +53,8 @@ export function BillFormActions({
         type="button"
         onClick={onCancel}
         variant="outline"
-        className="w-full bg-elevated border-border text-foreground hover:bg-elevated"
+        className="w-full border hover:bg-[var(--color-elevated)]"
+            style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
       >
         Cancel
       </Button>

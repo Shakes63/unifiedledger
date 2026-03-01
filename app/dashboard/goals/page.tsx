@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { GoalTracker, type GoalData } from '@/components/goals/goal-tracker';
 import { GoalForm } from '@/components/goals/goal-form';
@@ -12,14 +13,20 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowLeft, Target } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import type { GoalFormData } from '@/lib/types';
 
+function fmt(n: number) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
 export default function GoalsPage() {
   const { selectedHouseholdId } = useHousehold();
-  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } =
+    useHouseholdFetch();
+
   const [goals, setGoals] = useState<GoalData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,331 +35,320 @@ export default function GoalsPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
 
   const loadGoals = useCallback(async () => {
-    if (!selectedHouseholdId) return; // Safety check
+    if (!selectedHouseholdId) return;
     try {
       setLoading(true);
-      setError(null); // Clear previous errors
+      setError(null);
       const params = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await fetchWithHousehold(`/api/savings-goals${params}`);
+      const res = await fetchWithHousehold(`/api/savings-goals${params}`);
 
-      if (!response.ok) {
-        await response.json().catch(() => ({}));
-
-        // Different error messages based on status code
-        let errorMessage = 'Failed to load goals';
-        if (response.status === 401) {
-          errorMessage = 'Please sign in to view goals';
-        } else if (response.status === 500) {
-          errorMessage = 'Server error loading goals. Please try again.';
-        }
-
-        setError(errorMessage);
-        toast.error(errorMessage);
+      if (!res.ok) {
+        const msg =
+          res.status === 401 ? 'Please sign in to view goals'
+          : res.status === 500 ? 'Server error. Please try again.'
+          : 'Failed to load goals';
+        setError(msg);
+        toast.error(msg);
         setGoals([]);
         return;
       }
 
-      const data = (await response.json()) as unknown;
-
-      // Empty array is valid - don't show error
+      const data = (await res.json()) as unknown;
       setGoals(Array.isArray(data) ? (data as GoalData[]) : []);
       setError(null);
-    } catch (error) {
-      // Only network errors reach here
-      console.error('Network error loading goals:', error);
-      const errorMessage = 'Network error. Please check your connection.';
-      setError(errorMessage);
-      toast.error(errorMessage);
+    } catch {
+      const msg = 'Network error. Please check your connection.';
+      setError(msg);
+      toast.error(msg);
       setGoals([]);
     } finally {
       setLoading(false);
     }
   }, [filter, selectedHouseholdId, fetchWithHousehold]);
 
-  // Fetch goals
   useEffect(() => {
-    if (!selectedHouseholdId) return; // Early return if no household
-    loadGoals();
+    if (selectedHouseholdId) loadGoals();
   }, [loadGoals, selectedHouseholdId]);
 
   const loadGoalDetails = async (goalId: string) => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return null;
-    }
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return null; }
     try {
-      const response = await fetchWithHousehold(`/api/savings-goals/${goalId}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          toast.error('Goal not found');
-        } else {
-          toast.error('Failed to load goal details');
-        }
-        return null;
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error loading goal details:', error);
-      toast.error('Network error loading goal details');
-      return null;
-    }
+      const res = await fetchWithHousehold(`/api/savings-goals/${goalId}`);
+      if (!res.ok) { toast.error(res.status === 404 ? 'Goal not found' : 'Failed to load goal details'); return null; }
+      return await res.json();
+    } catch { toast.error('Network error loading goal details'); return null; }
   };
 
   const handleCreateGoal = async (data: Record<string, unknown>) => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     try {
-      const response = await postWithHousehold('/api/savings-goals', data);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 400) {
-          toast.error(errorData.error || 'Invalid goal data');
-        } else {
-          toast.error('Failed to create goal. Please try again.');
-        }
+      const res = await postWithHousehold('/api/savings-goals', data);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(res.status === 400 ? (err.error || 'Invalid goal data') : 'Failed to create goal.');
         return;
       }
-
-      toast.success('Goal created successfully!');
+      toast.success('Goal created!');
       setIsFormOpen(false);
       setSelectedGoal(null);
       loadGoals();
-    } catch (error) {
-      console.error('Error creating goal:', error);
-      toast.error('Network error. Please check your connection.');
-    }
+    } catch { toast.error('Network error.'); }
   };
 
   const handleUpdateGoal = async (data: Record<string, unknown>) => {
-    if (!selectedGoal) return;
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-
+    if (!selectedGoal || !selectedHouseholdId) { toast.error('Please select a household'); return; }
     try {
-      const response = await putWithHousehold(`/api/savings-goals/${selectedGoal.id}`, data);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 400) {
-          toast.error(errorData.error || 'Invalid goal data');
-        } else if (response.status === 404) {
-          toast.error('Goal not found');
-        } else {
-          toast.error('Failed to update goal. Please try again.');
-        }
+      const res = await putWithHousehold(`/api/savings-goals/${selectedGoal.id}`, data);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(res.status === 400 ? (err.error || 'Invalid goal data') : res.status === 404 ? 'Goal not found' : 'Failed to update goal.');
         return;
       }
-
-      toast.success('Goal updated successfully!');
+      toast.success('Goal updated!');
       setIsFormOpen(false);
       setSelectedGoal(null);
       loadGoals();
-    } catch (error) {
-      console.error('Error updating goal:', error);
-      toast.error('Network error. Please check your connection.');
-    }
+    } catch { toast.error('Network error.'); }
   };
 
   const handleDeleteGoal = async (goalId: string) => {
-    if (!confirm('Are you sure you want to delete this goal?')) return;
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-
+    if (!confirm('Delete this goal? This cannot be undone.')) return;
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     try {
-      const response = await deleteWithHousehold(`/api/savings-goals/${goalId}`);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          toast.error('Goal not found');
-        } else {
-          toast.error('Failed to delete goal. Please try again.');
-        }
-        return;
-      }
-
-      toast.success('Goal deleted successfully!');
+      const res = await deleteWithHousehold(`/api/savings-goals/${goalId}`);
+      if (!res.ok) { toast.error(res.status === 404 ? 'Goal not found' : 'Failed to delete goal.'); return; }
+      toast.success('Goal deleted.');
       loadGoals();
-    } catch (error) {
-      console.error('Error deleting goal:', error);
-      toast.error('Network error. Please check your connection.');
-    }
+    } catch { toast.error('Network error.'); }
   };
 
   const handleEditGoal = async (goal: { id: string }) => {
     const details = await loadGoalDetails(goal.id);
-    if (details) {
-      setSelectedGoal(details as Partial<GoalFormData> & { id: string });
-      setIsFormOpen(true);
-    }
+    if (details) { setSelectedGoal(details as Partial<GoalFormData> & { id: string }); setIsFormOpen(true); }
   };
 
-  const handleContribute = () => {
-    loadGoals();
-  };
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  const totalTarget  = goals.reduce((s, g) => s + g.targetAmount, 0);
+  const totalCurrent = goals.reduce((s, g) => s + g.currentAmount, 0);
+  const overallPct   = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0;
+  const activeCount  = goals.filter(g => g.status === 'active').length;
+  const completedCount = goals.filter(g => g.status === 'completed').length;
 
-  // Calculate summary stats
-  const totalTarget = goals.reduce((sum, g) => sum + g.targetAmount, 0);
-  const totalCurrent = goals.reduce((sum, g) => sum + g.currentAmount, 0);
-  const activeGoals = goals.filter((g) => g.status === 'active').length;
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              <div className="w-28 h-5 rounded animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            </div>
+            <div className="w-24 h-8 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+          <div className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)' }} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-52 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', animationDelay: `${i * 60}ms` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Savings Goals</h1>
-          <p className="text-muted-foreground mt-1">Track and achieve your financial goals</p>
-        </div>
-        <Button
-          onClick={() => {
-            setSelectedGoal(null);
-            setIsFormOpen(true);
-          }}
-          className="bg-primary hover:opacity-90 text-primary-foreground"
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+
+      {/* ── Sticky header ────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          New Goal
-        </Button>
-      </div>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+            {/* Left */}
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+                Savings Goals
+              </h1>
+              {completedCount > 0 && (
+                <span
+                  className="text-[10px] font-semibold px-1.5 py-px rounded-full"
+                  style={{
+                    backgroundColor: 'color-mix(in oklch, var(--color-success) 15%, transparent)',
+                    color: 'var(--color-success)',
+                  }}
+                >
+                  {completedCount} achieved
+                </span>
+              )}
+            </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-muted-foreground text-sm">Total Target</p>
-          <p className="text-2xl font-bold text-foreground mt-1">
-            ${totalTarget.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-          </p>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-muted-foreground text-sm">Total Saved</p>
-          <p className="text-2xl font-bold text-income mt-1">
-            ${totalCurrent.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-          </p>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-muted-foreground text-sm">Progress</p>
-          <p className="text-2xl font-bold text-foreground mt-1">
-            {goals.length > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0}%
-          </p>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-muted-foreground text-sm">Active Goals</p>
-          <p className="text-2xl font-bold text-foreground mt-1">{activeGoals}</p>
-        </div>
-      </div>
+            {/* Right: filter pills + new goal */}
+            <div className="flex items-center gap-2">
+              {/* Filter pills — compact */}
+              <div
+                className="flex rounded-lg overflow-hidden"
+                style={{ border: '1px solid var(--color-border)' }}
+              >
+                {(['active', 'all', 'completed'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className="px-2.5 py-1 text-[11px] font-medium capitalize transition-colors"
+                    style={{
+                      backgroundColor: filter === f ? 'var(--color-primary)' : 'transparent',
+                      color: filter === f ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                      borderLeft: f !== 'active' ? '1px solid var(--color-border)' : 'none',
+                    }}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {(['all', 'active', 'completed'] as const).map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded transition-colors capitalize ${
-              filter === status
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card text-muted-foreground border border-border hover:border-border'
-            }`}
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 px-3 text-xs font-medium"
+                onClick={() => { setSelectedGoal(null); setIsFormOpen(true); }}
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                New Goal
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-primary) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
+        />
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        {/* ── Summary strip ────────────────────────────────────────────── */}
+        {goals.length > 0 && (
+          <div
+            className="rounded-xl px-4 py-3 flex items-center"
+            style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
           >
-            {status}
-          </button>
-        ))}
-      </div>
+            <div className="flex-1 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Target</div>
+              <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-foreground)' }}>${fmt(totalTarget)}</div>
+            </div>
+            <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+            <div className="flex-1 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-success)' }}>Saved</div>
+              <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-success)' }}>${fmt(totalCurrent)}</div>
+            </div>
+            <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+            <div className="flex-1 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Progress</div>
+              <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-foreground)' }}>{overallPct}%</div>
+            </div>
+            <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+            <div className="flex-1 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-primary)' }}>Active</div>
+              <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-foreground)' }}>{activeCount}</div>
+            </div>
+          </div>
+        )}
 
-      {/* Goals List */}
-      {loading ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading goals...</p>
-        </div>
-      ) : error ? (
-        <div className="text-center py-12 bg-card border border-error rounded-lg">
-          <p className="text-error mb-4">{error}</p>
-          <Button
-            onClick={loadGoals}
-            className="bg-primary hover:opacity-90 text-primary-foreground"
-          >
-            Retry
-          </Button>
-        </div>
-      ) : goals.length === 0 ? (
-        <div className="text-center py-12 bg-card border border-border rounded-lg">
-          {filter === 'all' ? (
-            <>
-              <p className="text-muted-foreground">No goals yet. Create your first goal to get started!</p>
-              <Button
-                onClick={() => setIsFormOpen(true)}
-                className="mt-4 bg-primary hover:opacity-90 text-primary-foreground"
-              >
-                Create Goal
-              </Button>
-            </>
-          ) : filter === 'active' ? (
-            <>
-              <p className="text-muted-foreground">No active goals. All your goals may be completed!</p>
-              <Button
-                onClick={() => setFilter('completed')}
-                variant="outline"
-                className="mt-4 border-border text-foreground hover:bg-elevated"
-              >
-                View Completed Goals
-              </Button>
-            </>
-          ) : (
-            <>
-              <p className="text-muted-foreground">No completed goals yet. Keep working towards your goals!</p>
-              <Button
-                onClick={() => setFilter('active')}
-                variant="outline"
-                className="mt-4 border-border text-foreground hover:bg-elevated"
-              >
-                View Active Goals
-              </Button>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {goals.map((goal) => (
-            <GoalTracker
-              key={goal.id}
-              goal={goal}
-              onEdit={handleEditGoal}
-              onDelete={handleDeleteGoal}
-              onContribute={handleContribute}
-            />
-          ))}
-        </div>
-      )}
+        {/* ── Error ────────────────────────────────────────────────────── */}
+        {error && (
+          <div className="rounded-xl py-10 text-center" style={{ border: '1px solid color-mix(in oklch, var(--color-error) 35%, var(--color-border))', backgroundColor: 'var(--color-background)' }}>
+            <p className="text-sm mb-3" style={{ color: 'var(--color-error)' }}>{error}</p>
+            <Button size="sm" onClick={loadGoals} style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>Retry</Button>
+          </div>
+        )}
 
-      {/* Form Dialog */}
+        {/* ── Empty state ───────────────────────────────────────────────── */}
+        {!error && goals.length === 0 && (
+          <div className="rounded-xl py-16 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+            <div
+              className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
+              style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}
+            >
+              <Target className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+            </div>
+            {filter === 'all' && (
+              <>
+                <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No goals yet</p>
+                <p className="text-sm mb-5" style={{ color: 'var(--color-muted-foreground)' }}>Create your first savings goal to get started.</p>
+                <Button size="sm" onClick={() => setIsFormOpen(true)} style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>Create Goal</Button>
+              </>
+            )}
+            {filter === 'active' && (
+              <>
+                <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No active goals</p>
+                <p className="text-sm mb-5" style={{ color: 'var(--color-muted-foreground)' }}>All your goals may be completed!</p>
+                <Button size="sm" variant="outline" onClick={() => setFilter('completed')} style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)', backgroundColor: 'transparent' }}>View Completed</Button>
+              </>
+            )}
+            {filter === 'completed' && (
+              <>
+                <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No completed goals yet</p>
+                <p className="text-sm mb-5" style={{ color: 'var(--color-muted-foreground)' }}>Keep working towards your goals!</p>
+                <Button size="sm" variant="outline" onClick={() => setFilter('active')}>View Active</Button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Goals grid ────────────────────────────────────────────────── */}
+        {!error && goals.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {goals.map((goal) => (
+              <GoalTracker
+                key={goal.id}
+                goal={goal}
+                onEdit={handleEditGoal}
+                onDelete={handleDeleteGoal}
+                onContribute={loadGoals}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* ── Goal form dialog ─────────────────────────────────────────────── */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-card border-border text-foreground max-w-md">
+        <DialogContent
+          style={{
+            backgroundColor: 'var(--color-background)',
+            color: 'var(--color-foreground)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '1rem',
+            maxWidth: '30rem',
+            boxShadow: '0 24px 64px -12px color-mix(in oklch, var(--color-foreground) 18%, transparent)',
+          }}
+        >
           <DialogHeader>
-            <DialogTitle>{selectedGoal ? 'Edit Goal' : 'Create New Goal'}</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              {selectedGoal
-                ? 'Update your savings goal details'
-                : 'Set up a new savings goal to track'}
+            <DialogTitle className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>
+              {selectedGoal ? 'Edit Goal' : 'New Savings Goal'}
+            </DialogTitle>
+            <DialogDescription className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+              {selectedGoal ? 'Update your savings goal details.' : 'Set up a new goal to track your progress.'}
             </DialogDescription>
           </DialogHeader>
           <GoalForm
             goal={selectedGoal}
             onSubmit={selectedGoal ? handleUpdateGoal : handleCreateGoal}
-            onCancel={() => {
-              setIsFormOpen(false);
-              setSelectedGoal(null);
-            }}
+            onCancel={() => { setIsFormOpen(false); setSelectedGoal(null); }}
           />
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   );
 }

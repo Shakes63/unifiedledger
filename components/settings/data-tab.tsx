@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -21,9 +20,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Database, Trash2, AlertTriangle, Loader2, Shield, FileSpreadsheet, History, Calendar } from 'lucide-react';
+import { Database, Trash2, AlertTriangle, Loader2, Shield, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { hardRedirect } from '@/lib/navigation/hard-redirect';
 import { BackupSettingsForm } from './backup-settings-form';
@@ -40,6 +38,38 @@ interface ImportTemplate {
   createdAt: string;
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  footer,
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+      </div>
+      <div className="px-4 py-4 space-y-4">{children}</div>
+      {footer && (
+        <div className="px-4 py-3 flex items-center justify-end gap-2" style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 35%, transparent)' }}>
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function DataTab() {
   const [dataRetentionYears, setDataRetentionYears] = useState('7');
   const [loading, setLoading] = useState(true);
@@ -50,634 +80,289 @@ export function DataTab() {
   const [resetConfirmed, setResetConfirmed] = useState(false);
   const [resetting, setResetting] = useState(false);
 
-  // Import preferences state
   const [importTemplates, setImportTemplates] = useState<ImportTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [defaultImportTemplateId, setDefaultImportTemplateId] = useState<string | null>(null);
   const [savingTemplate, setSavingTemplate] = useState(false);
 
-  // Backup history state
   const [backupHistoryDialogOpen, setBackupHistoryDialogOpen] = useState(false);
 
-  useEffect(() => {
-    fetchSettings();
-    fetchImportTemplates();
-  }, []);
+  useEffect(() => { fetchSettings(); fetchImportTemplates(); }, []);
 
   async function fetchSettings() {
     try {
-      const response = await fetch('/api/user/settings', { credentials: 'include' });
-      if (response.ok) {
-        const data = await response.json();
-        setDataRetentionYears(data.dataRetentionYears?.toString() || '7');
-        setDefaultImportTemplateId(data.defaultImportTemplateId || null);
-      }
-    } catch (_error) {
-      toast.error('Failed to load settings');
-    } finally {
-      setLoading(false);
-    }
+      const res = await fetch('/api/user/settings', { credentials: 'include' });
+      if (res.ok) { const d = await res.json(); setDataRetentionYears(d.dataRetentionYears?.toString() || '7'); setDefaultImportTemplateId(d.defaultImportTemplateId || null); }
+    } catch { toast.error('Failed to load settings'); }
+    finally { setLoading(false); }
   }
 
   async function fetchImportTemplates() {
     try {
-      const response = await fetch('/api/import-templates', { credentials: 'include' });
-      if (response.ok) {
-        const templates = await response.json();
-        setImportTemplates(templates);
-      }
-    } catch (error) {
-      console.error('Failed to load import templates:', error);
-    } finally {
-      setLoadingTemplates(false);
-    }
+      const res = await fetch('/api/import-templates', { credentials: 'include' });
+      if (res.ok) { setImportTemplates(await res.json()); }
+    } catch (e) { console.error('Failed to load import templates:', e); }
+    finally { setLoadingTemplates(false); }
   }
 
   async function saveDataRetention(years: string) {
     try {
       setSaving(true);
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dataRetentionYears: parseInt(years),
-        }),
-      });
-
-      if (response.ok) {
-        toast.success('Data retention policy updated');
-        setDataRetentionYears(years);
-      } else {
-        toast.error('Failed to update settings');
-      }
-    } catch (_error) {
-      toast.error('Failed to update settings');
-    } finally {
-      setSaving(false);
-    }
+      const res = await fetch('/api/user/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataRetentionYears: parseInt(years) }) });
+      if (res.ok) { toast.success('Data retention policy updated'); setDataRetentionYears(years); }
+      else { toast.error('Failed to update settings'); }
+    } catch { toast.error('Failed to update settings'); }
+    finally { setSaving(false); }
   }
 
   async function handleTemplateChange(value: string) {
     try {
       setSavingTemplate(true);
       const templateId = value === 'none' ? null : value;
-
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          defaultImportTemplateId: templateId,
-        }),
-      });
-
-      if (response.ok) {
+      const res = await fetch('/api/user/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ defaultImportTemplateId: templateId }) });
+      if (res.ok) {
         setDefaultImportTemplateId(templateId);
-        if (templateId) {
-          const template = importTemplates.find((t) => t.id === templateId);
-          toast.success(`Default import template set to "${template?.name}"`);
-        } else {
-          toast.success('Default import template cleared');
-        }
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to update template preference');
-      }
-    } catch (_error) {
-      toast.error('Failed to update template preference');
-    } finally {
-      setSavingTemplate(false);
-    }
+        if (templateId) { const t = importTemplates.find(t => t.id === templateId); toast.success(`Default template set to "${t?.name}"`); }
+        else { toast.success('Default import template cleared'); }
+      } else { const d = await res.json(); toast.error(d.error || 'Failed to update template preference'); }
+    } catch { toast.error('Failed to update template preference'); }
+    finally { setSavingTemplate(false); }
   }
 
   async function clearCache() {
     try {
-      // Clear browser cache, localStorage, etc.
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
-      }
-
-      // Clear service worker caches
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map(reg => reg.update()));
-      }
-
-      toast.success('Cache cleared successfully');
+      if ('caches' in window) { const ns = await caches.keys(); await Promise.all(ns.map(n => caches.delete(n))); }
+      if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.update())); }
+      toast.success('Cache cleared');
       setClearCacheDialogOpen(false);
-
-      // Reload page to apply changes
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (_error) {
-      toast.error('Failed to clear cache');
-    }
+      setTimeout(() => window.location.reload(), 1000);
+    } catch { toast.error('Failed to clear cache'); }
   }
 
   async function resetAppData() {
-    if (!resetPassword) {
-      toast.error('Please enter your password to confirm');
-      return;
-    }
-
-    if (!resetConfirmed) {
-      toast.error('Please confirm that you understand this action');
-      return;
-    }
-
+    if (!resetPassword) { toast.error('Please enter your password'); return; }
+    if (!resetConfirmed) { toast.error('Please confirm you understand this action'); return; }
     try {
       setResetting(true);
-
-      const response = await fetch('/api/user/reset-app-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password: resetPassword,
-          confirm: true,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to reset app data');
-      }
-
-      // Clear client-side caches
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
-      }
-
-      // Clear localStorage and sessionStorage
-      localStorage.clear();
-      sessionStorage.clear();
-
-      // Show success message with countdown
-      toast.success('App data reset successfully! Logging out in 3 seconds...');
-
-      // Close dialog
-      setResetDataDialogOpen(false);
-      setResetPassword('');
-      setResetConfirmed(false);
-
-      // Redirect to sign-in after 3 seconds
-      setTimeout(() => {
-        hardRedirect('/sign-in');
-      }, 3000);
-    } catch (error) {
-      console.error('Error resetting app data:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to reset app data');
-    } finally {
-      setResetting(false);
-    }
+      const res = await fetch('/api/user/reset-app-data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: resetPassword, confirm: true }) });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed to reset app data');
+      if ('caches' in window) { const ns = await caches.keys(); await Promise.all(ns.map(n => caches.delete(n))); }
+      localStorage.clear(); sessionStorage.clear();
+      toast.success('App data reset! Logging out in 3 seconds…');
+      setResetDataDialogOpen(false); setResetPassword(''); setResetConfirmed(false);
+      setTimeout(() => hardRedirect('/sign-in'), 3000);
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to reset app data'); }
+    finally { setResetting(false); }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        Loading...
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-24 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', animationDelay: `${i * 80}ms` }} />)}
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Data Retention Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Data Retention</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Configure how long your transaction data is kept
-        </p>
+  const sel = (id: string) => ({ id, name: id, className: 'h-9 text-[13px]', style: { backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' } });
+  const selectedTemplate = importTemplates.find(t => t.id === defaultImportTemplateId);
 
-        <Card className="p-4 bg-elevated border-border">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="dataRetention" className="text-foreground">
-                Keep transactions for
-              </Label>
-              <Select
-                value={dataRetentionYears}
-                onValueChange={saveDataRetention}
-                disabled={saving}
-              >
-                <SelectTrigger
-                  id="dataRetention"
-                  className="mt-1 bg-card border-border"
-                >
-                  <SelectValue />
+  return (
+    <div className="space-y-4">
+
+      {/* ── Data Retention ────────────────────────────────────────────── */}
+      <Section icon={Database} label="Data Retention" accent="var(--color-primary)">
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Keep Transactions For</p>
+          <Select value={dataRetentionYears} onValueChange={saveDataRetention} disabled={saving}>
+            <SelectTrigger {...sel('dataRetention')} aria-label="Select data retention period"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 year</SelectItem>
+              <SelectItem value="3">3 years</SelectItem>
+              <SelectItem value="5">5 years</SelectItem>
+              <SelectItem value="7">7 years (recommended)</SelectItem>
+              <SelectItem value="10">10 years</SelectItem>
+              <SelectItem value="999">Forever</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>Transactions older than this will be automatically archived.</p>
+        </div>
+      </Section>
+
+      {/* ── Import Preferences ────────────────────────────────────────── */}
+      <Section icon={FileSpreadsheet} label="Import Preferences" accent="var(--color-primary)">
+        {loadingTemplates ? (
+          <div className="h-9 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+        ) : importTemplates.length > 0 ? (
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Default Import Template</p>
+              <Select value={defaultImportTemplateId || 'none'} onValueChange={handleTemplateChange} disabled={savingTemplate}>
+                <SelectTrigger {...sel('defaultTemplate')} aria-label="Select default import template">
+                  <SelectValue placeholder="No default template" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">1 year</SelectItem>
-                  <SelectItem value="3">3 years</SelectItem>
-                  <SelectItem value="5">5 years</SelectItem>
-                  <SelectItem value="7">7 years (recommended)</SelectItem>
-                  <SelectItem value="10">10 years</SelectItem>
-                  <SelectItem value="999">Forever</SelectItem>
+                  <SelectItem value="none">No default template</SelectItem>
+                  {importTemplates.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}{t.usageCount > 0 && <span style={{ opacity: 0.6 }}> · {t.usageCount} uses</span>}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Transactions older than this will be automatically archived
+              <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>Pre-selected when you import CSV files.</p>
+            </div>
+            {selectedTemplate && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{selectedTemplate.name}</span>
+                    {selectedTemplate.isFavorite && <Badge className="text-[10px] h-4 px-1.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)', border: '1px solid color-mix(in oklch, var(--color-primary) 25%, transparent)' }}>Favorite</Badge>}
+                  </div>
+                  {selectedTemplate.description && <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>{selectedTemplate.description}</p>}
+                  <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.8 }}>
+                    {selectedTemplate.lastUsedAt && <span>Last used: {new Date(selectedTemplate.lastUsedAt).toLocaleDateString()}</span>}
+                    <span>Used {selectedTemplate.usageCount}×</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-start gap-3">
+            <FileSpreadsheet className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />
+            <div>
+              <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>No Templates Yet</p>
+              <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                Go to Transactions → Import CSV and save column mappings as a template to enable this feature.
               </p>
             </div>
           </div>
-        </Card>
+        )}
+      </Section>
+
+      {/* ── Calendar Sync ─────────────────────────────────────────────── */}
+      <CalendarSyncSection />
+
+      {/* ── Automatic Backups ─────────────────────────────────────────── */}
+      <BackupSettingsForm />
+
+      {/* Backup History link */}
+      <div className="flex">
+        <Button variant="outline" size="sm" onClick={() => setBackupHistoryDialogOpen(true)} className="text-[12px] h-8">
+          View Backup History
+        </Button>
       </div>
 
-      <Separator className="bg-border" />
+      {/* ── Cache Management ──────────────────────────────────────────── */}
+      <Section icon={Database} label="Cache Management" accent="var(--color-muted-foreground)">
+        <div className="flex items-start gap-3">
+          <div className="flex-1">
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Clear Cache</p>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>Remove temporary files and cached data. The app will reload after clearing.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setClearCacheDialogOpen(true)} className="text-[12px] h-8 shrink-0">Clear Cache</Button>
+        </div>
+      </Section>
 
-      {/* Import Preferences Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Import Preferences</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Set your default CSV import template for faster imports
-        </p>
-
-        <Card className="p-4 bg-elevated border-border">
-          {loadingTemplates ? (
-            <div className="flex items-center justify-center py-4 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              Loading templates...
-            </div>
-          ) : importTemplates.length > 0 ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="defaultTemplate" className="text-foreground">
-                  Default Import Template
-                </Label>
-                <Select
-                  value={defaultImportTemplateId || 'none'}
-                  onValueChange={handleTemplateChange}
-                  disabled={savingTemplate}
-                >
-                  <SelectTrigger
-                    id="defaultTemplate"
-                    name="defaultTemplate"
-                    aria-label="Select default import template"
-                    className="bg-background border-border text-foreground"
-                  >
-                    <SelectValue placeholder="No default template" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="none" className="text-foreground hover:bg-elevated">
-                      No default template
-                    </SelectItem>
-                    {importTemplates.map((template) => (
-                      <SelectItem
-                        key={template.id}
-                        value={template.id}
-                        className="text-foreground hover:bg-elevated"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{template.name}</span>
-                          {template.usageCount > 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              ({template.usageCount} uses)
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  The selected template will be pre-selected when you import CSV files
-                </p>
-              </div>
-
-              {/* Display selected template details */}
-              {defaultImportTemplateId && (() => {
-                const selectedTemplate = importTemplates.find(
-                  (t) => t.id === defaultImportTemplateId
-                );
-                return selectedTemplate ? (
-                  <Card className="p-4 bg-card border-border">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">
-                          {selectedTemplate.name}
-                        </span>
-                        {selectedTemplate.isFavorite && (
-                          <Badge variant="secondary" className="bg-primary text-white">
-                            Favorite
-                          </Badge>
-                        )}
-                      </div>
-                      {selectedTemplate.description && (
-                        <p className="text-xs text-muted-foreground">
-                          {selectedTemplate.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        {selectedTemplate.lastUsedAt && (
-                          <span>
-                            Last used: {new Date(selectedTemplate.lastUsedAt).toLocaleDateString()}
-                          </span>
-                        )}
-                        <span>Used {selectedTemplate.usageCount} times</span>
-                      </div>
-                    </div>
-                  </Card>
-                ) : null;
-              })()}
-            </div>
-          ) : (
-            <div className="flex items-start gap-3">
-              <FileSpreadsheet className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <h4 className="font-medium text-foreground mb-1">No Templates Yet</h4>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Import templates help you quickly import CSV files from the same source. Create your first template when importing a CSV file.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  To create a template, go to Transactions → Import CSV, and save your column mappings as a template.
-                </p>
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      <Separator className="bg-border" />
-
-      {/* Calendar Sync Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
-          <Calendar className="w-5 h-5" />
-          Calendar Sync
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Sync bills, milestones, and payoff dates to your external calendar
-        </p>
-
-        <CalendarSyncSection />
-      </div>
-
-      <Separator className="bg-border" />
-
-      {/* Automatic Backups Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Automatic Backups</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Configure automatic backups of your financial data
-        </p>
-
-        <Card className="p-4 bg-elevated border-border">
-          <BackupSettingsForm />
-        </Card>
-
-        <div className="mt-4">
-          <Button
-            variant="outline"
-            onClick={() => setBackupHistoryDialogOpen(true)}
-            className="border-border"
-          >
-            <History className="w-4 h-4 mr-2" />
-            View Backup History
+      {/* ── Danger Zone ───────────────────────────────────────────────── */}
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in oklch, var(--color-destructive) 35%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-destructive) 4%, var(--color-background))' }}>
+        <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-destructive) 20%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-destructive) 8%, transparent)', borderLeft: '3px solid var(--color-destructive)' }}>
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-destructive)', opacity: 0.85 }} />
+          <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-destructive)' }}>Danger Zone</span>
+        </div>
+        <div className="px-4 py-4 flex items-start gap-3">
+          <div className="flex-1 space-y-1">
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Reset App Data</p>
+            <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              Clear all app settings and cached data. Your account and financial data will <strong>not</strong> be affected.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setResetDataDialogOpen(true)} className="shrink-0 text-[12px] h-8" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            Reset
           </Button>
         </div>
       </div>
 
-      <Separator className="bg-border" />
-
-      {/* Cache Management Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Cache Management</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Clear cached data to free up space and resolve issues
-        </p>
-
-        <Card className="p-4 bg-elevated border-border">
-          <div className="flex items-start gap-3">
-            <Database className="w-5 h-5 text-muted-foreground mt-0.5" />
-            <div className="flex-1">
-              <h4 className="font-medium text-foreground mb-1">Clear Cache</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Remove temporary files and cached data. The app will reload after clearing.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => setClearCacheDialogOpen(true)}
-                className="border-border"
-              >
-                Clear Cache
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Separator className="bg-border" />
-
-      {/* Danger Zone Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-error mb-2">Danger Zone</h3>
-        <Card className="p-4 border-error bg-error/5">
-          <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className="w-5 h-5 text-error mt-0.5" />
-            <div>
-              <h4 className="font-medium text-foreground mb-1">Reset App Data</h4>
-              <p className="text-sm text-muted-foreground">
-                Clear all app settings and cached data. Your account and financial data will not be affected.
-              </p>
-            </div>
-          </div>
-
-          <Button
-            variant="destructive"
-            onClick={() => setResetDataDialogOpen(true)}
-            className="bg-error hover:bg-error/90"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Reset App Data
-          </Button>
-        </Card>
-      </div>
-
-      {/* Clear Cache Dialog */}
+      {/* ── Clear Cache Dialog ────────────────────────────────────────── */}
       <Dialog open={clearCacheDialogOpen} onOpenChange={setClearCacheDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Clear Cache</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              This will clear all cached data and reload the application. Are you sure?
-            </DialogDescription>
+            <DialogTitle style={{ color: 'var(--color-foreground)' }}>Clear Cache?</DialogTitle>
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>This will clear all cached data and reload the application.</DialogDescription>
           </DialogHeader>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setClearCacheDialogOpen(false)}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button onClick={clearCache}>
-              Clear Cache
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setClearCacheDialogOpen(false)} className="text-[12px]">Cancel</Button>
+            <Button size="sm" onClick={clearCache} className="text-[12px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>Clear Cache</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Reset Data Dialog */}
-      <Dialog
-        open={resetDataDialogOpen}
-        onOpenChange={(open) => {
-          setResetDataDialogOpen(open);
-          if (!open) {
-            setResetPassword('');
-            setResetConfirmed(false);
-          }
-        }}
-      >
-        <DialogContent className="bg-card border-error sm:max-w-[500px]">
+      {/* ── Reset Data Dialog ─────────────────────────────────────────── */}
+      <Dialog open={resetDataDialogOpen} onOpenChange={open => { setResetDataDialogOpen(open); if (!open) { setResetPassword(''); setResetConfirmed(false); } }}>
+        <DialogContent className="max-w-md" style={{ backgroundColor: 'var(--color-background)', borderColor: 'color-mix(in oklch, var(--color-destructive) 40%, var(--color-border))', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-error flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
+            <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--color-destructive)' }}>
+              <AlertTriangle className="w-4 h-4" />
               Reset App Data
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              This action will reset your preferences to defaults. Your financial data will NOT be affected.
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
+              This resets your preferences to defaults. Your financial data will NOT be affected.
             </DialogDescription>
           </DialogHeader>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              resetAppData();
-            }}
-          >
-            <div className="space-y-4 py-4">
-              {/* What will be reset */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-error flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  This will reset:
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                  <li>• All preferences and settings</li>
-                  <li>• Theme selection</li>
-                  <li>• Saved searches and filters</li>
-                  <li>• Import templates</li>
-                  <li>• Cached data</li>
+          <form onSubmit={e => { e.preventDefault(); resetAppData(); }}>
+            <div className="space-y-3 py-2">
+              {/* Will reset */}
+              <div className="rounded-lg px-3 py-2.5 space-y-1" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 6%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 20%, transparent)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: 'var(--color-destructive)' }}><AlertTriangle className="w-3 h-3" />Will reset</p>
+                <ul className="text-[12px] space-y-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {['All preferences and settings', 'Theme selection', 'Saved searches and filters', 'Import templates', 'Cached data'].map(item => (
+                    <li key={item}>· {item}</li>
+                  ))}
                 </ul>
               </div>
-
-              {/* What will NOT be affected */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-success flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  This will NOT affect:
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                  <li>• Your transactions and accounts</li>
-                  <li>• Bills and budgets</li>
-                  <li>• Goals and debts</li>
-                  <li>• Tax records</li>
-                  <li>• Household data</li>
+              {/* Will NOT affect */}
+              <div className="rounded-lg px-3 py-2.5 space-y-1" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 6%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 20%, transparent)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: 'var(--color-success)' }}><Shield className="w-3 h-3" />Will NOT affect</p>
+                <ul className="text-[12px] space-y-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {['Transactions and accounts', 'Bills and budgets', 'Goals and debts', 'Tax records', 'Household data'].map(item => (
+                    <li key={item}>· {item}</li>
+                  ))}
                 </ul>
               </div>
-
-              <Separator className="bg-border" />
-
-              {/* Password confirmation */}
-              <div className="space-y-2">
-                <Label htmlFor="resetPassword" className="text-foreground">
-                  Confirm your password
-                </Label>
-                <Input
-                  id="resetPassword"
-                  name="resetPassword"
-                  type="password"
-                  value={resetPassword}
-                  onChange={(e) => setResetPassword(e.target.value)}
-                  className="bg-background border-border text-foreground"
-                  placeholder="Enter your password"
-                  disabled={resetting}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Password required for security
-                </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="resetPassword" className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Confirm Password</Label>
+                <Input id="resetPassword" name="resetPassword" type="password" value={resetPassword} onChange={e => setResetPassword(e.target.value)} placeholder="Enter your password" disabled={resetting} required className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }} />
               </div>
-
-              {/* Confirmation checkbox */}
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="resetConfirm"
-                  name="resetConfirm"
-                  checked={resetConfirmed}
-                  onCheckedChange={(checked) => setResetConfirmed(checked === true)}
-                  disabled={resetting}
-                  className="mt-0.5"
-                  required
-                />
-                <label
-                  htmlFor="resetConfirm"
-                  className="text-sm text-foreground cursor-pointer leading-tight"
-                >
+              <div className="flex items-start gap-2">
+                <Checkbox id="resetConfirm" name="resetConfirm" checked={resetConfirmed} onCheckedChange={c => setResetConfirmed(c === true)} disabled={resetting} required className="mt-0.5" />
+                <label htmlFor="resetConfirm" className="text-[12px] cursor-pointer leading-tight" style={{ color: 'var(--color-foreground)' }}>
                   I understand this will reset all my preferences and settings
                 </label>
               </div>
             </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setResetDataDialogOpen(false)}
-                className="border-border"
-                disabled={resetting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="destructive"
-                className="bg-error hover:bg-error/90"
-                disabled={resetting || !resetPassword || !resetConfirmed}
-              >
-                {resetting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Resetting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Reset App Data
-                  </>
-                )}
+            <DialogFooter className="mt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setResetDataDialogOpen(false)} disabled={resetting} className="text-[12px]">Cancel</Button>
+              <Button type="submit" size="sm" disabled={resetting || !resetPassword || !resetConfirmed} className="text-[12px]" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>
+                {resetting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />}
+                Reset App Data
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Backup History Dialog */}
+      {/* ── Backup History Dialog ─────────────────────────────────────── */}
       <Dialog open={backupHistoryDialogOpen} onOpenChange={setBackupHistoryDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Backup History</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              View and manage your backup files
-            </DialogDescription>
+            <DialogTitle style={{ color: 'var(--color-foreground)' }}>Backup History</DialogTitle>
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>View and manage your backup files.</DialogDescription>
           </DialogHeader>
-
-          <div className="py-4">
-            <BackupHistory />
-          </div>
-
+          <div className="py-2"><BackupHistory /></div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setBackupHistoryDialogOpen(false)}
-              className="border-border"
-            >
-              Close
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setBackupHistoryDialogOpen(false)} className="text-[12px]">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -159,16 +159,17 @@ export function SplitBuilder({
     <div className="space-y-4">
       {/* Split Type Toggle */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">Split Type</Label>
+        <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Split Type</Label>
         <div className="flex gap-2">
           <Button
             type="button"
             variant={splitType === 'amount' ? 'default' : 'outline'}
-            className={`flex-1 ${
+            className={`flex-1 ${splitType === 'amount' ? 'hover:opacity-90' : ''}`}
+            style={
               splitType === 'amount'
-                ? 'bg-primary text-background hover:opacity-90'
-                : 'bg-elevated text-foreground border-border hover:bg-border/20'
-            }`}
+                ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                : { backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', borderColor: 'var(--color-border)', borderWidth: 1, borderStyle: 'solid' }
+            }
             onClick={() => handleSwitchSplitType('amount')}
           >
             Fixed Amount
@@ -176,11 +177,12 @@ export function SplitBuilder({
           <Button
             type="button"
             variant={splitType === 'percentage' ? 'default' : 'outline'}
-            className={`flex-1 ${
+            className={`flex-1 ${splitType === 'percentage' ? 'hover:opacity-90' : ''}`}
+            style={
               splitType === 'percentage'
-                ? 'bg-primary text-background hover:opacity-90'
-                : 'bg-elevated text-foreground border-border hover:bg-border/20'
-            }`}
+                ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                : { backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', borderColor: 'var(--color-border)', borderWidth: 1, borderStyle: 'solid' }
+            }
             onClick={() => handleSwitchSplitType('percentage')}
           >
             Percentage
@@ -191,7 +193,7 @@ export function SplitBuilder({
       {/* Splits List */}
       {splits.length > 0 && (
         <div className="space-y-3">
-          <Label className="text-sm font-medium text-foreground">
+          <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
             Splits ({splits.length})
           </Label>
 
@@ -201,12 +203,12 @@ export function SplitBuilder({
               return (
                 <Card
                   key={split.id}
-                  className="border-border bg-elevated p-3 space-y-2"
+                  className="p-3 space-y-2" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-elevated)' }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                           {split.isPercentage ? `${split.percentage}%` : `$${split.amount?.toFixed(2)}`}
                           {' • '}
                           ${metrics.amount.toFixed(2)} ({metrics.percentage.toFixed(2)}%)
@@ -214,7 +216,7 @@ export function SplitBuilder({
                         {split.isAutoBalanced && (
                           <Badge 
                             variant="outline" 
-                            className="text-[10px] px-1.5 py-0 h-4 border-primary/40 text-primary"
+                            className="text-[10px] px-1.5 py-0 h-4" style={{ borderColor: 'color-mix(in oklch, var(--color-primary) 40%, transparent)', color: 'var(--color-primary)' }}
                           >
                             Balanced
                           </Badge>
@@ -226,9 +228,9 @@ export function SplitBuilder({
                       size="sm"
                       variant="ghost"
                       onClick={() => handleRemoveSplit(split.id)}
-                      className="h-8 w-8 p-0 hover:bg-border/20"
+                      className="h-8 w-8 p-0 hover:opacity-80"
                     >
-                      <Trash2 className="w-4 h-4 text-error" />
+                      <Trash2 className="w-4 h-4" style={{ color: 'var(--color-destructive)' }} />
                     </Button>
                   </div>
 
@@ -246,9 +248,9 @@ export function SplitBuilder({
                         min="0"
                         value={split.isPercentage ? split.percentage || '' : split.amount || ''}
                         onChange={(e) => handleUpdateSplitAmount(split.id, e.target.value)}
-                        className="bg-background border-border text-foreground text-sm"
+                        className="text-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                       />
-                      <div className="text-sm font-medium text-muted-foreground pt-2">
+                      <div className="text-sm font-medium pt-2" style={{ color: 'var(--color-muted-foreground)' }}>
                         {split.isPercentage ? '%' : '$'}
                       </div>
                     </div>
@@ -257,7 +259,7 @@ export function SplitBuilder({
                       placeholder="Description for this split"
                       value={split.description || ''}
                       onChange={(e) => handleUpdateSplitDescription(split.id, e.target.value)}
-                      className="bg-background border-border text-foreground text-sm"
+                      className="text-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                     />
                   </div>
                 </Card>
@@ -272,7 +274,8 @@ export function SplitBuilder({
         type="button"
         onClick={handleAddSplit}
         disabled={categoriesLoading}
-        className="w-full bg-primary text-background hover:opacity-90 font-medium disabled:opacity-50"
+        className="w-full hover:opacity-90 font-medium disabled:opacity-50"
+        style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
       >
         {categoriesLoading ? (
           <>
@@ -289,11 +292,14 @@ export function SplitBuilder({
 
       {/* Validation Messages */}
       {validation && (
-        <div className={`p-3 rounded-lg border ${
-          validation.valid
-            ? 'bg-success/20 border-success/40 text-success'
-            : 'bg-error/20 border-error/40 text-error'
-        }`}>
+        <div
+          className="p-3 rounded-lg border"
+          style={
+            validation.valid
+              ? { backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 40%, transparent)', color: 'var(--color-success)' }
+              : { backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 40%, transparent)', color: 'var(--color-destructive)' }
+          }
+        >
           <div className="flex items-start gap-2">
             <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
             <div className="text-sm">
@@ -315,29 +321,30 @@ export function SplitBuilder({
 
       {/* Summary */}
       {splits.length > 0 && (
-        <Card className="border-border bg-background p-3">
+        <Card className="p-3" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-background)' }}>
           <div className="text-sm space-y-2">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Number of splits:</span>
-              <span className="text-foreground font-medium">{splits.length}</span>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>Number of splits:</span>
+              <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>{splits.length}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total amount:</span>
-              <span className="text-foreground font-medium">${transactionAmount.toFixed(2)}</span>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>Total amount:</span>
+              <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>${transactionAmount.toFixed(2)}</span>
             </div>
             {hasValidationError && splits.length >= 2 && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleBalanceSplits}
-                className="w-full mt-2 border-primary/40 text-primary hover:bg-primary/10"
+                className="w-full mt-2 hover:opacity-90"
+            style={{ borderColor: 'color-mix(in oklch, var(--color-primary) 40%, transparent)', color: 'var(--color-primary)' }}
               >
                 <Scale className="w-4 h-4 mr-2" />
                 Balance Splits
               </Button>
             )}
             {!hasValidationError && (
-              <Badge variant="outline" className="mt-2 w-full justify-center border-success/40 text-success">
+              <Badge variant="outline" className="mt-2 w-full justify-center" style={{ borderColor: 'color-mix(in oklch, var(--color-success) 40%, transparent)', color: 'var(--color-success)' }}>
                 ✓ Ready to save
               </Badge>
             )}

@@ -318,6 +318,11 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
               : data[0].id;
 
             setSelectedHouseholdIdState(householdToSelect);
+            try {
+              localStorage.setItem('unified-ledger:selected-household', householdToSelect);
+            } catch {
+              // Ignore storage errors
+            }
             await Promise.all([
               loadPreferences(householdToSelect),
               loadEntities(householdToSelect),
@@ -327,8 +332,18 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
             setSelectedEntityIdState(null);
             setEntities([]);
             setPreferences(null);
+            try {
+              localStorage.removeItem('unified-ledger:selected-household');
+            } catch {
+              // Ignore storage errors
+            }
           }
         } else {
+          try {
+            localStorage.setItem('unified-ledger:selected-household', currentSelectedHouseholdId);
+          } catch {
+            // Ignore storage errors
+          }
           // Load preferences for currently selected household
           await Promise.all([
             loadPreferences(currentSelectedHouseholdId),

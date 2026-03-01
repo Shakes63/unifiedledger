@@ -149,7 +149,7 @@ export function CalendarWeek({
   return (
     <div className="space-y-4">
       {/* Week date range */}
-      <div className="text-center text-muted-foreground text-sm mb-4">
+      <div className="text-center text-sm mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
         {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
       </div>
 
@@ -164,21 +164,20 @@ export function CalendarWeek({
           return (
             <div
               key={dayKey}
-              className={`p-3 rounded-lg border-2 transition-all flex flex-col min-h-[300px] ${
-                isTodayDate
-                  ? 'bg-primary/10 border-primary'
-                  : 'bg-card border-border'
-              }`}
+              className="p-3 rounded-lg border-2 transition-all flex flex-col min-h-[300px]"
+            style={{
+              backgroundColor: isTodayDate ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'var(--color-background)',
+              borderColor: isTodayDate ? 'var(--color-primary)' : 'var(--color-border)',
+            }}
             >
               {/* Day name and date */}
-              <div className="text-center mb-3 pb-2 border-b border-border">
-                <p className="text-xs text-muted-foreground font-medium">
+              <div className="text-center mb-3 pb-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                <p className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
                   {format(day, 'EEE')}
                 </p>
                 <p
-                  className={`text-lg font-bold ${
-                    isTodayDate ? 'text-primary' : 'text-foreground'
-                  }`}
+                  className="text-lg font-bold"
+                  style={{ color: isTodayDate ? 'var(--color-primary)' : 'var(--color-foreground)' }}
                 >
                   {format(day, 'd')}
                 </p>
@@ -190,13 +189,19 @@ export function CalendarWeek({
                   {summary.bills.map((bill, idx) => (
                     <div
                       key={idx}
-                      className={`text-[10px] px-1.5 py-1 rounded flex items-center gap-0.5 ${
-                        bill.status === 'overdue'
-                          ? 'bg-error/20 text-error font-semibold'
+                      className="text-[10px] px-1.5 py-1 rounded flex items-center gap-0.5 font-semibold"
+                      style={{
+                        backgroundColor: bill.status === 'overdue'
+                          ? 'color-mix(in oklch, var(--color-destructive) 20%, transparent)'
                           : bill.status === 'paid'
-                          ? 'bg-income/20 text-income'
-                          : 'bg-warning/20 text-warning'
-                      }`}
+                          ? 'color-mix(in oklch, var(--color-income) 20%, transparent)'
+                          : 'color-mix(in oklch, var(--color-warning) 20%, transparent)',
+                        color: bill.status === 'overdue'
+                          ? 'var(--color-destructive)'
+                          : bill.status === 'paid'
+                          ? 'var(--color-income)'
+                          : 'var(--color-warning)',
+                      }}
                     >
                       {bill.status === 'paid' && <Check className="w-2.5 h-2.5 shrink-0" />}
                       <div className="flex-1 min-w-0">
@@ -262,7 +267,7 @@ export function CalendarWeek({
 
               {/* Transactions List */}
               {loading ? (
-                <div className="text-muted-foreground text-xs text-center py-4">Loading...</div>
+                <div className="text-xs text-center py-4" style={{ color: 'var(--color-muted-foreground)' }}>Loading...</div>
               ) : transactions.length > 0 ? (
                 <div className="space-y-1 overflow-y-auto flex-1">
                   {transactions.map((txn) => {
@@ -282,24 +287,21 @@ export function CalendarWeek({
                     return (
                       <div
                         key={txn.id}
-                        className="text-[10px] px-1.5 py-1 rounded bg-elevated hover:bg-elevated transition-colors"
+                        className="text-[10px] px-1.5 py-1 rounded transition-colors"
+                        style={{ backgroundColor: 'var(--color-elevated)' }}
                       >
                         <div className="flex items-start justify-between gap-1">
                           <div className="flex-1 min-w-0">
-                            <div className="truncate font-medium text-foreground">
+                            <div className="truncate font-medium" style={{ color: 'var(--color-foreground)' }}>
                               {displayName}
                             </div>
                             {!isTransfer && txn.merchant && txn.merchant.trim() !== '' && txn.description !== txn.merchant && (
-                              <div className="truncate text-muted-foreground text-[9px]">
+                              <div className="truncate text-[9px]" style={{ color: 'var(--color-muted-foreground)' }}>
                                 {txn.description}
                               </div>
                             )}
                           </div>
-                          <div className={`font-semibold shrink-0 ${
-                            txn.type === 'income' ? 'text-income' :
-                            txn.type === 'expense' ? 'text-expense' :
-                            'text-primary'
-                          }`}>
+                          <div className="font-semibold shrink-0" style={{ color: txn.type === 'income' ? 'var(--color-income)' : txn.type === 'expense' ? 'var(--color-expense)' : 'var(--color-primary)' }}>
                             {txn.type === 'expense' || txn.type === 'transfer_out' ? '-' : '+'}
                             ${Math.abs(txn.amount).toFixed(0)}
                           </div>
@@ -309,7 +311,7 @@ export function CalendarWeek({
                   })}
                 </div>
               ) : (
-                <div className="text-muted-foreground text-xs text-center py-4">No transactions</div>
+                <div className="text-xs text-center py-4" style={{ color: 'var(--color-muted-foreground)' }}>No transactions</div>
               )}
             </div>
           );

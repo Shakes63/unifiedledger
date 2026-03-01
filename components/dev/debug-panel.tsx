@@ -38,12 +38,14 @@ export function DebugPanel({ title, data, className = '', defaultOpen = false }:
   const prettyJson = JSON.stringify(data, null, 2);
 
   return (
-    <div className={`border border-border rounded-lg bg-card overflow-hidden ${className}`}>
+    <div className={`rounded-lg overflow-hidden ${className}`}
+    style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-elevated border-b border-border">
+        <div className="flex items-center justify-between p-3 border-b" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+          className="flex items-center gap-2 text-sm font-medium transition-colors"
+          style={{ color: 'var(--color-foreground)' }}
           aria-expanded={isOpen}
           aria-label={`Toggle ${title} debug panel`}
         >
@@ -55,14 +57,14 @@ export function DebugPanel({ title, data, className = '', defaultOpen = false }:
 
         <button
           onClick={handleCopy}
-          className="p-1.5 rounded-md hover:bg-card transition-colors"
+          className="p-1.5 rounded-md transition-colors"
           title="Copy JSON to clipboard"
           aria-label="Copy JSON to clipboard"
         >
           {copied ? (
-            <Check className="h-4 w-4 text-success" />
+            <Check className="h-4 w-4" style={{ color: 'var(--color-success)' }} />
           ) : (
-            <Copy className="h-4 w-4 text-muted-foreground" />
+            <Copy className="h-4 w-4" style={{ color: 'var(--color-muted-foreground)' }} />
           )}
         </button>
       </div>
@@ -70,7 +72,7 @@ export function DebugPanel({ title, data, className = '', defaultOpen = false }:
       {/* Content */}
       {isOpen && (
         <div className="p-4">
-          <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all overflow-x-auto">
+          <pre className="text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto" style={{ color: 'var(--color-foreground)' }}>
             {prettyJson}
           </pre>
         </div>

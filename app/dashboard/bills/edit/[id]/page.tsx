@@ -182,7 +182,7 @@ export default function EditBillPage({ params }: PageProps) {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-gray-400">Loading...</div>
+          <div style={{ color: 'var(--color-muted-foreground)' }}>Loading...</div>
         </div>
       </div>
     );
@@ -195,23 +195,24 @@ export default function EditBillPage({ params }: PageProps) {
         <div className="flex items-center gap-4">
           <Link
             href={`/dashboard/bills/${billId}`}
-            className="text-gray-400 hover:text-white transition-colors"
+            style={{ color: 'var(--color-muted-foreground)' }}
+            className="transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-white">Edit Bill</h1>
-            <p className="text-gray-400 mt-1">
+            <h1 className="text-3xl font-bold" style={{ color: 'var(--color-foreground)' }}>Edit Bill</h1>
+            <p className="mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
               Update bill information and settings
             </p>
           </div>
         </div>
 
         {/* Form Card */}
-        <Card className="bg-background border-border">
+        <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
           <CardHeader>
-            <CardTitle>Bill Details</CardTitle>
-            <CardDescription className="text-gray-500">
+            <CardTitle style={{ color: 'var(--color-foreground)' }}>Bill Details</CardTitle>
+            <CardDescription style={{ color: 'var(--color-muted-foreground)' }}>
               Modify the bill information. Changes will apply to future instances.
             </CardDescription>
           </CardHeader>

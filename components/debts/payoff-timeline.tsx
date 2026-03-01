@@ -58,10 +58,10 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
   return (
     <div className={className}>
       {/* Timeline Chart */}
-      <div className="bg-card rounded-xl p-6 border border-border mb-6">
+      <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex items-center gap-2 mb-6">
-          <Calendar className="w-6 h-6 text-foreground" />
-          <h3 className="text-lg font-semibold text-foreground">Payoff Timeline</h3>
+          <Calendar className="w-6 h-6" style={{ color: 'var(--color-foreground)' }} />
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Payoff Timeline</h3>
         </div>
 
         {/* Timeline bars */}
@@ -69,13 +69,14 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
           {timelineData.map((debt, _index) => (
             <div key={debt.debtId} className="space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-foreground font-medium">{debt.debtName}</span>
-                <span className="text-muted-foreground">{debt.monthsToPayoff} months</span>
+                <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>{debt.debtName}</span>
+                <span style={{ color: 'var(--color-muted-foreground)' }}>{debt.monthsToPayoff} months</span>
               </div>
-              <div className="relative h-8 bg-elevated rounded-lg overflow-hidden">
+              <div className="relative h-8 rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--color-elevated)' }}>
                 <div
-                  className="absolute h-full rounded-lg flex items-center justify-center text-xs font-semibold text-card transition-all"
+                  className="absolute h-full rounded-lg flex items-center justify-center text-xs font-semibold transition-all"
                   style={{
+                    color: 'var(--color-card)',
                     backgroundColor: debt.color,
                     width: `${(debt.monthsToPayoff / totalMonths) * 100}%`,
                     left: `${(debt.startMonth / totalMonths) * 100}%`,
@@ -91,7 +92,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
         {/* Milestone markers */}
         <div className="relative h-12 mt-4">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full h-px bg-border"></div>
+            <div className="w-full h-px" style={{ backgroundColor: 'var(--color-border)' }}></div>
           </div>
           {milestones.map((milestone) => (
             <div
@@ -99,8 +100,8 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
               className="absolute top-0 flex flex-col items-center"
               style={{ left: `${(milestone.month / totalMonths) * 100}%` }}
             >
-              <div className="w-2 h-2 bg-chart-principal rounded-full mb-1"></div>
-              <div className="text-xs text-chart-principal font-semibold whitespace-nowrap">
+              <div className="w-2 h-2 rounded-full mb-1" style={{ backgroundColor: 'var(--color-chart-principal)' }}></div>
+              <div className="text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--color-chart-principal)' }}>
                 {milestone.percent}%
               </div>
             </div>
@@ -108,29 +109,29 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
         </div>
 
         {/* Timeline scale */}
-        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+        <div className="flex justify-between text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
           <span>Month 0</span>
           <span>Month {totalMonths}</span>
         </div>
       </div>
 
       {/* Monthly Breakdown Table */}
-      <div className="bg-card rounded-xl p-6 border border-border">
+      <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex items-center gap-2 mb-4">
-          <ClipboardList className="w-6 h-6 text-foreground" />
-          <h3 className="text-lg font-semibold text-foreground">Payment Schedule</h3>
+          <ClipboardList className="w-6 h-6" style={{ color: 'var(--color-foreground)' }} />
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Payment Schedule</h3>
         </div>
 
         <div className="space-y-6 max-h-96 overflow-y-auto">
           {strategy.schedules.map((schedule, debtIndex) => (
             <div key={schedule.debtId} className="space-y-2">
-              <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <div className="flex items-center gap-2 pb-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: timelineData[debtIndex].color }}
                 ></div>
-                <h4 className="text-foreground font-semibold">{schedule.debtName}</h4>
-                <span className="text-xs text-muted-foreground">
+                <h4 className="font-semibold" style={{ color: 'var(--color-foreground)' }}>{schedule.debtName}</h4>
+                <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                   ({schedule.monthsToPayoff} months)
                 </span>
               </div>
@@ -139,58 +140,60 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
               {schedule.monthlyBreakdown.slice(0, 3).map((payment, monthIndex) => (
                 <div
                   key={monthIndex}
-                  className="grid grid-cols-4 gap-2 text-sm py-2 px-3 bg-elevated rounded-lg"
+                  className="grid grid-cols-4 gap-2 text-sm py-2 px-3 rounded-lg"
+                  style={{ backgroundColor: 'var(--color-elevated)' }}
                 >
-                  <div className="text-muted-foreground">
+                  <div style={{ color: 'var(--color-muted-foreground)' }}>
                     Month {timelineData[debtIndex].startMonth + monthIndex + 1}
                   </div>
-                  <div className="text-foreground font-mono text-right">
+                  <div className="font-mono text-right" style={{ color: 'var(--color-foreground)' }}>
                     ${payment.paymentAmount.toFixed(2)}
                   </div>
-                  <div className="text-chart-principal font-mono text-right">
+                  <div className="font-mono text-right" style={{ color: 'var(--color-chart-principal)' }}>
                     -${payment.principalAmount.toFixed(2)}
                   </div>
-                  <div className="text-chart-interest font-mono text-right">
+                  <div className="font-mono text-right" style={{ color: 'var(--color-chart-interest)' }}>
                     ${payment.interestAmount.toFixed(2)}
                   </div>
                 </div>
               ))}
 
               {schedule.monthlyBreakdown.length > 4 && (
-                <div className="text-center text-xs text-muted-foreground py-1">
+                <div className="text-center text-xs py-1" style={{ color: 'var(--color-muted-foreground)' }}>
                   ... {schedule.monthlyBreakdown.length - 4} more months ...
                 </div>
               )}
 
               {schedule.monthlyBreakdown.length > 3 && (
                 <div
-                  className="grid grid-cols-4 gap-2 text-sm py-2 px-3 bg-elevated rounded-lg"
+                  className="grid grid-cols-4 gap-2 text-sm py-2 px-3 rounded-lg"
+                  style={{ backgroundColor: 'var(--color-elevated)' }}
                 >
-                  <div className="text-muted-foreground">
+                  <div style={{ color: 'var(--color-muted-foreground)' }}>
                     Month {timelineData[debtIndex].endMonth}
                   </div>
-                  <div className="text-foreground font-mono text-right">
+                  <div className="font-mono text-right" style={{ color: 'var(--color-foreground)' }}>
                     ${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].paymentAmount.toFixed(2)}
                   </div>
-                  <div className="text-chart-principal font-mono text-right">
+                  <div className="font-mono text-right" style={{ color: 'var(--color-chart-principal)' }}>
                     -${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].principalAmount.toFixed(2)}
                   </div>
-                  <div className="text-chart-interest font-mono text-right">
+                  <div className="font-mono text-right" style={{ color: 'var(--color-chart-interest)' }}>
                     ${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].interestAmount.toFixed(2)}
                   </div>
                 </div>
               )}
 
               {/* Summary for this debt */}
-              <div className="grid grid-cols-4 gap-2 text-xs pt-2 border-t border-border">
-                <div className="text-muted-foreground">Total</div>
-                <div className="text-foreground font-mono font-semibold text-right">
+              <div className="grid grid-cols-4 gap-2 text-xs pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                <div style={{ color: 'var(--color-muted-foreground)' }}>Total</div>
+                <div className="font-mono font-semibold text-right" style={{ color: 'var(--color-foreground)' }}>
                   ${(schedule.originalBalance + schedule.totalInterestPaid).toFixed(2)}
                 </div>
-                <div className="text-chart-principal font-mono font-semibold text-right">
+                <div className="font-mono font-semibold text-right" style={{ color: 'var(--color-chart-principal)' }}>
                   -${schedule.originalBalance.toFixed(2)}
                 </div>
-                <div className="text-chart-interest font-mono font-semibold text-right">
+                <div className="font-mono font-semibold text-right" style={{ color: 'var(--color-chart-interest)' }}>
                   ${schedule.totalInterestPaid.toFixed(2)}
                 </div>
               </div>
@@ -199,7 +202,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
         </div>
 
         {/* Column headers (sticky at top) */}
-        <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground uppercase px-3 py-2 bg-card sticky top-0 -mt-4 mb-2">
+        <div className="grid grid-cols-4 gap-2 text-xs uppercase px-3 py-2 sticky top-0 -mt-4 mb-2" style={{ color: 'var(--color-muted-foreground)', backgroundColor: 'var(--color-background)' }}>
           <div>Period</div>
           <div className="text-right">Payment</div>
           <div className="text-right">Principal</div>

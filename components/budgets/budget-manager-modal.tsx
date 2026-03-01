@@ -672,12 +672,13 @@ export function BudgetManagerModal({
       <div className="flex items-center gap-3">
         <label
           htmlFor={`budget-${category.id}`}
-          className="flex-1 text-sm text-foreground"
+          className="flex-1 text-sm"
+          style={{ color: 'var(--color-foreground)' }}
         >
           {category.name}
         </label>
         <div className="flex items-center gap-1">
-          <span className="text-sm text-muted-foreground">$</span>
+          <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
           <input
             id={`budget-${category.id}`}
             type="number"
@@ -685,20 +686,22 @@ export function BudgetManagerModal({
             step="0.01"
             value={budgetValues[category.id] || '0'}
             onChange={e => handleValueChange(category.id, e.target.value)}
-            className="w-32 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-32 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2"
+            style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
           />
         </div>
       </div>
       {category.type === 'income' && (
         <div className="flex items-center gap-2 ml-4">
-          <label htmlFor={`frequency-${category.id}`} className="text-xs text-muted-foreground">
+          <label htmlFor={`frequency-${category.id}`} className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
             Frequency:
           </label>
           <select
             id={`frequency-${category.id}`}
             value={frequencies[category.id] || 'variable'}
             onChange={e => setFrequencies(prev => ({ ...prev, [category.id]: e.target.value }))}
-            className="flex-1 bg-input border border-border rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2"
+            style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
           >
             <option value="weekly">Weekly</option>
             <option value="biweekly">Biweekly (Every 2 weeks)</option>
@@ -715,45 +718,36 @@ export function BudgetManagerModal({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Set Monthly Budgets</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Configure budget amounts for your income, expenses, bills, and savings categories. Changes will apply to the current month.
           </DialogDescription>
         </DialogHeader>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 p-1 bg-elevated rounded-lg mb-4">
+        <div className="flex gap-1 p-1 rounded-lg mb-4" style={{ backgroundColor: 'var(--color-elevated)' }}>
           <button
             onClick={() => setActiveTab('budgets')}
-            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === 'budgets'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors shadow-sm"
+            style={{ backgroundColor: activeTab === 'budgets' ? 'var(--color-elevated)' : 'transparent', color: activeTab === 'budgets' ? 'var(--color-foreground)' : 'var(--color-muted-foreground)' }}
           >
             Set Budgets
           </button>
           <button
             onClick={() => setActiveTab('groups')}
-            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === 'groups'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors"
+            style={{ backgroundColor: activeTab === 'groups' ? 'var(--color-elevated)' : 'transparent', color: activeTab === 'groups' ? 'var(--color-foreground)' : 'var(--color-muted-foreground)' }}
           >
             Manage Groups
             {budgetGroups.length > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded">
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', color: 'var(--color-primary)' }}>
                 {budgetGroups.length}
               </span>
             )}
           </button>
           <button
             onClick={() => setActiveTab('export')}
-            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1 ${
-              activeTab === 'export'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1 shadow-sm"
+            style={{ backgroundColor: activeTab === 'export' ? 'var(--color-elevated)' : 'transparent', color: activeTab === 'export' ? 'var(--color-foreground)' : 'var(--color-muted-foreground)' }}
           >
             <Download className="w-4 h-4" />
             Export
@@ -762,16 +756,17 @@ export function BudgetManagerModal({
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">Loading categories...</div>
+            <div style={{ color: 'var(--color-muted-foreground)' }}>Loading categories...</div>
           </div>
         ) : categories.length === 0 && (!debtBudgetData || debtBudgetData.debtCount === 0) ? (
           <div className="text-center py-8">
-            <p className="text-muted-foreground mb-4">
+            <p className="mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
               No budget categories found. Create categories first to set up your budget.
             </p>
             <Link
               href="/dashboard/categories"
-              className="text-primary hover:underline"
+              className="hover:underline"
+              style={{ color: 'var(--color-primary)' }}
               onClick={onClose}
             >
               Manage Categories
@@ -781,8 +776,8 @@ export function BudgetManagerModal({
           /* Groups Management Tab */
           <div className="space-y-6">
             {/* Create New Group */}
-            <div className="bg-elevated rounded-lg p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <div className="rounded-lg p-4 space-y-3" style={{ backgroundColor: 'var(--color-elevated)' }}>
+              <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
                 <FolderPlus className="w-4 h-4" />
                 Create New Budget Group
               </h3>
@@ -792,12 +787,14 @@ export function BudgetManagerModal({
                   placeholder="Group name (e.g., Needs, Wants)"
                   value={newGroupName}
                   onChange={e => setNewGroupName(e.target.value)}
-                  className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                 />
                 <select
                   value={newGroupType}
                   onChange={e => setNewGroupType(e.target.value as 'expense' | 'savings')}
-                  className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                 >
                   <option value="expense">Expense</option>
                   <option value="savings">Savings</option>
@@ -805,13 +802,14 @@ export function BudgetManagerModal({
                 <button
                   onClick={handleCreateGroup}
                   disabled={creatingGroup || !newGroupName.trim()}
-                  className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
+                  className="px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
+                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
                 >
                   <Plus className="w-4 h-4" />
                   Create
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 Budget groups let you organize categories like the 50/30/20 rule (Needs, Wants, Savings).
               </p>
             </div>
@@ -819,28 +817,31 @@ export function BudgetManagerModal({
             {/* Existing Groups */}
             {budgetGroups.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-foreground">Your Budget Groups</h3>
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>Your Budget Groups</h3>
                 {budgetGroups.map(group => {
                   const groupCategories = categories.filter(c => c.parentId === group.id);
                   return (
-                    <div key={group.id} className="bg-card border border-border rounded-lg overflow-hidden">
-                      <div className="px-4 py-3 bg-elevated flex items-center justify-between">
+                    <div key={group.id} className="rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+                      <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: 'var(--color-elevated)' }}>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-foreground">{group.name}</span>
+                            <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>{group.name}</span>
                             {group.targetAllocation && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', color: 'var(--color-primary)' }}>
                                 {group.targetAllocation}% target
                               </span>
                             )}
                           </div>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                             {groupCategories.length} {groupCategories.length === 1 ? 'category' : 'categories'}
                           </span>
                         </div>
                         <button
                           onClick={() => handleDeleteGroup(group.id)}
-                          className="p-1.5 text-muted-foreground hover:text-error hover:bg-error/10 rounded transition-colors"
+                          className="p-1.5 rounded transition-colors"
+                          style={{ color: 'var(--color-muted-foreground)' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-destructive)'; e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-destructive) 10%, transparent)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; e.currentTarget.style.backgroundColor = ''; }}
                           title="Delete group"
                         >
                           <X className="w-4 h-4" />
@@ -851,11 +852,14 @@ export function BudgetManagerModal({
                         {groupCategories.length > 0 ? (
                           <div className="space-y-1">
                             {groupCategories.map(cat => (
-                              <div key={cat.id} className="flex items-center justify-between py-1.5 px-2 bg-elevated rounded">
-                                <span className="text-sm text-foreground">{cat.name}</span>
+                              <div key={cat.id} className="flex items-center justify-between py-1.5 px-2 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                                <span className="text-sm" style={{ color: 'var(--color-foreground)' }}>{cat.name}</span>
                                 <button
                                   onClick={() => handleUnassignCategory(cat.id, group.id)}
-                                  className="p-1 text-muted-foreground hover:text-error transition-colors"
+                                  className="p-1 transition-colors"
+                                  style={{ color: 'var(--color-muted-foreground)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-destructive)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
                                   title="Remove from group"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -864,7 +868,7 @@ export function BudgetManagerModal({
                             ))}
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground text-center py-2">
+                          <p className="text-sm text-center py-2" style={{ color: 'var(--color-muted-foreground)' }}>
                             No categories assigned yet
                           </p>
                         )}
@@ -883,7 +887,8 @@ export function BudgetManagerModal({
                                   e.target.value = '';
                                 }
                               }}
-                              className="w-full mt-2 bg-input border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="w-full mt-2 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                              style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }}
                               defaultValue=""
                             >
                               <option value="" disabled>
@@ -910,14 +915,14 @@ export function BudgetManagerModal({
               if (unassignedCategories.length === 0 || budgetGroups.length === 0) return null;
               return (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">Unassigned Categories</h3>
-                  <div className="bg-elevated rounded-lg p-4">
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>Unassigned Categories</h3>
+                  <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-elevated)' }}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {unassignedCategories.map(cat => (
-                        <div key={cat.id} className="flex items-center justify-between py-2 px-3 bg-card border border-border rounded-lg">
+                        <div key={cat.id} className="flex items-center justify-between py-2 px-3 rounded-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
                           <div>
-                            <span className="text-sm text-foreground">{cat.name}</span>
-                            <span className="ml-2 text-xs text-muted-foreground capitalize">({cat.type})</span>
+                            <span className="text-sm" style={{ color: 'var(--color-foreground)' }}>{cat.name}</span>
+                            <span className="ml-2 text-xs capitalize" style={{ color: 'var(--color-muted-foreground)' }}>({cat.type})</span>
                           </div>
                           {budgetGroups.filter(g => g.type === cat.type).length > 0 && (
                             <select
@@ -926,7 +931,8 @@ export function BudgetManagerModal({
                                   handleAssignCategory(cat.id, e.target.value);
                                 }
                               }}
-                              className="bg-input border border-border rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="rounded px-2 py-1 text-xs focus:outline-none focus:ring-1"
+                              style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                               defaultValue=""
                             >
                               <option value="">Assign to...</option>
@@ -948,10 +954,13 @@ export function BudgetManagerModal({
             })()}
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+            <div className="flex items-center justify-end gap-3 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
               <button
                 onClick={onClose}
-                className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
+                className="px-4 py-2 rounded-lg transition-colors"
+                style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-background)'; }}
               >
                 Done
               </button>
@@ -963,14 +972,15 @@ export function BudgetManagerModal({
             {/* Date Range Selection */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="export-start-month" className="text-sm text-muted-foreground">
+                <Label htmlFor="export-start-month" className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                   Start Month
                 </Label>
                 <select
                   id="export-start-month"
                   value={exportStartMonth}
                   onChange={(e) => setExportStartMonth(e.target.value)}
-                  className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="mt-1 w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                  style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                 >
                   {monthOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -981,14 +991,15 @@ export function BudgetManagerModal({
               </div>
 
               <div>
-                <Label htmlFor="export-end-month" className="text-sm text-muted-foreground">
+                <Label htmlFor="export-end-month" className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                   End Month
                 </Label>
                 <select
                   id="export-end-month"
                   value={exportEndMonth}
                   onChange={(e) => setExportEndMonth(e.target.value)}
-                  className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="mt-1 w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                  style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                 >
                   {monthOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1001,14 +1012,15 @@ export function BudgetManagerModal({
 
             {/* Category Filter */}
             <div>
-              <Label htmlFor="export-category-filter" className="text-sm text-muted-foreground">
+              <Label htmlFor="export-category-filter" className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 Category Filter
               </Label>
               <select
                 id="export-category-filter"
                 value={exportCategoryFilter}
                 onChange={(e) => setExportCategoryFilter(e.target.value as 'all' | 'income' | 'expenses' | 'savings')}
-                className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="mt-1 w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
               >
                 <option value="all">All Categories</option>
                 <option value="income">Income Only</option>
@@ -1019,7 +1031,7 @@ export function BudgetManagerModal({
 
             {/* Export Options */}
             <div className="space-y-3">
-              <Label className="text-sm text-muted-foreground">Export Options</Label>
+              <Label className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Export Options</Label>
 
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -1029,7 +1041,8 @@ export function BudgetManagerModal({
                 />
                 <label
                   htmlFor="export-include-summary"
-                  className="text-sm text-foreground cursor-pointer"
+                  className="text-sm cursor-pointer"
+                  style={{ color: 'var(--color-foreground)' }}
                 >
                   Include summary row
                 </label>
@@ -1043,7 +1056,8 @@ export function BudgetManagerModal({
                 />
                 <label
                   htmlFor="export-include-variable-bills"
-                  className="text-sm text-foreground cursor-pointer"
+                  className="text-sm cursor-pointer"
+                  style={{ color: 'var(--color-foreground)' }}
                 >
                   Include variable bills section
                 </label>
@@ -1051,25 +1065,29 @@ export function BudgetManagerModal({
             </div>
 
             {/* Preview */}
-            <div className={`p-3 rounded-lg ${exportPreview.valid ? 'bg-primary/10' : 'bg-error/10'}`}>
-              <p className={`text-sm ${exportPreview.valid ? 'text-foreground' : 'text-error'}`}>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: exportPreview.valid ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'color-mix(in oklch, var(--color-destructive) 10%, transparent)' }}>
+              <p className="text-sm" style={{ color: exportPreview.valid ? 'var(--color-foreground)' : 'var(--color-destructive)' }}>
                 {exportPreview.message}
               </p>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+            <div className="flex items-center justify-end gap-3 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
               <button
                 onClick={onClose}
                 disabled={exporting}
-                className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-background)'; }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleExport}
                 disabled={!exportPreview.valid || exporting}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
               >
                 <Download className="w-4 h-4" />
                 {exporting ? 'Generating...' : 'Generate CSV'}
@@ -1082,7 +1100,10 @@ export function BudgetManagerModal({
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleCopyLastMonth}
-                className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors text-sm"
+                className="px-4 py-2 rounded-lg transition-colors text-sm"
+                style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-background)'; }}
               >
                 Copy Last Month
               </button>
@@ -1095,7 +1116,7 @@ export function BudgetManagerModal({
             {/* Income Categories */}
             {groupedCategories.income.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">
+                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-foreground)' }}>
                   Income Categories
                 </h3>
                 <div className="space-y-2">
@@ -1107,7 +1128,7 @@ export function BudgetManagerModal({
             {/* Expenses */}
             {groupedCategories.expenses.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">
+                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-foreground)' }}>
                   Expenses
                 </h3>
                 <div className="space-y-2">
@@ -1119,7 +1140,7 @@ export function BudgetManagerModal({
             {/* Savings & Goals */}
             {groupedCategories.savings.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">
+                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-foreground)' }}>
                   Savings & Goals
                 </h3>
                 <div className="space-y-2">
@@ -1132,19 +1153,19 @@ export function BudgetManagerModal({
             {debtBudgetData && debtBudgetData.debtCount > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <CreditCard className="w-4 h-4 text-expense" />
-                  <h3 className="text-sm font-semibold text-foreground">
+                  <CreditCard className="w-4 h-4" style={{ color: 'var(--color-expense)' }} />
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>
                     Debt Payments
                   </h3>
                   {debtBudgetData.strategyEnabled && (
-                    <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">
+                    <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', color: 'var(--color-primary)' }}>
                       {debtBudgetData.payoffMethod} strategy
                     </span>
                   )}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button className="text-muted-foreground hover:text-foreground transition-colors">
+                        <button className="transition-colors" style={{ color: 'var(--color-muted-foreground)' }} onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}>
                           <Info className="w-3.5 h-3.5" />
                         </button>
                       </TooltipTrigger>
@@ -1158,13 +1179,13 @@ export function BudgetManagerModal({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <div className="space-y-3 bg-elevated/50 rounded-lg p-3 border border-border">
+                <div className="space-y-3 rounded-lg p-3" style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 50%, transparent)', border: '1px solid var(--color-border)' }}>
                   {/* Strategy-managed debts (read-only when strategy is enabled) */}
                   {debtBudgetData.strategyEnabled && debtBudgetData.strategyDebts.items.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Star className="w-3 h-3 text-primary" />
-                        <span className="text-xs font-medium text-muted-foreground">
+                        <Star className="w-3 h-3" style={{ color: 'var(--color-primary)' }} />
+                        <span className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
                           Managed by Strategy
                         </span>
                       </div>
@@ -1175,20 +1196,20 @@ export function BudgetManagerModal({
                               className="w-3 h-3 rounded-full shrink-0"
                               style={{ backgroundColor: debt.color || '#6b7280' }}
                             />
-                            <span className="text-sm text-foreground">{debt.name}</span>
+                            <span className="text-sm" style={{ color: 'var(--color-foreground)' }}>{debt.name}</span>
                             {debt.isFocusDebt && (
-                              <span className="inline-flex items-center gap-0.5 text-xs text-primary">
+                              <span className="inline-flex items-center gap-0.5 text-xs" style={{ color: 'var(--color-primary)' }}>
                                 <Star className="w-3 h-3" />
                                 Focus
                               </span>
                             )}
                           </div>
                           <div className="text-right">
-                            <span className="text-sm font-mono text-foreground">
+                            <span className="text-sm font-mono" style={{ color: 'var(--color-foreground)' }}>
                               ${debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                             </span>
                             {debt.isFocusDebt && debt.recommendedPayment > debt.minimumPayment && (
-                              <span className="text-xs text-muted-foreground ml-1">
+                              <span className="text-xs ml-1" style={{ color: 'var(--color-muted-foreground)' }}>
                                 (min: ${debt.minimumPayment.toFixed(2)})
                               </span>
                             )}
@@ -1203,15 +1224,15 @@ export function BudgetManagerModal({
                     debtBudgetData.manualDebts.length > 0) && (
                     <div className="space-y-2">
                       {debtBudgetData.strategyEnabled && debtBudgetData.manualDebts.length > 0 && (
-                        <div className="flex items-center gap-2 pt-2 border-t border-border">
-                          <span className="text-xs font-medium text-muted-foreground">
+                        <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                          <span className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
                             Excluded from Strategy (Editable)
                           </span>
                         </div>
                       )}
                       {(!debtBudgetData.strategyEnabled && debtBudgetData.strategyDebts.items.length > 0) && (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-muted-foreground">
+                          <span className="text-xs font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
                             Set payment amounts
                           </span>
                         </div>
@@ -1227,13 +1248,13 @@ export function BudgetManagerModal({
                               className="w-3 h-3 rounded-full shrink-0"
                               style={{ backgroundColor: debt.color || '#6b7280' }}
                             />
-                            <span className="text-sm text-foreground">{debt.name}</span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-sm" style={{ color: 'var(--color-foreground)' }}>{debt.name}</span>
+                            <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                               (min: ${debt.minimumPayment.toFixed(2)})
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-sm text-muted-foreground">$</span>
+                            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
                             <input
                               type="number"
                               min="0"
@@ -1245,7 +1266,8 @@ export function BudgetManagerModal({
                                   [debt.id]: e.target.value,
                                 }))
                               }
-                              className="w-28 bg-input border border-border rounded-lg px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="w-28 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2"
+                              style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                             />
                           </div>
                         </div>
@@ -1253,23 +1275,27 @@ export function BudgetManagerModal({
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
-                    <span className="text-sm font-medium text-muted-foreground">Total Debt Payments:</span>
-                    <span className="text-sm font-mono font-semibold text-expense">
+                  <div className="flex items-center justify-between pt-2 mt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Total Debt Payments:</span>
+                    <span className="text-sm font-mono font-semibold" style={{ color: 'var(--color-expense)' }}>
                       ${totals.debtTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex items-center justify-center gap-4 mt-2">
                     <Link
                       href="/dashboard/debts"
-                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                      className="flex items-center gap-1 text-xs hover:underline"
+                      style={{ color: 'var(--color-primary)' }}
                     >
                       Manage Debts
                       <ExternalLink className="w-3 h-3" />
                     </Link>
                     <Link
                       href="/dashboard/settings?tab=household-financial"
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                      className="flex items-center gap-1 text-xs"
+                      style={{ color: 'var(--color-muted-foreground)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
                     >
                       Strategy Settings
                     </Link>
@@ -1279,43 +1305,40 @@ export function BudgetManagerModal({
             )}
 
             {/* Summary */}
-            <div className="bg-muted rounded-lg p-4 space-y-2">
-              <h3 className="text-sm font-semibold text-foreground mb-2">Summary</h3>
+            <div className="rounded-lg p-4 space-y-2" style={{ backgroundColor: 'var(--color-elevated)' }}>
+              <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>Summary</h3>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Income:</span>
-                <span className="font-semibold text-income">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Total Income:</span>
+                <span className="font-semibold" style={{ color: 'var(--color-income)' }}>
                   ${totals.incomeTotal.toFixed(2)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Expenses:</span>
-                <span className="font-semibold text-expense">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Total Expenses:</span>
+                <span className="font-semibold" style={{ color: 'var(--color-expense)' }}>
                   ${totals.expenseTotal.toFixed(2)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Savings:</span>
-                <span className="font-semibold text-foreground">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Total Savings:</span>
+                <span className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   ${totals.savingsTotal.toFixed(2)}
                 </span>
               </div>
               {totals.debtTotal > 0 && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total Debt Payments:</span>
-                  <span className="font-semibold text-expense">
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Total Debt Payments:</span>
+                  <span className="font-semibold" style={{ color: 'var(--color-expense)' }}>
                     ${totals.debtTotal.toFixed(2)}
                   </span>
                 </div>
               )}
-              <div className="border-t border-border pt-2 mt-2">
+              <div className="pt-2 mt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Surplus/Deficit:</span>
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Surplus/Deficit:</span>
                   <span
-                    className={`font-semibold ${
-                      totals.surplus >= 0
-                        ? 'text-success'
-                        : 'text-error'
-                    }`}
+                    className="font-semibold"
+                    style={{ color: totals.surplus >= 0 ? 'var(--color-success)' : 'var(--color-destructive)' }}
                   >
                     ${totals.surplus.toFixed(2)}
                     {totals.surplus === 0 && ' ✓'}

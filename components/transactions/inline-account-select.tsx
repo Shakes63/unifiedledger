@@ -100,12 +100,14 @@ export function InlineAccountSelect({
     return (
       <span
         className={cn(
-          "text-xs cursor-pointer truncate max-w-[100px]",
-          "text-muted-foreground hover:text-foreground hover:underline",
+          "text-xs cursor-pointer truncate max-w-[100px] hover:underline",
           "transition-colors duration-150",
           disabled && "cursor-not-allowed opacity-60",
           className
         )}
+        style={{ color: 'var(--color-muted-foreground)' }}
+        onMouseEnter={e => { if (!disabled) e.currentTarget.style.color = 'var(--color-foreground)'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
         onClick={handleClick}
         title={`${displayName} (click to edit)`}
       >
@@ -138,11 +140,11 @@ export function InlineAccountSelect({
       >
         <SelectTrigger
           className={cn(
-            "h-6 text-xs px-2 py-0.5 min-w-[70px] max-w-[100px] bg-elevated rounded",
-            "border border-primary text-muted-foreground",
+            "h-6 text-xs px-2 py-0.5 min-w-[70px] max-w-[100px] rounded",
             "focus:ring-1 focus:ring-offset-0",
             isUpdating && "opacity-60"
           )}
+          style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-primary)', color: 'var(--color-muted-foreground)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {isUpdating ? (
@@ -153,7 +155,8 @@ export function InlineAccountSelect({
           </SelectValue>
         </SelectTrigger>
         <SelectContent
-          className="bg-card border-border max-h-[200px]"
+          className="max-h-[200px]"
+          style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {accounts.map((account) => (

@@ -109,11 +109,11 @@ export const darkPinkTheme: Theme = {
   isAvailable: true,
   mode: 'dark',
   colors: {
-    // Backgrounds (deep aubergine base for elegance) - OKLCH
-    background: 'oklch(0.155506 0.018491 312.515996)',
-    surface: 'oklch(0.199368 0.029768 309.973432)',
-    elevated: 'oklch(0.228815 0.043923 313.832051)',
-    border: 'oklch(0.316141 0.052839 309.805027)',
+    // Backgrounds - pure black base, pink-tinted surfaces
+    background: 'oklch(0.144788 0.000000 0.000000)',
+    surface: 'oklch(0.210 0.016 354)',
+    elevated: 'oklch(0.252 0.022 354)',
+    border: 'oklch(0.278 0.030 354)',
 
     // Transactions & UI accents - OKLCH
     income: 'oklch(0.797116 0.133888 211.530189)',     // Turquoise
@@ -318,7 +318,7 @@ export const lightBlueTheme: Theme = {
     background: 'oklch(0.980000 0.003000 250.000000)',
     surface: 'oklch(0.970000 0.003000 250.000000)',
     elevated: 'oklch(0.950000 0.005000 250.000000)',
-    border: 'oklch(0.850000 0.008000 250.000000)',
+    border: 'oklch(0.720000 0.018000 250.000000)',
 
     // Semantic colors (OKLCH) - traditional financial colors
     income: 'oklch(0.550000 0.140000 155.000000)',     // Deep green

@@ -63,11 +63,11 @@ function CustomTooltip({
     <div
       className="p-3 rounded-lg border"
       style={{
-        backgroundColor: 'var(--color-card)',
+        backgroundColor: 'var(--color-background)',
         borderColor: 'var(--color-border)',
       }}
     >
-      <p className="font-semibold text-foreground text-sm mb-1">
+      <p className="font-semibold text-sm mb-1" style={{ color: 'var(--color-foreground)' }}>
         {data.month}
       </p>
       {payload.map((entry: TooltipPayloadItem, index: number) => (
@@ -97,9 +97,9 @@ export function TotalDebtChart({ data, isLoading }: TotalDebtChartProps) {
     return (
       <div
         className="w-full h-96 rounded-lg flex items-center justify-center"
-        style={{ backgroundColor: 'var(--color-card)' }}
+        style={{ backgroundColor: 'var(--color-background)' }}
       >
-        <p className="text-muted-foreground">Loading chart...</p>
+        <p style={{ color: 'var(--color-muted-foreground)' }}>Loading chart...</p>
       </div>
     );
   }
@@ -108,15 +108,15 @@ export function TotalDebtChart({ data, isLoading }: TotalDebtChartProps) {
     return (
       <div
         className="w-full h-96 rounded-lg flex items-center justify-center"
-        style={{ backgroundColor: 'var(--color-card)' }}
+        style={{ backgroundColor: 'var(--color-background)' }}
       >
-        <p className="text-muted-foreground">No debt data available</p>
+        <p style={{ color: 'var(--color-muted-foreground)' }}>No debt data available</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full rounded-lg p-4" style={{ backgroundColor: 'var(--color-card)' }}>
+    <div className="w-full rounded-lg p-4" style={{ backgroundColor: 'var(--color-background)' }}>
       <ResponsiveContainer width="100%" height={400}>
         <ComposedChart
           data={sortedData}
@@ -198,14 +198,14 @@ export function TotalDebtChart({ data, isLoading }: TotalDebtChartProps) {
       {/* Summary info below chart */}
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
         <div>
-          <p className="text-muted-foreground text-xs mb-1">Latest Actual</p>
-          <p className="text-foreground font-semibold">
+        <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Latest Actual</p>
+        <p className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
             {sortedData.length > 0 ? formatCurrency(sortedData[sortedData.length - 1]?.actualTotal || 0) : '$0'}
           </p>
         </div>
         <div>
-          <p className="text-muted-foreground text-xs mb-1">Latest Projected</p>
-          <p className="text-foreground font-semibold">
+          <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Latest Projected</p>
+          <p className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
             {sortedData.length > 0 ? formatCurrency(sortedData[sortedData.length - 1]?.projectedTotal || 0) : '$0'}
           </p>
         </div>

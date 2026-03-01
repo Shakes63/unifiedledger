@@ -11,175 +11,153 @@ interface MonthlySurplusCardProps {
   totalIncome: number;
 }
 
-export function MonthlySurplusCard({
-  budgetedSurplus,
-  actualSurplus,
-  totalIncome,
-}: MonthlySurplusCardProps) {
-  // Calculate variance between budgeted and actual
+function fmt(n: number) {
+  return Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+export function MonthlySurplusCard({ budgetedSurplus, actualSurplus, totalIncome }: MonthlySurplusCardProps) {
   const variance = new Decimal(actualSurplus).minus(budgetedSurplus).toNumber();
-  
-  // Calculate surplus as percentage of income
-  const actualPercentage = totalIncome > 0 
-    ? new Decimal(actualSurplus).div(totalIncome).times(100).toNumber() 
-    : 0;
-  
-  const budgetedPercentage = totalIncome > 0 
-    ? new Decimal(budgetedSurplus).div(totalIncome).times(100).toNumber() 
+
+  const actualPct = totalIncome > 0
+    ? new Decimal(actualSurplus).div(totalIncome).times(100).toNumber()
     : 0;
 
-  // Determine status
+  const budgetedPct = totalIncome > 0
+    ? new Decimal(budgetedSurplus).div(totalIncome).times(100).toNumber()
+    : 0;
+
   const isSurplus = actualSurplus >= 0;
-  const _isOnTrack = actualSurplus >= budgetedSurplus;
-
-  // Format currency
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Math.abs(amount));
-  };
-
-  // Get icon based on status
-  const StatusIcon = isSurplus 
-    ? TrendingUp 
-    : actualSurplus === 0 
-      ? Minus 
-      : TrendingDown;
-
-  // Get colors based on status
-  const primaryColor = isSurplus 
-    ? 'var(--color-success)' 
-    : 'var(--color-error)';
-
-  const statusLabel = isSurplus ? 'Surplus' : 'Shortfall';
+  const primaryColor = isSurplus ? 'var(--color-success)' : 'var(--color-error)';
+  const StatusIcon = actualSurplus === 0 ? Minus : isSurplus ? TrendingUp : TrendingDown;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-foreground">Monthly {statusLabel}</h3>
-        <div 
-          className="p-2 rounded-lg"
-          style={{ 
-            backgroundColor: `color-mix(in oklch, ${primaryColor} 15%, transparent)`,
-          }}
+    <div
+      className="rounded-xl p-5 h-full flex flex-col"
+      style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+    >
+      {/* Label row */}
+      <div className="flex items-center justify-between mb-3">
+        <span
+          className="text-[11px] font-semibold uppercase tracking-widest"
+          style={{ color: 'var(--color-muted-foreground)' }}
         >
-          <StatusIcon 
-            className="w-5 h-5" 
-            style={{ color: primaryColor }}
-          />
+          Monthly {isSurplus ? 'Surplus' : 'Shortfall'}
+        </span>
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: `color-mix(in oklch, ${primaryColor} 15%, transparent)` }}
+        >
+          <StatusIcon className="w-3.5 h-3.5" style={{ color: primaryColor }} />
         </div>
       </div>
 
-      {/* Main Amount */}
-      <div className="mb-4">
-        <div className="flex items-baseline gap-1">
-          {!isSurplus && (
-            <span 
-              className="text-lg font-bold"
-              style={{ color: primaryColor }}
-            >
-              -
-            </span>
-          )}
-          <span 
-            className="text-3xl font-bold font-mono"
+      {/* Hero number */}
+      <div className="mb-3">
+        <div className="flex items-baseline gap-1 leading-none mb-1">
+          <span
+            className="text-[2.75rem] font-bold font-mono tabular-nums leading-none"
             style={{ color: primaryColor }}
           >
-            {formatCurrency(actualSurplus)}
+            {isSurplus ? '+' : '−'}${fmt(actualSurplus)}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          {actualPercentage.toFixed(1)}% of income remaining
-        </p>
-      </div>
-
-      {/* Budgeted vs Actual Comparison */}
-      <div className="p-3 bg-elevated rounded-lg mb-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Budgeted</p>
-            <p className="font-mono font-semibold text-foreground">
-              {budgetedSurplus >= 0 ? '' : '-'}{formatCurrency(budgetedSurplus)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              ({budgetedPercentage.toFixed(1)}%)
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Actual</p>
-            <p 
-              className="font-mono font-semibold"
-              style={{ color: primaryColor }}
-            >
-              {actualSurplus >= 0 ? '' : '-'}{formatCurrency(actualSurplus)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              ({actualPercentage.toFixed(1)}%)
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Variance */}
-      <div className="flex items-center justify-between p-3 bg-elevated rounded-lg mb-4">
-        <span className="text-sm text-muted-foreground">Variance</span>
-        <span 
-          className={`font-mono font-semibold ${
-            variance >= 0 
-              ? 'text-success' 
-              : 'text-error'
-          }`}
-        >
-          {variance >= 0 ? '+' : '-'}{formatCurrency(variance)}
+        <span className="text-[11px] font-mono" style={{ color: 'var(--color-muted-foreground)' }}>
+          {actualPct.toFixed(1)}% of income
         </span>
       </div>
 
-      {/* Quick Actions */}
-      {isSurplus && actualSurplus > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground mb-2">
-            Put your surplus to work:
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link 
-              href="/dashboard/debts"
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+      {/* Budgeted vs actual */}
+      <div
+        className="rounded-lg px-3 py-2.5 mb-3 grid grid-cols-2 gap-3"
+        style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 60%, transparent)' }}
+      >
+        <div>
+          <span className="text-[10px] font-semibold uppercase tracking-widest block mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
+            Budgeted
+          </span>
+          <span className="text-sm font-mono tabular-nums font-semibold" style={{ color: 'var(--color-foreground)' }}>
+            {budgetedSurplus >= 0 ? '+' : '−'}${fmt(budgetedSurplus)}
+          </span>
+          <span className="text-[10px] font-mono block" style={{ color: 'var(--color-muted-foreground)' }}>
+            {budgetedPct.toFixed(1)}%
+          </span>
+        </div>
+        <div>
+          <span className="text-[10px] font-semibold uppercase tracking-widest block mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
+            Variance
+          </span>
+          <span
+            className="text-sm font-mono tabular-nums font-semibold"
+            style={{ color: variance >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}
+          >
+            {variance >= 0 ? '+' : '−'}${fmt(variance)}
+          </span>
+          <span
+            className="text-[10px] font-mono block"
+            style={{ color: variance >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}
+          >
+            vs plan
+          </span>
+        </div>
+      </div>
+
+      {/* Quick actions or warning */}
+      <div className="mt-auto">
+        {isSurplus && actualSurplus > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
+              Put your surplus to work
+            </p>
+            <div className="flex gap-2">
+              <Link
+                href="/dashboard/debts"
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-medium transition-colors"
+                style={{
+                  backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)',
+                  color: 'var(--color-primary)',
+                  border: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)',
+                }}
+              >
+                Debt
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+              <Link
+                href="/dashboard/goals"
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-medium transition-colors"
+                style={{
+                  backgroundColor: 'color-mix(in oklch, var(--color-success) 12%, transparent)',
+                  color: 'var(--color-success)',
+                  border: '1px solid color-mix(in oklch, var(--color-success) 20%, transparent)',
+                }}
+              >
+                Savings
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {!isSurplus && (
+          <div
+            className="rounded-lg px-3 py-2"
+            style={{
+              backgroundColor: 'color-mix(in oklch, var(--color-error) 8%, transparent)',
+              border: '1px solid color-mix(in oklch, var(--color-error) 20%, transparent)',
+            }}
+          >
+            <p className="text-[11px] mb-1.5" style={{ color: 'var(--color-error)' }}>
+              Spending exceeds income this month.
+            </p>
+            <Link
+              href="/dashboard/budgets"
+              className="inline-flex items-center gap-1 text-[11px] font-medium"
+              style={{ color: 'var(--color-error)' }}
             >
-              Apply to Debt
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-            <Link 
-              href="/dashboard/goals"
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-success/10 text-success hover:bg-success/20 transition-colors"
-            >
-              Add to Savings
-              <ArrowRight className="w-3 h-3" />
+              Review Budget <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-        </div>
-      )}
-
-      {/* Shortfall Warning */}
-      {!isSurplus && (
-        <div className="p-3 rounded-lg bg-error/10 border border-error/20">
-          <p className="text-xs text-error">
-            You&apos;re spending more than you&apos;re earning this month. 
-            Review your expenses or adjust your budget.
-          </p>
-          <Link 
-            href="/dashboard/budgets"
-            className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-error hover:underline"
-          >
-            Review Budget
-            <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
-

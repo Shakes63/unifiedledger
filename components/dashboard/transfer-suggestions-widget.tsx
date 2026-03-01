@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRightLeft, ChevronRight } from 'lucide-react';
 import { TransferSuggestionsModal } from '@/components/transactions/transfer-suggestions-modal';
@@ -54,37 +53,45 @@ export function TransferSuggestionsWidget() {
 
   return (
     <>
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground text-base flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5 text-warning" />
+      <div
+        className="rounded-xl border p-6"
+        style={{
+          backgroundColor: 'var(--color-background)',
+          borderColor: 'var(--color-border)',
+        }}
+      >
+        <div className="mb-4">
+          <h3 className="text-base flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
+            <ArrowRightLeft className="h-5 w-5" style={{ color: 'var(--color-warning)' }} />
             Transfer Suggestions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  {count} potential transfer {count === 1 ? 'match' : 'matches'} found
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Review suggested transaction pairs for linking as transfers
-                </p>
-                <Button
-                  onClick={() => setModalOpen(true)}
-                  className="w-full bg-warning hover:opacity-90 text-white"
-                >
-                  Review Suggestions
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </h3>
+        </div>
+        <div className="space-y-3">
+          {loading ? (
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading...</p>
+          ) : (
+            <>
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+                {count} potential transfer {count === 1 ? 'match' : 'matches'} found
+              </p>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
+                Review suggested transaction pairs for linking as transfers
+              </p>
+              <Button
+                onClick={() => setModalOpen(true)}
+                className="w-full hover:opacity-90"
+                style={{
+                  backgroundColor: 'var(--color-warning)',
+                  color: 'var(--color-primary-foreground)',
+                }}
+              >
+                Review Suggestions
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
 
       <TransferSuggestionsModal open={modalOpen} onOpenChange={setModalOpen} />
     </>

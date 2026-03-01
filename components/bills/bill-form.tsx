@@ -60,6 +60,7 @@ const TAX_DEDUCTION_TYPE_OPTIONS = [
 ] as const;
 
 // Color options for debt bills
+const DEBT_COLOR_DEFAULT_SENTINEL = '__default__';
 const DEBT_COLOR_OPTIONS = [
   { value: '', label: 'Default' },
   { value: '#ef4444', label: 'Red' },
@@ -840,348 +841,173 @@ export function BillForm({
     0
   );
 
+  const _fs = { backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' };
+  const _lbl = 'text-[11px] font-medium uppercase tracking-wide block mb-1.5';
+  const _lblS = { color: 'var(--color-muted-foreground)' };
+  const _errS = { color: 'var(--color-destructive)' };
+  const _hint = 'text-[11px] mt-1';
+  const _hintS = { color: 'var(--color-muted-foreground)', opacity: 0.75 };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Name and Amount */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.name ? 'text-error' : 'text-muted-foreground'}`}>
-            Bill Name*
-          </Label>
+          <Label className={_lbl} style={errors.name ? _errS : _lblS}>Bill Name*</Label>
           <Input
             id="bill-name"
             name="name"
             value={formData.name}
-            onChange={(e) => {
-              handleChange(e);
-              if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
-            }}
+            onChange={(e) => { handleChange(e); if (errors.name) setErrors(prev => ({ ...prev, name: '' })); }}
             placeholder="e.g., Electric Bill, Netflix"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.name ? 'border-error' : 'border-border'
-            }`}
+            className="h-9 text-[13px]"
+            style={{ ..._fs, borderColor: errors.name ? 'var(--color-destructive)' : 'var(--color-border)' }}
           />
-          {errors.name && (
-            <p className="text-error text-xs mt-1">{errors.name}</p>
-          )}
-          {/* Classification Suggestion Banner */}
+          {errors.name && <p className={_hint} style={_errS}>{errors.name}</p>}
           {classificationSuggestion && classificationSuggestion.confidence >= 0.7 && (
-            <div 
-              className="mt-2 p-2.5 rounded-lg border flex items-center justify-between gap-2"
-              style={{ 
-                backgroundColor: `${CLASSIFICATION_META[classificationSuggestion.classification].color}10`,
-                borderColor: `${CLASSIFICATION_META[classificationSuggestion.classification].color}30`
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles 
-                  className="w-4 h-4 shrink-0" 
-                  style={{ color: CLASSIFICATION_META[classificationSuggestion.classification].color }}
-                />
-                <span 
-                  className="text-sm"
-                  style={{ color: CLASSIFICATION_META[classificationSuggestion.classification].color }}
-                >
+            <div className="mt-1.5 px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2" style={{ backgroundColor: `${CLASSIFICATION_META[classificationSuggestion.classification].color}12`, border: `1px solid ${CLASSIFICATION_META[classificationSuggestion.classification].color}30` }}>
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 shrink-0" style={{ color: CLASSIFICATION_META[classificationSuggestion.classification].color }} />
+                <span className="text-[11px]" style={{ color: CLASSIFICATION_META[classificationSuggestion.classification].color }}>
                   Suggested: <strong>{CLASSIFICATION_META[classificationSuggestion.classification].label}</strong>
-                  {classificationSuggestion.subcategory && (
-                    <span className="text-xs opacity-80"> ({formatSubcategory(classificationSuggestion.subcategory)})</span>
-                  )}
+                  {classificationSuggestion.subcategory && <span className="opacity-70"> · {formatSubcategory(classificationSuggestion.subcategory)}</span>}
                 </span>
               </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={applySuggestion}
-                  className="h-7 px-2 text-xs"
-                  style={{ 
-                    backgroundColor: CLASSIFICATION_META[classificationSuggestion.classification].color,
-                    color: 'white'
-                  }}
-                >
-                  <Check className="w-3 h-3 mr-1" />
-                  Apply
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={dismissSuggestion}
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-3 h-3" />
-                </Button>
+              <div className="flex items-center gap-0.5">
+                <Button type="button" size="sm" onClick={applySuggestion} className="h-6 px-2 text-[10px]" style={{ backgroundColor: CLASSIFICATION_META[classificationSuggestion.classification].color, color: 'white' }}><Check className="w-2.5 h-2.5 mr-0.5" />Apply</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={dismissSuggestion} className="h-6 w-6 p-0" style={{ color: 'var(--color-muted-foreground)' }}><X className="w-3 h-3" /></Button>
               </div>
             </div>
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-2 block ${errors.expectedAmount ? 'text-error' : 'text-muted-foreground'}`}>
-            Expected Amount*
-          </Label>
+          <Label className={_lbl} style={errors.expectedAmount ? _errS : _lblS}>Expected Amount*</Label>
           <Input
             name="expectedAmount"
             type="number"
             value={formData.expectedAmount}
-            onChange={(e) => {
-              handleChange(e);
-              if (errors.expectedAmount) setErrors(prev => ({ ...prev, expectedAmount: '' }));
-            }}
-            placeholder="Enter amount"
+            onChange={(e) => { handleChange(e); if (errors.expectedAmount) setErrors(prev => ({ ...prev, expectedAmount: '' })); }}
+            placeholder="0.00"
             step="0.01"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.expectedAmount ? 'border-error' : 'border-border'
-            }`}
+            className="h-9 text-[13px] tabular-nums"
+            style={{ ..._fs, borderColor: errors.expectedAmount ? 'var(--color-destructive)' : 'var(--color-border)' }}
           />
-          {errors.expectedAmount && (
-            <p className="text-error text-xs mt-1">{errors.expectedAmount}</p>
-          )}
+          {errors.expectedAmount && <p className={_hint} style={_errS}>{errors.expectedAmount}</p>}
         </div>
       </div>
 
       {/* Frequency and Due Date */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Frequency*</Label>
-          <Select value={formData.frequency} onValueChange={(value) => handleSelectChange('frequency', value)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              <SelectItem value="one-time" className="text-foreground">{FREQUENCY_LABELS['one-time']}</SelectItem>
-              <SelectItem value="weekly" className="text-foreground">{FREQUENCY_LABELS['weekly']}</SelectItem>
-              <SelectItem value="biweekly" className="text-foreground">{FREQUENCY_LABELS['biweekly']}</SelectItem>
-              <SelectItem value="monthly" className="text-foreground">{FREQUENCY_LABELS['monthly']}</SelectItem>
-              <SelectItem value="quarterly" className="text-foreground">{FREQUENCY_LABELS['quarterly']}</SelectItem>
-              <SelectItem value="semi-annual" className="text-foreground">{FREQUENCY_LABELS['semi-annual']}</SelectItem>
-              <SelectItem value="annual" className="text-foreground">{FREQUENCY_LABELS['annual']}</SelectItem>
+          <Label className={_lbl} style={_lblS}>Frequency*</Label>
+          <Select value={formData.frequency} onValueChange={v => handleSelectChange('frequency', v)}>
+            <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {['one-time','weekly','biweekly','monthly','quarterly','semi-annual','annual'].map(f => (
+                <SelectItem key={f} value={f}>{FREQUENCY_LABELS[f as keyof typeof FREQUENCY_LABELS]}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">
-            {getDueDateLabel(formData.frequency)}*
-          </Label>
-
+          <Label className={_lbl} style={_lblS}>{getDueDateLabel(formData.frequency)}*</Label>
           {isOneTimeFrequency(formData.frequency) ? (
-            // Date picker for one-time bills
             <>
-              <Input
-                name="specificDueDate"
-                type="date"
-                value={formData.specificDueDate}
-                onChange={handleChange}
-                className="bg-elevated border-border text-foreground"
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Select the specific date for this bill
-              </p>
+              <Input name="specificDueDate" type="date" value={formData.specificDueDate} onChange={handleChange} className="h-9 text-[13px]" style={_fs} required />
+              <p className={_hint} style={_hintS}>Select the specific date for this bill</p>
             </>
           ) : isWeekBasedFrequency(formData.frequency) ? (
-            // Day of week selector for weekly/biweekly
             <>
-              <Select
-                value={formData.dueDate}
-                onValueChange={(value) => handleSelectChange('dueDate', value)}
-              >
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select day of week" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {DAY_OF_WEEK_OPTIONS.map((day) => (
-                    <SelectItem key={day.value} value={day.value.toString()} className="text-foreground">
-                      {day.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select value={formData.dueDate} onValueChange={v => handleSelectChange('dueDate', v)}>
+                <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select day of week" /></SelectTrigger>
+                <SelectContent>{DAY_OF_WEEK_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">Day of week for recurring bill</p>
+              <p className={_hint} style={_hintS}>Day of week for recurring bill</p>
             </>
           ) : (
-            // Day of month input for monthly bills
             <>
-              <Input
-                name="dueDate"
-                type="number"
-                value={formData.dueDate}
-                onChange={handleChange}
-                placeholder="1"
-                min="1"
-                max="31"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Day of month (1-31)</p>
+              <Input name="dueDate" type="number" value={formData.dueDate} onChange={handleChange} placeholder="1" min="1" max="31" className="h-9 text-[13px]" style={_fs} />
+              <p className={_hint} style={_hintS}>Day of month (1–31)</p>
             </>
           )}
         </div>
       </div>
 
-      {/* Start Month - Only for quarterly/semi-annual/annual bills */}
+      {/* Start Month */}
       {isNonMonthlyPeriodic(formData.frequency) && (
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Start Month*</Label>
-          <Select
-            value={formData.startMonth}
-            onValueChange={(value) => handleSelectChange('startMonth', value)}
-          >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue placeholder="Select month" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              {MONTH_OPTIONS.map((month) => (
-                <SelectItem 
-                  key={month.value} 
-                  value={month.value.toString()} 
-                  className="text-foreground"
-                >
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
+          <Label className={_lbl} style={_lblS}>Start Month*</Label>
+          <Select value={formData.startMonth} onValueChange={v => handleSelectChange('startMonth', v)}>
+            <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select month" /></SelectTrigger>
+            <SelectContent>{MONTH_OPTIONS.map(m => <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>)}</SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground mt-1">
-            The month when your first bill is due
-          </p>
+          <p className={_hint} style={_hintS}>The month when your first bill is due</p>
         </div>
       )}
 
       {/* ========== CATEGORIZATION SECTION (Collapsible) ========== */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowCategorization(!showCategorization)}
-          className="w-full flex items-center justify-between p-4 bg-card hover:bg-elevated transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-foreground font-medium">Categorization</span>
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+        <button type="button" onClick={() => setShowCategorization(!showCategorization)}
+          className="w-full flex items-center justify-between px-4 py-3 transition-colors"
+          style={{ backgroundColor: showCategorization ? 'var(--color-elevated)' : 'var(--color-background)' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Categorization</span>
             {(formData.categoryId || formData.merchantId || formData.billClassification !== 'other') && (
-              <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}>
                 {[formData.categoryId && 'Category', formData.merchantId && 'Merchant', formData.billClassification !== 'other' && 'Classification'].filter(Boolean).join(', ')}
               </span>
             )}
           </div>
-          {showCategorization ? (
-            <ChevronUp className="w-5 h-5 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
-          )}
+          {showCategorization ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />}
         </button>
 
         {showCategorization && (
-          <div className="p-4 pt-0 space-y-4 border-t border-border bg-card">
+          <div className="px-4 py-4 space-y-4" style={{ borderTop: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
             {/* Category and Merchant */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Category</Label>
+                <Label className={_lbl} style={_lblS}>Category</Label>
                 {!isCreatingCategory ? (
                   <div className="flex gap-2">
-                    <Select value={formData.categoryId} onValueChange={(value) => handleSelectChange('categoryId', value)}>
-                      <SelectTrigger className="flex-1 bg-elevated border-border text-foreground">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                    <Select value={formData.categoryId} onValueChange={v => handleSelectChange('categoryId', v)}>
+                      <SelectTrigger className="flex-1 h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select category" /></SelectTrigger>
+                      <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                     </Select>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setIsCreatingCategory(true)}
-                      className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
-                    >
+                    <Button type="button" variant="outline" size="icon" onClick={() => setIsCreatingCategory(true)} className="h-9 w-9 shrink-0">
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <Input
-                      autoFocus
-                      type="text"
-                      placeholder="New category name..."
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      onKeyDown={handleCategoryKeyDown}
-                      className="flex-1 bg-card border border-primary text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      onClick={handleCreateCategory}
-                      disabled={creatingCategory || !newCategoryName.trim()}
-                      className="bg-primary hover:opacity-90 text-primary-foreground"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        setIsCreatingCategory(false);
-                        setNewCategoryName('');
-                      }}
-                      className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
+                    <Input autoFocus type="text" placeholder="New category name..." value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={handleCategoryKeyDown} className="flex-1 h-9 text-[13px]" style={{ ..._fs, borderColor: 'var(--color-primary)' }} />
+                    <Button type="button" size="icon" onClick={handleCreateCategory} disabled={creatingCategory || !newCategoryName.trim()} className="h-9 w-9 shrink-0" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}><Plus className="w-4 h-4" /></Button>
+                    <Button type="button" variant="outline" size="icon" onClick={() => { setIsCreatingCategory(false); setNewCategoryName(''); }} className="h-9 w-9 shrink-0"><X className="w-4 h-4" /></Button>
                   </div>
                 )}
               </div>
               <div>
-                <MerchantSelector
-                  selectedMerchant={formData.merchantId || null}
-                  onMerchantChange={(merchantId) => handleSelectChange('merchantId', merchantId || '')}
-                />
+                <MerchantSelector selectedMerchant={formData.merchantId || null} onMerchantChange={merchantId => handleSelectChange('merchantId', merchantId || '')} />
               </div>
             </div>
 
-            {/* Bill Classification */}
+            {/* Classification */}
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Classification</Label>
-              <Select
-                value={formData.billClassification}
-                onValueChange={(value) => {
-                  handleSelectChange('billClassification', value);
-                  setFormData(prev => ({ ...prev, classificationSubcategory: null }));
-                }}
-              >
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select classification" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {CLASSIFICATION_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value} className="text-foreground">
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Label className={_lbl} style={_lblS}>Classification</Label>
+              <Select value={formData.billClassification} onValueChange={v => { handleSelectChange('billClassification', v); setFormData(prev => ({ ...prev, classificationSubcategory: null })); }}>
+                <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select classification" /></SelectTrigger>
+                <SelectContent>{CLASSIFICATION_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
 
             {/* Subcategory */}
             {getSubcategories(formData.billClassification as BillClassification).length > 0 && (
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Subcategory</Label>
-                <Select
-                  value={formData.classificationSubcategory || 'none'}
-                  onValueChange={(value) => handleSelectChange('classificationSubcategory', value === 'none' ? '' : value)}
-                >
-                  <SelectTrigger className="bg-elevated border-border text-foreground">
-                    <SelectValue placeholder="Select subcategory" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="none" className="text-foreground">None</SelectItem>
-                    {getSubcategories(formData.billClassification as BillClassification).map((subcategory) => (
-                      <SelectItem key={subcategory} value={subcategory} className="text-foreground">
-                        {formatSubcategory(subcategory)}
-                      </SelectItem>
-                    ))}
+                <Label className={_lbl} style={_lblS}>Subcategory</Label>
+                <Select value={formData.classificationSubcategory || 'none'} onValueChange={v => handleSelectChange('classificationSubcategory', v === 'none' ? '' : v)}>
+                  <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select subcategory" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {getSubcategories(formData.billClassification as BillClassification).map(s => <SelectItem key={s} value={s}>{formatSubcategory(s)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -1191,221 +1017,134 @@ export function BillForm({
       </div>
 
       {/* ========== PAYMENT SETTINGS SECTION (Collapsible) ========== */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowPaymentSettings(!showPaymentSettings)}
-          className="w-full flex items-center justify-between p-4 bg-card hover:bg-elevated transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-foreground font-medium">Payment Settings</span>
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+        <button type="button" onClick={() => setShowPaymentSettings(!showPaymentSettings)}
+          className="w-full flex items-center justify-between px-4 py-3 transition-colors"
+          style={{ backgroundColor: showPaymentSettings ? 'var(--color-elevated)' : 'var(--color-background)' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Payment Settings</span>
             {(formData.accountId || formData.linkedAccountId || formData.chargedToAccountId || formData.isAutopayEnabled) && (
-              <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
-                Configured
-              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}>Configured</span>
             )}
           </div>
-          {showPaymentSettings ? (
-            <ChevronUp className="w-5 h-5 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
-          )}
+          {showPaymentSettings ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />}
         </button>
 
         {showPaymentSettings && (
-          <div className="p-4 pt-0 space-y-4 border-t border-border bg-card">
+          <div className="px-4 py-4 space-y-4" style={{ borderTop: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
             {/* Payment Account */}
-            <div className="pt-4">
-              <Label className="text-muted-foreground text-sm mb-2 block">Payment Account</Label>
-              <Select value={formData.accountId} onValueChange={(value) => handleSelectChange('accountId', value)}>
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+            <div>
+              <Label className={_lbl} style={_lblS}>Payment Account</Label>
+              <Select value={formData.accountId} onValueChange={v => handleSelectChange('accountId', v)}>
+                <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select account" /></SelectTrigger>
+                <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">The account used to pay this bill</p>
+              <p className={_hint} style={_hintS}>The account used to pay this bill</p>
             </div>
 
             {/* Link to Debt */}
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Link to Debt</Label>
-              <Select value={formData.debtId || 'none'} onValueChange={(value) => handleSelectChange('debtId', value === 'none' ? '' : value)}>
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select debt (optional)" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  <SelectItem value="none" className="text-foreground">None</SelectItem>
-                  {debts.map((debt) => (
-                    <SelectItem key={debt.id} value={debt.id} className="text-foreground">
-                      {debt.name} - ${debt.remainingBalance?.toFixed(2)}
-                    </SelectItem>
-                  ))}
+              <Label className={_lbl} style={_lblS}>Link to Debt</Label>
+              <Select value={formData.debtId || 'none'} onValueChange={v => handleSelectChange('debtId', v === 'none' ? '' : v)}>
+                <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select debt (optional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {debts.map(d => <SelectItem key={d.id} value={d.id}>{d.name} · ${d.remainingBalance?.toFixed(2)}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">Payments will reduce the debt balance</p>
+              <p className={_hint} style={_hintS}>Payments will reduce the debt balance</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Basic Toggles */}
-      <div className="space-y-3 p-4 bg-card rounded-lg border border-border">
-        <div className="flex items-center justify-between">
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
+        <div className="flex items-center justify-between px-3 py-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
           <div>
-            <Label className="text-muted-foreground text-sm block">Variable Amount</Label>
-            <p className="text-xs text-muted-foreground">Amount varies each month</p>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Variable Amount</p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Amount varies each month</p>
           </div>
-          <button
-            type="button"
-            onClick={() => handleCheckboxChange('isVariableAmount')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isVariableAmount ? 'bg-income' : 'bg-border'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
-                formData.isVariableAmount ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+          <button type="button" onClick={() => handleCheckboxChange('isVariableAmount')}
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+            style={{ backgroundColor: formData.isVariableAmount ? 'var(--color-primary)' : 'var(--color-border)' }}>
+            <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform" style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData.isVariableAmount ? '18px' : '2px'})` }} />
           </button>
         </div>
-
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between px-3 py-3">
           <div>
-            <Label className="text-muted-foreground text-sm block">
-              Auto-mark Paid
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Automatically mark as paid when a matching transaction is created
-            </p>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Auto-mark Paid</p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Automatically mark as paid when a matching transaction is created</p>
           </div>
-          <button
-            type="button"
-            onClick={() => handleCheckboxChange('autoMarkPaid')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.autoMarkPaid ? 'bg-income' : 'bg-border'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
-                formData.autoMarkPaid ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+          <button type="button" onClick={() => handleCheckboxChange('autoMarkPaid')}
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+            style={{ backgroundColor: formData.autoMarkPaid ? 'var(--color-primary)' : 'var(--color-border)' }}>
+            <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform" style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData.autoMarkPaid ? '18px' : '2px'})` }} />
           </button>
         </div>
       </div>
 
-      {/* Budget Period Assignment - only show if more than 1 period per month */}
+      {/* Budget Period Assignment */}
       {budgetSchedule && budgetSchedule.periodsInMonth > 1 && (
-        <div className="p-4 bg-card rounded-lg border border-border">
-          <Label className="text-muted-foreground text-sm mb-2 block">
-            Budget Period Assignment (Optional)
-          </Label>
-          <Select 
-            value={formData.budgetPeriodAssignment} 
-            onValueChange={(value) => handleSelectChange('budgetPeriodAssignment', value)}
-          >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue placeholder="Automatic (based on due date)" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              <SelectItem value="auto" className="text-foreground">Automatic (based on due date)</SelectItem>
-              {Array.from({ length: budgetSchedule.periodsInMonth }, (_, index) => {
-                const periodNumber = index + 1;
-                return (
-                  <SelectItem key={periodNumber} value={String(periodNumber)} className="text-foreground">
-                    {getPeriodAssignmentOptionLabel(
-                      periodNumber,
-                      budgetSchedule.frequency,
-                      budgetSchedule.periodsInMonth
-                    )}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1">
-            Override which budget period this bill appears in for Bill Pay. Useful when you want to pay a bill before its due date.
-          </p>
+        <div className="rounded-xl px-4 py-4 space-y-3" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <div>
+            <Label className={_lbl} style={_lblS}>Budget Period Assignment (Optional)</Label>
+            <Select value={formData.budgetPeriodAssignment} onValueChange={v => handleSelectChange('budgetPeriodAssignment', v)}>
+              <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Automatic (based on due date)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Automatic (based on due date)</SelectItem>
+                {Array.from({ length: budgetSchedule.periodsInMonth }, (_, i) => {
+                  const n = i + 1;
+                  return <SelectItem key={n} value={String(n)}>{getPeriodAssignmentOptionLabel(n, budgetSchedule.frequency, budgetSchedule.periodsInMonth)}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+            <p className={_hint} style={_hintS}>Override which budget period this bill appears in. Useful to pay a bill before its due date.</p>
+          </div>
 
           {/* Split Payment Option */}
-          <div className="mt-4 pt-4 border-t border-border">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="flex items-center gap-2 mb-1.5">
               <input
                 type="checkbox"
                 id="splitAcrossPeriods"
                 checked={formData.splitAcrossPeriods}
                 onChange={() => handleCheckboxChange('splitAcrossPeriods')}
-                className="h-4 w-4 rounded border-border"
+                className="h-4 w-4 rounded border"
+            style={{ borderColor: 'var(--color-border)' }}
               />
-              <Label htmlFor="splitAcrossPeriods" className="text-sm text-foreground cursor-pointer">
+              <Label htmlFor="splitAcrossPeriods" className="text-[13px] cursor-pointer" style={{ color: 'var(--color-foreground)' }}>
                 Split payment across budget periods
               </Label>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Pay part of this bill in each budget period (e.g., half at the start, half at the end of the month)
-            </p>
-            
+            <p className={_hint + ' mb-2'} style={_hintS}>Pay part of this bill in each budget period</p>
             {formData.splitAcrossPeriods && (
-              <div className="space-y-3 bg-elevated p-3 rounded-lg">
-                <p className="text-xs text-muted-foreground">
-                  Set the percentage of the bill to pay in each period:
-                </p>
+              <div className="space-y-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                <p className={_hint} style={_hintS}>Set the percentage to pay in each period:</p>
                 <div className={`grid gap-2 ${budgetSchedule.periodsInMonth <= 2 ? 'grid-cols-2' : budgetSchedule.periodsInMonth <= 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'}`}>
-                  {splitAllocationsForSchedule.map((allocation) => (
+                  {splitAllocationsForSchedule.map(allocation => (
                     <div key={allocation.periodNumber}>
-                      <Label className="text-xs text-muted-foreground mb-1 block">
-                        {getPeriodAssignmentOptionLabel(
-                          allocation.periodNumber,
-                          budgetSchedule.frequency,
-                          budgetSchedule.periodsInMonth
-                        ).replace('Always ', '')}
+                      <Label className="text-[10px] uppercase tracking-wide block mb-1" style={_lblS}>
+                        {getPeriodAssignmentOptionLabel(allocation.periodNumber, budgetSchedule.frequency, budgetSchedule.periodsInMonth).replace('Always ', '')}
                       </Label>
                       <div className="flex items-center gap-1">
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={allocation.percentage}
-                          onChange={(e) => {
-                            const value = Number(e.target.value);
-                            setFormData((prev) => ({
-                              ...prev,
-                              splitAllocations: coerceSplitAllocations(
-                                (prev.splitAllocations as SplitAllocation[]).map((entry) =>
-                                  entry.periodNumber === allocation.periodNumber
-                                    ? { ...entry, percentage: Number.isFinite(value) ? value : 0 }
-                                    : entry
-                                ),
-                                budgetSchedule.periodsInMonth
-                              ),
-                            }));
+                        <Input type="number" min="0" max="100" value={allocation.percentage}
+                          onChange={e => {
+                            const v = Number(e.target.value);
+                            setFormData(prev => ({ ...prev, splitAllocations: coerceSplitAllocations((prev.splitAllocations as SplitAllocation[]).map(entry => entry.periodNumber === allocation.periodNumber ? { ...entry, percentage: Number.isFinite(v) ? v : 0 } : entry), budgetSchedule.periodsInMonth) }));
                           }}
-                          className="w-16 bg-background border-border text-right text-sm"
-                        />
-                        <span className="text-xs text-muted-foreground">%</span>
+                          className="w-16 h-8 text-right text-[12px]" style={_fs} />
+                        <span className="text-[11px]" style={_lblS}>%</span>
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className={`text-xs ${Math.abs(splitAllocationTotal - 100) > 0.01 ? 'text-warning' : 'text-muted-foreground'}`}>
-                  Total allocation: {splitAllocationTotal.toFixed(2)}%
+                <p className="text-[11px]" style={{ color: Math.abs(splitAllocationTotal - 100) > 0.01 ? 'var(--color-warning)' : 'var(--color-muted-foreground)' }}>
+                  Total: {splitAllocationTotal.toFixed(2)}%
                 </p>
-                {errors.splitAllocations && (
-                  <p className="text-xs text-error">{errors.splitAllocations}</p>
-                )}
+                {errors.splitAllocations && <p className="text-[11px]" style={{ color: 'var(--color-destructive)' }}>{errors.splitAllocations}</p>}
                 {formData.expectedAmount && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Preview: {splitAllocationsForSchedule.map((a) => 
-                      `Period ${a.periodNumber}: $${((parseFloat(String(formData.expectedAmount)) || 0) * a.percentage / 100).toFixed(2)}`
-                    ).join(' | ')}
-                  </p>
+                  <p className="text-[11px]" style={_hintS}>Preview: {splitAllocationsForSchedule.map(a => `P${a.periodNumber}: $${((parseFloat(String(formData.expectedAmount)) || 0) * a.percentage / 100).toFixed(2)}`).join(' · ')}</p>
                 )}
               </div>
             )}
@@ -1415,101 +1154,54 @@ export function BillForm({
 
       {/* Credit Card Linking */}
       {creditAccounts.length > 0 && (
-        <div className="p-4 bg-card rounded-lg border border-border space-y-4">
+        <div className="rounded-xl px-4 py-4 space-y-4" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <CreditCard className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-muted-foreground text-sm">Linked Credit Card/LOC (Optional)</Label>
+            <div className="flex items-center gap-1.5 mb-1">
+              <CreditCard className="w-3.5 h-3.5" style={_lblS} />
+              <Label className={_lbl} style={_lblS}>Linked Credit Card/LOC (Optional)</Label>
             </div>
-            <p className="text-xs text-muted-foreground mb-2">
-              For bills that represent payments to a credit account
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Select 
-                  value={formData.linkedAccountId || 'none'} 
-                  onValueChange={(value) => {
-                    handleSelectChange('linkedAccountId', value === 'none' ? '' : value);
-                    // Clear chargedToAccountId if linkedAccountId is set
-                    if (value !== 'none') {
-                      handleSelectChange('chargedToAccountId', '');
-                    }
-                  }}
-                >
-                  <SelectTrigger className="bg-elevated border-border text-foreground">
-                    <SelectValue placeholder="Select account" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="none" className="text-foreground">None</SelectItem>
-                    {creditAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id} className="text-foreground">
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <p className={_hint + ' mb-2'} style={_hintS}>For bills that represent payments to a credit account</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Select value={formData.linkedAccountId || 'none'} onValueChange={v => { handleSelectChange('linkedAccountId', v === 'none' ? '' : v); if (v !== 'none') handleSelectChange('chargedToAccountId', ''); }}>
+                <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select account" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {creditAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
               {formData.linkedAccountId && (
-                <div>
-                  <Select 
-                    value={formData.amountSource} 
-                    onValueChange={(value) => handleSelectChange('amountSource', value)}
-                  >
-                    <SelectTrigger className="bg-elevated border-border text-foreground">
-                      <SelectValue placeholder="Payment amount" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      <SelectItem value="fixed" className="text-foreground">Fixed Amount</SelectItem>
-                      <SelectItem value="minimum_payment" className="text-foreground">Minimum Payment</SelectItem>
-                      <SelectItem value="statement_balance" className="text-foreground">Statement Balance</SelectItem>
-                      <SelectItem value="full_balance" className="text-foreground">Full Balance</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={formData.amountSource} onValueChange={v => handleSelectChange('amountSource', v)}>
+                  <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Payment amount" /></SelectTrigger>
+                  <SelectContent><SelectItem value="fixed">Fixed Amount</SelectItem><SelectItem value="minimum_payment">Minimum Payment</SelectItem><SelectItem value="statement_balance">Statement Balance</SelectItem><SelectItem value="full_balance">Full Balance</SelectItem></SelectContent>
+                </Select>
               )}
             </div>
             {formData.linkedAccountId && (
-              <div className="mt-2 p-2 bg-primary/10 rounded-lg flex items-start gap-2">
-                <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-xs text-primary">
-                  Payments to this bill will reduce the credit card balance
-                </p>
+              <div className="mt-2 flex items-start gap-2 px-2.5 py-2 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
+                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+                <p className="text-[11px]" style={{ color: 'var(--color-primary)' }}>Payments to this bill will reduce the credit card balance</p>
               </div>
             )}
           </div>
 
-          {/* Charged to Credit Card */}
           {!formData.linkedAccountId && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Landmark className="w-4 h-4 text-muted-foreground" />
-                <Label className="text-muted-foreground text-sm">Charged to Credit Card (Optional)</Label>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Landmark className="w-3.5 h-3.5" style={_lblS} />
+                <Label className={_lbl} style={_lblS}>Charged to Credit Card (Optional)</Label>
               </div>
-              <p className="text-xs text-muted-foreground mb-2">
-                This bill is automatically charged to a credit card
-              </p>
-              <Select 
-                value={formData.chargedToAccountId || 'none'} 
-                onValueChange={(value) => handleSelectChange('chargedToAccountId', value === 'none' ? '' : value)}
-              >
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  <SelectItem value="none" className="text-foreground">None</SelectItem>
-                  {creditAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id} className="text-foreground">
-                      {account.name}
-                    </SelectItem>
-                  ))}
+              <p className={_hint + ' mb-2'} style={_hintS}>This bill is automatically charged to a credit card</p>
+              <Select value={formData.chargedToAccountId || 'none'} onValueChange={v => handleSelectChange('chargedToAccountId', v === 'none' ? '' : v)}>
+                <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select account" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {creditAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               {formData.chargedToAccountId && (
-                <div className="mt-2 p-2 bg-warning/10 rounded-lg flex items-start gap-2">
-                  <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-                  <p className="text-xs text-warning">
-                    When due, expense will be created on the selected card
-                  </p>
+                <div className="mt-2 flex items-start gap-2 px-2.5 py-2 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 20%, transparent)' }}>
+                  <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+                  <p className="text-[11px]" style={{ color: 'var(--color-warning)' }}>When due, expense will be created on the selected card</p>
                 </div>
               )}
             </div>
@@ -1518,449 +1210,219 @@ export function BillForm({
       )}
 
       {/* Autopay Configuration */}
-      <div className="p-4 bg-elevated rounded-lg border border-border">
-        <div className="flex items-center justify-between">
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
+        <div className="flex items-center justify-between px-3 py-3">
           <div>
-            <Label className="text-muted-foreground text-sm block">Autopay</Label>
-            <p className="text-xs text-muted-foreground">Automatically create payment transactions when due</p>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Autopay</p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Automatically create payment transactions when due</p>
           </div>
-          <button
-            type="button"
-            onClick={() => handleCheckboxChange('isAutopayEnabled')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isAutopayEnabled ? 'bg-income' : 'bg-border'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
-                formData.isAutopayEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+          <button type="button" onClick={() => handleCheckboxChange('isAutopayEnabled')}
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+            style={{ backgroundColor: formData.isAutopayEnabled ? 'var(--color-income)' : 'var(--color-border)' }}>
+            <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform" style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData.isAutopayEnabled ? '18px' : '2px'})` }} />
           </button>
         </div>
 
         {formData.isAutopayEnabled && (
-          <div className="mt-4 pt-4 border-t border-border space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="px-3 pb-3 space-y-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3">
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Pay From Account*</Label>
-                <Select 
-                  value={formData.autopayAccountId || 'none'} 
-                  onValueChange={(value) => handleSelectChange('autopayAccountId', value === 'none' ? '' : value)}
-                >
-                  <SelectTrigger className="bg-elevated border-border text-foreground">
-                    <SelectValue placeholder="Select account" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="none" className="text-foreground">Select account...</SelectItem>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id} className="text-foreground">
-                        {account.name}
-                      </SelectItem>
-                    ))}
+                <Label className={_lbl} style={_lblS}>Pay From Account*</Label>
+                <Select value={formData.autopayAccountId || 'none'} onValueChange={v => handleSelectChange('autopayAccountId', v === 'none' ? '' : v)}>
+                  <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Select account" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select account…</SelectItem>
+                    {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Amount</Label>
-                <Select 
-                  value={formData.autopayAmountType} 
-                  onValueChange={(value) => handleSelectChange('autopayAmountType', value)}
-                >
-                  <SelectTrigger className="bg-elevated border-border text-foreground">
-                    <SelectValue placeholder="Amount type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="fixed" className="text-foreground">Fixed Amount</SelectItem>
-                    {formData.linkedAccountId && (
-                      <>
-                        <SelectItem value="minimum_payment" className="text-foreground">Minimum Payment</SelectItem>
-                        <SelectItem value="statement_balance" className="text-foreground">Statement Balance</SelectItem>
-                        <SelectItem value="full_balance" className="text-foreground">Full Balance</SelectItem>
-                      </>
-                    )}
+                <Label className={_lbl} style={_lblS}>Amount</Label>
+                <Select value={formData.autopayAmountType} onValueChange={v => handleSelectChange('autopayAmountType', v)}>
+                  <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Amount type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">Fixed Amount</SelectItem>
+                    {formData.linkedAccountId && (<><SelectItem value="minimum_payment">Minimum Payment</SelectItem><SelectItem value="statement_balance">Statement Balance</SelectItem><SelectItem value="full_balance">Full Balance</SelectItem></>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
             {formData.autopayAmountType === 'fixed' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-muted-foreground text-sm mb-2 block">Fixed Amount</Label>
-                  <Input
-                    name="autopayFixedAmount"
-                    type="number"
-                    value={formData.autopayFixedAmount}
-                    onChange={handleChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-                  />
+                  <Label className={_lbl} style={_lblS}>Fixed Amount</Label>
+                  <Input name="autopayFixedAmount" type="number" value={formData.autopayFixedAmount} onChange={handleChange} placeholder="0.00" step="0.01" className="h-9 text-[13px]" style={_fs} />
                 </div>
                 <div>
-                  <Label className="text-muted-foreground text-sm mb-2 block">Days Before Due</Label>
-                  <Select 
-                    value={String(formData.autopayDaysBefore)} 
-                    onValueChange={(value) => handleSelectChange('autopayDaysBefore', value)}
-                  >
-                    <SelectTrigger className="bg-elevated border-border text-foreground">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      {[0, 1, 2, 3, 5, 7, 14].map((days) => (
-                        <SelectItem key={days} value={String(days)} className="text-foreground">
-                          {days === 0 ? 'On due date' : `${days} day${days > 1 ? 's' : ''} before`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                  <Label className={_lbl} style={_lblS}>Days Before Due</Label>
+                  <Select value={String(formData.autopayDaysBefore)} onValueChange={v => handleSelectChange('autopayDaysBefore', v)}>
+                    <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue /></SelectTrigger>
+                    <SelectContent>{[0,1,2,3,5,7,14].map(d => <SelectItem key={d} value={String(d)}>{d === 0 ? 'On due date' : `${d} day${d > 1 ? 's' : ''} before`}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
             )}
-
-            <div className="p-2 bg-warning/10 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-              <p className="text-xs text-warning">
-                Autopay will create transactions automatically. Ensure sufficient funds are available in the source account.
-              </p>
+            <div className="flex items-start gap-2 px-2.5 py-2 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 20%, transparent)' }}>
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+              <p className="text-[11px]" style={{ color: 'var(--color-warning)' }}>Autopay will create transactions automatically. Ensure sufficient funds are available.</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Debt Configuration */}
-      <div className="p-4 bg-card rounded-lg border border-border">
-        <div 
-          className="flex items-center justify-between cursor-pointer"
-          onClick={() => {
-            setShowDebtSection(!showDebtSection);
-            if (!showDebtSection && !formData.isDebt) {
-              handleCheckboxChange('isDebt');
-            }
-          }}
-        >
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+        <div className="flex items-center justify-between px-3 py-3 cursor-pointer" onClick={() => { setShowDebtSection(!showDebtSection); if (!showDebtSection && !formData.isDebt) handleCheckboxChange('isDebt'); }}>
           <div>
-            <Label className="text-muted-foreground text-sm block cursor-pointer">This is a debt</Label>
-            <p className="text-xs text-muted-foreground">Track principal balance, interest, and payoff progress</p>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>This is a debt</p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Track principal balance, interest, and payoff progress</p>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDebtSection(!formData.isDebt);
-              handleCheckboxChange('isDebt');
-            }}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isDebt ? 'bg-income' : 'bg-border'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
-                formData.isDebt ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+          <button type="button" onClick={e => { e.stopPropagation(); setShowDebtSection(!formData.isDebt); handleCheckboxChange('isDebt'); }}
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+            style={{ backgroundColor: formData.isDebt ? 'var(--color-primary)' : 'var(--color-border)' }}>
+            <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform" style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData.isDebt ? '18px' : '2px'})` }} />
           </button>
         </div>
 
         {formData.isDebt && (
-          <div className="mt-4 pt-4 border-t border-border space-y-4">
-            {/* Balance Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="px-3 pb-3 space-y-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3">
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Original Balance*</Label>
-                <Input
-                  name="originalBalance"
-                  type="number"
-                  value={formData.originalBalance}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  step="0.01"
-                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-                />
+                <Label className={_lbl} style={_lblS}>Original Balance*</Label>
+                <Input name="originalBalance" type="number" value={formData.originalBalance} onChange={handleChange} placeholder="0.00" step="0.01" className="h-9 text-[13px] tabular-nums" style={_fs} />
               </div>
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Remaining Balance</Label>
-                <Input
-                  name="remainingBalance"
-                  type="number"
-                  value={formData.remainingBalance}
-                  onChange={handleChange}
-                  placeholder="Same as original"
-                  step="0.01"
-                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-                />
+                <Label className={_lbl} style={_lblS}>Remaining Balance</Label>
+                <Input name="remainingBalance" type="number" value={formData.remainingBalance} onChange={handleChange} placeholder="Same as original" step="0.01" className="h-9 text-[13px] tabular-nums" style={_fs} />
               </div>
             </div>
-
-            {/* Interest Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Interest Rate (APR %)</Label>
-                <Input
-                  name="billInterestRate"
-                  type="number"
-                  value={formData.billInterestRate}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  step="0.01"
-                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-                />
+                <Label className={_lbl} style={_lblS}>Interest Rate (APR %)</Label>
+                <Input name="billInterestRate" type="number" value={formData.billInterestRate} onChange={handleChange} placeholder="0.00" step="0.01" className="h-9 text-[13px] tabular-nums" style={_fs} />
               </div>
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Interest Type</Label>
-                <Select 
-                  value={formData.interestType} 
-                  onValueChange={(value) => handleSelectChange('interestType', value)}
-                >
-                  <SelectTrigger className="bg-elevated border-border text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="fixed" className="text-foreground">Fixed</SelectItem>
-                    <SelectItem value="variable" className="text-foreground">Variable</SelectItem>
-                    <SelectItem value="none" className="text-foreground">None (0% APR)</SelectItem>
-                  </SelectContent>
+                <Label className={_lbl} style={_lblS}>Interest Type</Label>
+                <Select value={formData.interestType} onValueChange={v => handleSelectChange('interestType', v)}>
+                  <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="fixed">Fixed</SelectItem><SelectItem value="variable">Variable</SelectItem><SelectItem value="none">None (0% APR)</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>
-
-            {/* Date and Color */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Debt Start Date</Label>
-                <Input
-                  name="debtStartDate"
-                  type="date"
-                  value={formData.debtStartDate}
-                  onChange={handleChange}
-                  className="bg-elevated border-border text-foreground"
-                />
+                <Label className={_lbl} style={_lblS}>Debt Start Date</Label>
+                <Input name="debtStartDate" type="date" value={formData.debtStartDate} onChange={handleChange} className="h-9 text-[13px]" style={_fs} />
               </div>
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Color</Label>
-                <Select 
-                  value={formData.billColor || ''} 
-                  onValueChange={(value) => handleSelectChange('billColor', value)}
-                >
-                  <SelectTrigger className="bg-elevated border-border text-foreground">
-                    <SelectValue placeholder="Default" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    {DEBT_COLOR_OPTIONS.map((option) => (
-                      <SelectItem key={option.value || 'default'} value={option.value} className="text-foreground">
-                        <div className="flex items-center gap-2">
-                          {option.value && (
-                            <div 
-                              className="w-4 h-4 rounded-full" 
-                              style={{ backgroundColor: option.value }}
-                            />
-                          )}
-                          <span>{option.label}</span>
-                        </div>
+                <Label className={_lbl} style={_lblS}>Color</Label>
+                <Select value={formData.billColor || DEBT_COLOR_DEFAULT_SENTINEL} onValueChange={v => handleSelectChange('billColor', v === DEBT_COLOR_DEFAULT_SENTINEL ? '' : v)}>
+                  <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue placeholder="Default" /></SelectTrigger>
+                  <SelectContent>
+                    {DEBT_COLOR_OPTIONS.map(o => (
+                      <SelectItem key={o.value || 'default'} value={o.value || DEBT_COLOR_DEFAULT_SENTINEL}>
+                        <div className="flex items-center gap-2">{o.value && <div className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: o.value }} />}<span>{o.label}</span></div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
-            {/* Payoff Strategy Toggle */}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between px-2.5 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
               <div>
-                <Label className="text-muted-foreground text-sm block">Include in payoff strategy</Label>
-                <p className="text-xs text-muted-foreground">Include this debt in your debt payoff calculations</p>
+                <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Include in payoff strategy</p>
+                <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Include this debt in your debt payoff calculations</p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleCheckboxChange('includeInPayoffStrategy')}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  formData.includeInPayoffStrategy ? 'bg-income' : 'bg-border'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
-                    formData.includeInPayoffStrategy ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
+              <button type="button" onClick={() => handleCheckboxChange('includeInPayoffStrategy')}
+                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+                style={{ backgroundColor: formData.includeInPayoffStrategy ? 'var(--color-primary)' : 'var(--color-border)' }}>
+                <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform" style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData.includeInPayoffStrategy ? '18px' : '2px'})` }} />
               </button>
             </div>
-
-            {/* Tax Deduction Toggle */}
-            <div className="pt-2 border-t border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-muted-foreground text-sm block">Interest is tax deductible</Label>
-                  <p className="text-xs text-muted-foreground">Track interest for tax purposes</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCheckboxChange('isInterestTaxDeductible')}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    formData.isInterestTaxDeductible ? 'bg-income' : 'bg-border'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
-                      formData.isInterestTaxDeductible ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
+            <div className="flex items-center justify-between px-2.5 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+              <div>
+                <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Interest is tax deductible</p>
+                <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Track interest for tax purposes</p>
               </div>
-
-              {formData.isInterestTaxDeductible && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground text-sm mb-2 block">Deduction Type</Label>
-                    <Select 
-                      value={formData.taxDeductionType} 
-                      onValueChange={(value) => handleSelectChange('taxDeductionType', value)}
-                    >
-                      <SelectTrigger className="bg-elevated border-border text-foreground">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        {TAX_DEDUCTION_TYPE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value} className="text-foreground">
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm mb-2 block">Annual Limit</Label>
-                    <Input
-                      name="taxDeductionLimit"
-                      type="number"
-                      value={formData.taxDeductionLimit}
-                      onChange={handleChange}
-                      placeholder="e.g., 2500 for student loans"
-                      step="0.01"
-                      className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Leave blank for no limit
-                    </p>
-                  </div>
-                </div>
-              )}
+              <button type="button" onClick={() => handleCheckboxChange('isInterestTaxDeductible')}
+                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+                style={{ backgroundColor: formData.isInterestTaxDeductible ? 'var(--color-primary)' : 'var(--color-border)' }}>
+                <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform" style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData.isInterestTaxDeductible ? '18px' : '2px'})` }} />
+              </button>
             </div>
+            {formData.isInterestTaxDeductible && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <Label className={_lbl} style={_lblS}>Deduction Type</Label>
+                  <Select value={formData.taxDeductionType} onValueChange={v => handleSelectChange('taxDeductionType', v)}>
+                    <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue /></SelectTrigger>
+                    <SelectContent>{TAX_DEDUCTION_TYPE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className={_lbl} style={_lblS}>Annual Limit</Label>
+                  <Input name="taxDeductionLimit" type="number" value={formData.taxDeductionLimit} onChange={handleChange} placeholder="e.g., 2500" step="0.01" className="h-9 text-[13px] tabular-nums" style={_fs} />
+                  <p className={_hint} style={_hintS}>Leave blank for no limit</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* ========== ADVANCED SECTION (Collapsible) ========== */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="w-full flex items-center justify-between p-4 bg-card hover:bg-elevated transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-foreground font-medium">Advanced Options</span>
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+        <button type="button" onClick={() => setShowAdvanced(!showAdvanced)}
+          className="w-full flex items-center justify-between px-4 py-3 transition-colors"
+          style={{ backgroundColor: showAdvanced ? 'var(--color-elevated)' : 'var(--color-background)' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Advanced Options</span>
             {(formData.payeePatterns.length > 0 || formData.notes) && (
-              <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
-                Configured
-              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}>Configured</span>
             )}
           </div>
-          {showAdvanced ? (
-            <ChevronUp className="w-5 h-5 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
-          )}
+          {showAdvanced ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />}
         </button>
 
         {showAdvanced && (
-          <div className="p-4 pt-0 space-y-4 border-t border-border bg-card">
-            {/* Amount Tolerance */}
-            <div className="pt-4">
-              <Label className="text-muted-foreground text-sm mb-2 block">Amount Tolerance (%)</Label>
-              <Input
-                name="amountTolerance"
-                type="number"
-                value={formData.amountTolerance}
-                onChange={handleChange}
-                placeholder="5.0"
-                step="0.1"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-              />
-              <p className="text-xs text-muted-foreground mt-1">For auto-matching transactions (default 5%)</p>
+          <div className="px-4 py-4 space-y-4" style={{ borderTop: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+            <div>
+              <Label className={_lbl} style={_lblS}>Amount Tolerance (%)</Label>
+              <Input name="amountTolerance" type="number" value={formData.amountTolerance} onChange={handleChange} placeholder="5.0" step="0.1" className="h-9 text-[13px]" style={_fs} />
+              <p className={_hint} style={_hintS}>For auto-matching transactions (default 5%)</p>
             </div>
 
-            {/* Payee Patterns */}
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Payee Patterns</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Add patterns to match transaction descriptions
-              </p>
-              <div className="space-y-2">
+              <Label className={_lbl} style={_lblS}>Payee Patterns</Label>
+              <p className={_hint + ' mb-2'} style={_hintS}>Add patterns to match transaction descriptions</p>
+              <div className="space-y-1.5">
                 {formData.payeePatterns.map((pattern: string, index: number) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2 bg-elevated border border-border rounded"
-                  >
-                    <span className="text-sm text-foreground">{pattern}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePayeePattern(index)}
-                      className="text-xs text-error hover:text-error/80"
-                    >
-                      Remove
-                    </button>
+                  <div key={index} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                    <span className="text-[13px]" style={{ color: 'var(--color-foreground)' }}>{pattern}</span>
+                    <button type="button" onClick={() => handleRemovePayeePattern(index)} className="text-[11px] transition-opacity hover:opacity-100 opacity-60" style={{ color: 'var(--color-destructive)' }}>Remove</button>
                   </div>
                 ))}
                 <div className="flex gap-2">
-                  <Input
-                    value={newPayeePattern}
-                    onChange={(e) => setNewPayeePattern(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddPayeePattern();
-                      }
-                    }}
-                    placeholder="Enter a pattern"
-                    className="bg-elevated border-border text-foreground placeholder:text-muted-foreground text-sm"
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddPayeePattern}
-                    className="bg-elevated border-border text-foreground hover:bg-elevated text-sm"
-                  >
-                    Add
-                  </Button>
+                  <Input value={newPayeePattern} onChange={e => setNewPayeePattern(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddPayeePattern(); } }} placeholder="Enter a pattern" className="h-9 text-[13px]" style={_fs} />
+                  <Button type="button" onClick={handleAddPayeePattern} variant="outline" className="h-9 text-[12px] shrink-0">Add</Button>
                 </div>
               </div>
             </div>
 
-            {/* Notes */}
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Notes</Label>
-              <Textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                placeholder="Add any additional notes..."
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground resize-none"
-                rows={3}
-              />
+              <Label className={_lbl} style={_lblS}>Notes</Label>
+              <Textarea name="notes" value={formData.notes} onChange={handleChange} placeholder="Add any additional notes…" className="text-[13px] resize-none" style={_fs} rows={3} />
             </div>
           </div>
         )}
       </div>
 
       {/* Info Box */}
-      <div className="p-4 rounded-lg flex gap-2 bg-primary/10 border border-primary/20">
-        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-primary" />
-        <div className="text-sm text-primary/80">
-          <p className="font-medium mb-1">
-            Category-Based Bill Matching
-          </p>
-          <p>
-            When you create an expense transaction with the selected category, the oldest unpaid bill instance will be automatically marked as paid. This handles late payments, early payments, and multiple payments intelligently.
-          </p>
+      <div className="flex items-start gap-2.5 px-3 py-3 rounded-xl" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 6%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
+        <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+        <div>
+          <p className="text-[12px] font-semibold mb-0.5" style={{ color: 'var(--color-primary)' }}>Category-Based Bill Matching</p>
+          <p className="text-[11px]" style={{ color: 'var(--color-primary)', opacity: 0.8 }}>When you create an expense transaction with the selected category, the oldest unpaid bill instance will be automatically marked as paid.</p>
         </div>
       </div>
 

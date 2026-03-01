@@ -22,14 +22,14 @@ export function NoHouseholdError({
     <div className={`flex items-center justify-center min-h-[400px] ${className}`}>
       <Card className="max-w-md">
         <CardContent className="p-6 text-center">
-          <p className="text-foreground mb-4 font-medium">No household selected</p>
-          <p className="text-muted-foreground text-sm mb-4">
+          <p className="mb-4 font-medium" style={{ color: 'var(--color-foreground)' }}>No household selected</p>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
             {message}
           </p>
           {onRetry && (
             <Button 
               onClick={onRetry}
-              className="bg-primary hover:bg-primary/90"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               Retry
             </Button>

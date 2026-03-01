@@ -70,32 +70,31 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
       : 0;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-      <p className="text-sm font-semibold text-foreground mb-2">{label ? formatMonth(label) : ''}</p>
+    <div className="rounded-lg p-3 shadow-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+      <p className="text-sm font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>{label ? formatMonth(label) : ''}</p>
       <div className="space-y-1">
         {budgetedData && (
           <div className="flex items-center justify-between gap-4">
-            <span className="text-xs text-muted-foreground">Budgeted:</span>
-            <span className="text-xs font-semibold text-foreground">
+            <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Budgeted:</span>
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-foreground)' }}>
               {formatCurrency(budgetedData.value as number)}
             </span>
           </div>
         )}
         {actualData && (
           <div className="flex items-center justify-between gap-4">
-            <span className="text-xs text-muted-foreground">Actual:</span>
-            <span className="text-xs font-semibold text-foreground">
+            <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Actual:</span>
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-foreground)' }}>
               {formatCurrency(actualData.value as number)}
             </span>
           </div>
         )}
         {variance !== 0 && (
-          <div className="flex items-center justify-between gap-4 pt-1 border-t border-border">
-            <span className="text-xs text-muted-foreground">Variance:</span>
+          <div className="flex items-center justify-between gap-4 pt-1" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Variance:</span>
             <span
-              className={`text-xs font-semibold ${
-                variance < 0 ? 'text-success' : 'text-error'
-              }`}
+              className="text-xs font-semibold"
+              style={{ color: variance < 0 ? 'var(--color-success)' : 'var(--color-destructive)' }}
             >
               {variance < 0 ? '-' : '+'}
               {formatCurrency(Math.abs(variance))}
@@ -146,10 +145,10 @@ export function CategoryTrendChart({
   const textColor = getColor('--color-muted-foreground');
 
   // Get trend color and icon
-  const getTrendColor = () => {
-    if (trend.direction === 'increasing') return 'text-error';
-    if (trend.direction === 'decreasing') return 'text-success';
-    return 'text-muted-foreground';
+  const getTrendColor = (): React.CSSProperties => {
+    if (trend.direction === 'increasing') return { color: 'var(--color-destructive)' };
+    if (trend.direction === 'decreasing') return { color: 'var(--color-success)' };
+    return { color: 'var(--color-muted-foreground)' };
   };
 
   const getTrendIcon = () => {
@@ -160,8 +159,8 @@ export function CategoryTrendChart({
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 bg-card border border-border rounded-xl">
-        <p className="text-muted-foreground text-sm">No data available</p>
+      <div className="flex items-center justify-center h-48 rounded-xl" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No data available</p>
       </div>
     );
   }
@@ -170,8 +169,8 @@ export function CategoryTrendChart({
     <div className="space-y-2">
       {/* Header with trend indicator */}
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-foreground">{categoryName}</h4>
-        <div className={`flex items-center gap-1 text-xs font-medium ${getTrendColor()}`}>
+        <h4 className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{categoryName}</h4>
+        <div className="flex items-center gap-1 text-xs font-medium" style={getTrendColor()}>
           <span>{getTrendIcon()}</span>
           <span>
             {Math.abs(trend.percentChange).toFixed(1)}%{' '}

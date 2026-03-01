@@ -50,7 +50,8 @@ export function TestModeBadge() {
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0.5 flex items-center gap-1 cursor-help"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)', color: 'var(--color-warning)', borderColor: 'color-mix(in oklch, var(--color-warning) 30%, transparent)' }}
+            className="text-[10px] px-1.5 py-0.5 flex items-center gap-1 cursor-help border"
           >
             <AlertTriangle className="w-3 h-3" />
             TEST
@@ -60,7 +61,7 @@ export function TestModeBadge() {
           <p className="text-sm">
             <strong>Test Mode Active</strong>
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             Authentication is disabled. Set TEST_MODE=false to disable.
           </p>
         </TooltipContent>
@@ -106,7 +107,8 @@ export function TestModeBadgeCompact() {
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className="bg-warning/20 text-warning border-warning/30 text-[8px] px-1 py-0 flex items-center justify-center cursor-help"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)', color: 'var(--color-warning)', borderColor: 'color-mix(in oklch, var(--color-warning) 30%, transparent)' }}
+            className="text-[8px] px-1 py-0 flex items-center justify-center cursor-help border"
           >
             <AlertTriangle className="w-2.5 h-2.5" />
           </Badge>
@@ -115,7 +117,7 @@ export function TestModeBadgeCompact() {
           <p className="text-sm">
             <strong>Test Mode Active</strong>
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             Authentication is disabled.
           </p>
         </TooltipContent>

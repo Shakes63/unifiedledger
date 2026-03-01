@@ -221,30 +221,30 @@ export function PrincipalInterestChart({
       </ResponsiveContainer>
 
       {/* Chart Legend/Summary */}
-      <div className="grid grid-cols-3 gap-4 mt-6 p-4 bg-elevated rounded-lg">
+      <div className="grid grid-cols-3 gap-4 mt-6 p-4 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
         <div>
-          <div className="text-xs text-muted-foreground uppercase mb-1">Total Principal</div>
+          <div className="text-xs uppercase mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total Principal</div>
           <div className="text-lg font-semibold text-chart-principal font-mono">
             ${schedule.originalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground uppercase mb-1">Total Interest</div>
+          <div className="text-xs uppercase mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total Interest</div>
           <div className="text-lg font-semibold text-chart-interest font-mono">
             ${schedule.totalInterestPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground uppercase mb-1">Total Paid</div>
-          <div className="text-lg font-semibold text-foreground font-mono">
+          <div className="text-xs uppercase mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total Paid</div>
+          <div className="text-lg font-semibold font-mono" style={{ color: 'var(--color-foreground)' }}>
             ${(schedule.originalBalance + schedule.totalInterestPaid).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>
 
       {/* Insight */}
-      <div className="mt-4 p-3 bg-accent/10 border border-accent/30 rounded-lg">
-        <div className="flex items-start gap-2 text-sm text-accent">
+      <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-accent) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-accent) 30%, transparent)' }}>
+        <div className="flex items-start gap-2 text-sm" style={{ color: 'var(--color-accent)' }}>
           <Lightbulb className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
             <span className="font-semibold">Insight:</span>{' '}

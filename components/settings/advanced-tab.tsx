@@ -1,10 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Code, Zap, FlaskConical, Info, Database, Loader2, Sparkles, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -28,6 +25,47 @@ interface DatabaseStats {
   debts: number;
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+      </div>
+      <div className="px-4 py-4 space-y-0">{children}</div>
+    </div>
+  );
+}
+
+function SwitchRow({ id, icon: Icon, label, description, checked, onCheckedChange, disabled }: {
+  id: string; icon?: React.ComponentType<{ className?: string }>; label: string; description?: string;
+  checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-3 py-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 40%, transparent)' }}>
+      {Icon && <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />}
+      <div className="flex-1">
+        <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{label}</p>
+        {description && <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.8 }}>{description}</p>}
+      </div>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function AdvancedTab() {
   const { isDeveloperMode, loading: devModeLoading, toggleDeveloperMode } = useDeveloperMode();
   const { selectedHouseholdId } = useHousehold();
@@ -41,347 +79,141 @@ export function AdvancedTab() {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const response = await fetch('/api/user/settings', { credentials: 'include' });
-      if (response.ok) {
-        const data = await response.json();
-        // API returns { settings: {...} }
-        setEnableAnimations(data.settings?.enableAnimations !== false);
-        setExperimentalFeatures(data.settings?.experimentalFeatures || false);
+      const res = await fetch('/api/user/settings', { credentials: 'include' });
+      if (res.ok) {
+        const d = await res.json();
+        setEnableAnimations(d.settings?.enableAnimations !== false);
+        setExperimentalFeatures(d.settings?.experimentalFeatures || false);
       }
-    } catch (_error) {
-      toast.error('Failed to load settings');
-    } finally {
-      setLoading(false);
-    }
+    } catch { toast.error('Failed to load settings'); }
+    finally { setLoading(false); }
   }, []);
 
   const fetchDatabaseStats = useCallback(async () => {
     if (!selectedHouseholdId) return;
-
     try {
-      // Fetch statistics from dedicated stats endpoint
-      const response = await fetchWithHousehold('/api/stats');
-      
-      if (response.ok) {
-        const data = await response.json();
-        setStats({
-          transactions: data.transactions || 0,
-          accounts: data.accounts || 0,
-          categories: data.categories || 0,
-          bills: data.bills || 0,
-          goals: data.goals || 0,
-          debts: data.debts || 0,
-        });
-      } else {
-        console.error('Failed to fetch database stats:', response.status);
+      const res = await fetchWithHousehold('/api/stats');
+      if (res.ok) {
+        const d = await res.json();
+        setStats({ transactions: d.transactions || 0, accounts: d.accounts || 0, categories: d.categories || 0, bills: d.bills || 0, goals: d.goals || 0, debts: d.debts || 0 });
       }
-    } catch (error) {
-      console.error('Failed to fetch database stats:', error);
-    }
+    } catch (e) { console.error('Failed to fetch database stats:', e); }
   }, [selectedHouseholdId, fetchWithHousehold]);
 
-  useEffect(() => {
-    fetchSettings();
-    fetchDatabaseStats();
-    setFeatures(getExperimentalFeatures());
-  }, [fetchSettings, fetchDatabaseStats]);
+  useEffect(() => { fetchSettings(); fetchDatabaseStats(); setFeatures(getExperimentalFeatures()); }, [fetchSettings, fetchDatabaseStats]);
 
   async function updateSetting(key: string, value: boolean) {
     try {
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [key]: value }),
-      });
-
-      if (response.ok) {
+      const res = await fetch('/api/user/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [key]: value }) });
+      if (res.ok) {
         toast.success('Setting updated');
-
-        // Update local state
         if (key === 'enableAnimations') {
           setEnableAnimations(value);
-          // Apply animation preference to document
-          if (value) {
-            document.documentElement.classList.remove('reduce-motion');
-          } else {
-            document.documentElement.classList.add('reduce-motion');
-          }
+          document.documentElement.classList.toggle('reduce-motion', !value);
         }
         if (key === 'experimentalFeatures') {
           setExperimentalFeatures(value);
-          // Refresh the experimental features context
           await refreshExperimentalFeatures();
-          // Trigger storage event for other tabs
           window.localStorage.setItem('experimental-features-updated', Date.now().toString());
         }
-      } else {
-        toast.error('Failed to update setting');
-      }
-    } catch (_error) {
-      toast.error('Failed to update setting');
-    }
+      } else { toast.error('Failed to update setting'); }
+    } catch { toast.error('Failed to update setting'); }
   }
 
-  // Helper function to get category icon
   function getCategoryIcon(category: FeatureCategory) {
     switch (category) {
-      case 'ui':
-        return <Sparkles className="w-4 h-4 text-muted-foreground" />;
-      case 'analytics':
-        return <BarChart3 className="w-4 h-4 text-muted-foreground" />;
-      case 'data':
-        return <Database className="w-4 h-4 text-muted-foreground" />;
-      case 'performance':
-        return <Zap className="w-4 h-4 text-muted-foreground" />;
+      case 'ui':         return <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />;
+      case 'analytics':  return <BarChart3 className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />;
+      case 'data':       return <Database className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />;
+      case 'performance':return <Zap className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />;
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        Loading...
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-24 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', animationDelay: `${i * 80}ms` }} />)}
       </div>
     );
   }
 
+  const STAT_ITEMS: [keyof DatabaseStats, string][] = [
+    ['transactions', 'Transactions'], ['accounts', 'Accounts'],
+    ['categories', 'Categories'],    ['bills', 'Bills'],
+    ['goals', 'Goals'],              ['debts', 'Debts'],
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Developer Settings Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Developer Settings</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Advanced options for debugging and development
-        </p>
+    <div className="space-y-4">
 
-        <Card className="p-4 bg-elevated border-border">
-          <div className="space-y-4">
-            {/* Developer Mode */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-start gap-3 flex-1">
-                <Code className="w-5 h-5 text-muted-foreground mt-0.5" />
-                <div className="flex-1">
-                  <Label htmlFor="developerMode" className="text-foreground font-medium">
-                    Developer Mode
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Show IDs, debug information, and additional technical details throughout the app
-                  </p>
-                </div>
-              </div>
-              <Switch
-                id="developerMode"
-                checked={isDeveloperMode}
-                onCheckedChange={toggleDeveloperMode}
-                disabled={devModeLoading}
-              />
-            </div>
+      {/* ── Developer Settings ────────────────────────────────────────── */}
+      <Section icon={Code} label="Developer Settings" accent="var(--color-primary)">
+        <SwitchRow id="developerMode" icon={Code} label="Developer Mode" description="Show IDs, debug info, and additional technical details throughout the app." checked={isDeveloperMode} onCheckedChange={toggleDeveloperMode} disabled={devModeLoading} />
+        <SwitchRow id="enableAnimations" icon={Zap} label="Enable Animations" description="Show transitions and animations throughout the app." checked={enableAnimations} onCheckedChange={v => updateSetting('enableAnimations', v)} />
+        <SwitchRow id="experimentalFeatures" icon={FlaskConical} label="Experimental Features" description="Enable access to features currently in testing." checked={experimentalFeatures} onCheckedChange={v => updateSetting('experimentalFeatures', v)} />
 
-            <Separator className="bg-border" />
-
-            {/* Enable Animations */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-start gap-3 flex-1">
-                <Zap className="w-5 h-5 text-muted-foreground mt-0.5" />
-                <div className="flex-1">
-                  <Label htmlFor="enableAnimations" className="text-foreground font-medium">
-                    Enable Animations
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Show transitions and animations throughout the app
-                  </p>
-                </div>
-              </div>
-              <Switch
-                id="enableAnimations"
-                checked={enableAnimations}
-                onCheckedChange={(checked) => updateSetting('enableAnimations', checked)}
-              />
-            </div>
-
-            <Separator className="bg-border" />
-
-            {/* Experimental Features */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-start gap-3 flex-1">
-                <FlaskConical className="w-5 h-5 text-muted-foreground mt-0.5" />
-                <div className="flex-1">
-                  <Label htmlFor="experimentalFeatures" className="text-foreground font-medium">
-                    Experimental Features
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable access to features currently in testing
-                  </p>
-                </div>
-              </div>
-              <Switch
-                id="experimentalFeatures"
-                checked={experimentalFeatures}
-                onCheckedChange={(checked) => updateSetting('experimentalFeatures', checked)}
-              />
-            </div>
-
-            {/* Show available experimental features when toggle is OFF */}
-            {!experimentalFeatures && features.length > 0 && (
-              <>
-                <Separator className="bg-border" />
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-3">
-                    Available Experimental Features
-                  </p>
-                  <div className="space-y-2">
-                    {features.map((feature) => (
-                      <div
-                        key={feature.id}
-                        className="p-3 bg-card rounded-lg border border-border"
-                      >
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            {getCategoryIcon(feature.category)}
-                            <span className="text-sm font-medium text-foreground">
-                              {feature.name}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="secondary"
-                              className="text-xs"
-                              style={{
-                                backgroundColor: `${getRiskLevelColor(feature.riskLevel)}20`,
-                                color: getRiskLevelColor(feature.riskLevel),
-                                borderColor: getRiskLevelColor(feature.riskLevel)
-                              }}
-                            >
-                              {feature.riskLevel.toUpperCase()} RISK
-                            </Badge>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {feature.description}
-                        </p>
-                      </div>
-                    ))}
+        {!experimentalFeatures && features.length > 0 && (
+          <div className="px-3 pt-3 pb-1 space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Available Experimental Features</p>
+            <div className="space-y-1.5">
+              {features.map(feature => (
+                <div key={feature.id} className="flex items-start gap-2.5 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                  <div className="shrink-0 mt-0.5">{getCategoryIcon(feature.category)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[12px] font-medium" style={{ color: 'var(--color-foreground)' }}>{feature.name}</span>
+                      <Badge className="text-[9px] h-4 px-1.5 uppercase" style={{ backgroundColor: `${getRiskLevelColor(feature.riskLevel)}20`, color: getRiskLevelColor(feature.riskLevel), border: `1px solid ${getRiskLevelColor(feature.riskLevel)}40` }}>
+                        {feature.riskLevel} risk
+                      </Badge>
+                    </div>
+                    <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.8 }}>{feature.description}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Enable experimental features above to unlock these capabilities
-                  </p>
                 </div>
-              </>
-            )}
+              ))}
+            </div>
+            <p className="text-[11px] pb-1" style={{ color: 'var(--color-muted-foreground)', opacity: 0.7 }}>Enable experimental features above to unlock these capabilities.</p>
           </div>
-        </Card>
-      </div>
+        )}
+      </Section>
 
-      <Separator className="bg-border" />
-
-      {/* App Information Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">App Information</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Version details and system information
-        </p>
-
-        <Card className="p-4 bg-elevated border-border">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Version</span>
-              </div>
-              <Badge variant="secondary" className="bg-card">
-                1.0.0
-              </Badge>
+      {/* ── App Information ───────────────────────────────────────────── */}
+      <Section icon={Info} label="App Information" accent="var(--color-muted-foreground)">
+        {[
+          { label: 'Version',     value: '1.0.0'                          },
+          { label: 'Framework',   value: 'Next.js 16'                     },
+          { label: 'Environment', value: process.env.NODE_ENV || 'development' },
+        ].map((item, i, arr) => (
+          <div key={item.label} className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: i < arr.length - 1 ? '1px solid color-mix(in oklch, var(--color-border) 40%, transparent)' : undefined }}>
+            <div className="flex items-center gap-2">
+              <Info className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />
+              <span className="text-[13px]" style={{ color: 'var(--color-foreground)' }}>{item.label}</span>
             </div>
-
-            <Separator className="bg-border" />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Framework</span>
-              </div>
-              <Badge variant="secondary" className="bg-card">
-                Next.js 16
-              </Badge>
-            </div>
-
-            <Separator className="bg-border" />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Environment</span>
-              </div>
-              <Badge variant="secondary" className="bg-card">
-                {process.env.NODE_ENV || 'development'}
-              </Badge>
-            </div>
+            <Badge className="text-[11px] h-5 px-2 font-mono" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', border: '1px solid var(--color-border)' }}>{item.value}</Badge>
           </div>
-        </Card>
-      </div>
+        ))}
+      </Section>
 
-      <Separator className="bg-border" />
-
-      {/* Database Statistics Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Database Statistics</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Overview of your financial data
-        </p>
-
-        <Card className="p-4 bg-elevated border-border">
-          {stats ? (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                <span className="text-sm text-muted-foreground">Transactions</span>
-                <span className="text-lg font-semibold text-foreground">
-                  {stats.transactions.toLocaleString()}
+      {/* ── Database Statistics ───────────────────────────────────────── */}
+      <Section icon={Database} label="Database Statistics" accent="var(--color-primary)">
+        {stats ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 px-0">
+            {STAT_ITEMS.map(([key, label]) => (
+              <div key={key} className="flex flex-col gap-0.5 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>{label}</span>
+                <span className="text-[18px] font-bold tabular-nums leading-tight" style={{ color: 'var(--color-foreground)' }}>
+                  {stats[key].toLocaleString()}
                 </span>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-6 gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-[13px]">Loading statistics…</span>
+          </div>
+        )}
+      </Section>
 
-              <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                <span className="text-sm text-muted-foreground">Accounts</span>
-                <span className="text-lg font-semibold text-foreground">
-                  {stats.accounts.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                <span className="text-sm text-muted-foreground">Categories</span>
-                <span className="text-lg font-semibold text-foreground">
-                  {stats.categories.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                <span className="text-sm text-muted-foreground">Bills</span>
-                <span className="text-lg font-semibold text-foreground">
-                  {stats.bills.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                <span className="text-sm text-muted-foreground">Goals</span>
-                <span className="text-lg font-semibold text-foreground">
-                  {stats.goals.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                <span className="text-sm text-muted-foreground">Debts</span>
-                <span className="text-lg font-semibold text-foreground">
-                  {stats.debts.toLocaleString()}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Database className="w-5 h-5 mr-2" />
-              Loading statistics...
-            </div>
-          )}
-        </Card>
-      </div>
     </div>
   );
 }

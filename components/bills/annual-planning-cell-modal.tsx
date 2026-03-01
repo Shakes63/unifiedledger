@@ -94,31 +94,31 @@ export function AnnualPlanningCellModal({
     switch (data?.status) {
       case 'paid':
         return {
-          icon: <CheckCircle2 className="w-5 h-5 text-income" />,
+          icon: <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--color-income)' }} />,
           label: 'Paid',
-          color: 'text-income',
-          bgColor: 'bg-income/10',
+          color: 'var(--color-income)',
+          bgColor: 'color-mix(in oklch, var(--color-income) 10%, transparent)',
         };
       case 'pending':
         return {
-          icon: <Clock className="w-5 h-5 text-warning" />,
+          icon: <Clock className="w-5 h-5" style={{ color: 'var(--color-warning)' }} />,
           label: 'Pending',
-          color: 'text-warning',
-          bgColor: 'bg-warning/10',
+          color: 'var(--color-warning)',
+          bgColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)',
         };
       case 'overdue':
         return {
-          icon: <AlertCircle className="w-5 h-5 text-error" />,
+          icon: <AlertCircle className="w-5 h-5" style={{ color: 'var(--color-destructive)' }} />,
           label: 'Overdue',
-          color: 'text-error',
-          bgColor: 'bg-error/10',
+          color: 'var(--color-destructive)',
+          bgColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)',
         };
       case 'skipped':
         return {
-          icon: <SkipForward className="w-5 h-5 text-muted-foreground" />,
+          icon: <SkipForward className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />,
           label: 'Skipped',
-          color: 'text-muted-foreground',
-          bgColor: 'bg-muted/30',
+          color: 'var(--color-muted-foreground)',
+          bgColor: 'color-mix(in oklch, var(--color-muted-foreground) 30%, transparent)',
         };
       default:
         return null;
@@ -222,18 +222,18 @@ export function AnnualPlanningCellModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border">
+      <DialogContent className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <DialogHeader>
-          <DialogTitle className="text-foreground flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
             {bill.name}
             {statusInfo && (
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${statusInfo.bgColor} ${statusInfo.color}`}>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: statusInfo.bgColor, color: statusInfo.color }}>
                 {statusInfo.icon}
                 {statusInfo.label}
               </span>
             )}
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
             {monthName} {year} - {FREQUENCY_LABELS[bill.frequency] || bill.frequency}
           </DialogDescription>
         </DialogHeader>
@@ -241,31 +241,31 @@ export function AnnualPlanningCellModal({
         {data ? (
           <div className="space-y-4">
             {/* Bill Details */}
-            <div className="grid grid-cols-2 gap-4 p-4 bg-elevated rounded-lg">
+            <div className="grid grid-cols-2 gap-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
               <div className="flex items-start gap-3">
-                <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
+                <Calendar className="w-4 h-4 mt-0.5" style={{ color: 'var(--color-muted-foreground)' }} />
                 <div>
-                  <p className="text-xs text-muted-foreground">Due Date</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Due Date</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                     {monthName} {data.dueDate}{getDueDateSuffix(data.dueDate)}, {year}
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <DollarSign className="w-4 h-4 text-muted-foreground mt-0.5" />
+                <DollarSign className="w-4 h-4 mt-0.5" style={{ color: 'var(--color-muted-foreground)' }} />
                 <div>
-                  <p className="text-xs text-muted-foreground">Expected Amount</p>
-                  <p className="text-sm font-medium text-foreground font-mono">
+                  <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Expected Amount</p>
+                  <p className="text-sm font-medium font-mono" style={{ color: 'var(--color-foreground)' }}>
                     ${data.amount.toFixed(2)}
                   </p>
                 </div>
               </div>
               {data.status === 'paid' && data.actualAmount && (
                 <div className="flex items-start gap-3">
-                  <Receipt className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <Receipt className="w-4 h-4 mt-0.5" style={{ color: 'var(--color-muted-foreground)' }} />
                   <div>
-                    <p className="text-xs text-muted-foreground">Actual Amount Paid</p>
-                    <p className="text-sm font-medium text-income font-mono">
+                    <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Actual Amount Paid</p>
+                    <p className="text-sm font-medium font-mono" style={{ color: 'var(--color-income)' }}>
                       ${data.actualAmount.toFixed(2)}
                     </p>
                   </div>
@@ -273,10 +273,10 @@ export function AnnualPlanningCellModal({
               )}
               {data.status === 'paid' && data.paidDate && (
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 mt-0.5" style={{ color: 'var(--color-muted-foreground)' }} />
                   <div>
-                    <p className="text-xs text-muted-foreground">Paid Date</p>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Paid Date</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                       {format(parseISO(data.paidDate), 'MMM d, yyyy')}
                     </p>
                   </div>
@@ -286,13 +286,13 @@ export function AnnualPlanningCellModal({
 
             {/* Mark as Paid Section - Only show if not already paid */}
             {data.status !== 'paid' && (
-              <div className="p-4 border border-border rounded-lg space-y-3">
-                <Label htmlFor="actualAmount" className="text-muted-foreground text-sm">
+              <div className="p-4 border rounded-lg space-y-3" style={{ borderColor: 'var(--color-border)' }}>
+                <Label htmlFor="actualAmount" className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                   Payment Amount
                 </Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-muted-foreground)' }}>
                       $
                     </span>
                     <Input
@@ -302,13 +302,15 @@ export function AnnualPlanningCellModal({
                       value={actualAmount}
                       onChange={(e) => setActualAmount(e.target.value)}
                       placeholder={data.amount.toString()}
-                      className="pl-7 bg-elevated border-border text-foreground font-mono"
+                      className="pl-7 font-mono"
+            style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                     />
                   </div>
                   <Button
                     onClick={handleMarkAsPaid}
                     disabled={isUpdating}
-                    className="bg-income hover:bg-income/90 text-white"
+                    className="hover:opacity-90"
+                    style={{ backgroundColor: 'var(--color-income)', color: 'white' }}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     {isUpdating ? 'Saving...' : 'Mark Paid'}
@@ -318,7 +320,7 @@ export function AnnualPlanningCellModal({
             )}
           </div>
         ) : (
-          <div className="p-6 text-center text-muted-foreground">
+          <div className="p-6 text-center" style={{ color: 'var(--color-muted-foreground)' }}>
             <p>No bill instance for this month.</p>
             <p className="text-sm mt-2">
               This bill is not scheduled for {monthName} {year}.
@@ -334,7 +336,8 @@ export function AnnualPlanningCellModal({
                   variant="outline"
                   onClick={handleMarkAsPending}
                   disabled={isUpdating}
-                  className="bg-elevated border-border text-foreground hover:bg-elevated"
+                  className="border hover:bg-[var(--color-elevated)]"
+            style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                 >
                   <Clock className="w-4 h-4 mr-2" />
                   Reset to Pending
@@ -344,7 +347,8 @@ export function AnnualPlanningCellModal({
                   variant="outline"
                   onClick={handleSkip}
                   disabled={isUpdating}
-                  className="bg-elevated border-border text-foreground hover:bg-elevated"
+                  className="border hover:bg-[var(--color-elevated)]"
+            style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                 >
                   <SkipForward className="w-4 h-4 mr-2" />
                   Skip This Month
@@ -356,7 +360,8 @@ export function AnnualPlanningCellModal({
           <Link href={`/dashboard/bills/${bill.id}`} className="w-full sm:w-auto">
             <Button 
               variant="outline" 
-              className="w-full bg-elevated border-border text-foreground hover:bg-elevated"
+              className="w-full border hover:bg-[var(--color-elevated)]"
+            style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
               View Bill Details

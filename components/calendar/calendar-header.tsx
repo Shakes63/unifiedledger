@@ -3,7 +3,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  addDays,
   subMonths,
   addMonths,
   addWeeks,
@@ -24,70 +23,63 @@ export function CalendarHeader({
   viewMode,
   onViewModeChange,
 }: CalendarHeaderProps) {
-  const today = new Date();
-  const _tomorrow = addDays(today, 1);
-
-  const _handleQuickDate = (_targetDate: Date) => {
-    onDateChange(_targetDate);
-  };
-
   return (
-    <div className="space-y-4">
-      {/* Month/Week Navigation Bar - At the very top */}
-      <div className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
+    <div className="flex items-center gap-2 sm:gap-3">
+      {/* Month/Week navigation */}
+      <div className="flex items-center gap-0.5">
         <Button
-          size="sm"
+          size="icon"
           variant="ghost"
           onClick={() =>
             onDateChange(viewMode === 'month' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1))
           }
-          className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+          className="h-7 w-7 rounded-full"
+          style={{ color: 'var(--color-muted-foreground)' }}
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-3.5 h-3.5" />
         </Button>
-
-        <h2 className="text-xl font-bold text-foreground">
-          {format(currentDate, 'MMMM yyyy')}
-        </h2>
-
+        <span className="text-sm font-semibold min-w-[110px] sm:min-w-[130px] text-center tabular-nums" style={{ color: 'var(--color-foreground)' }}>
+          {format(currentDate, 'MMM yyyy')}
+        </span>
         <Button
-          size="sm"
+          size="icon"
           variant="ghost"
           onClick={() =>
             onDateChange(viewMode === 'month' ? addMonths(currentDate, 1) : addWeeks(currentDate, 1))
           }
-          className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+          className="h-7 w-7 rounded-full"
+          style={{ color: 'var(--color-muted-foreground)' }}
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3.5 h-3.5" />
         </Button>
       </div>
 
-      {/* Month/Week View Buttons - Below the navigation bar */}
-      <div className="flex gap-2 justify-center">
-        <Button
-          size="sm"
-          variant={viewMode === 'month' ? 'default' : 'outline'}
+      {/* View toggle */}
+      <div
+        className="flex rounded-lg overflow-hidden"
+        style={{ border: '1px solid var(--color-border)' }}
+      >
+        <button
           onClick={() => onViewModeChange('month')}
-          className={
-            viewMode === 'month'
-              ? 'bg-primary text-primary-foreground hover:opacity-90'
-              : 'border-border text-muted-foreground hover:bg-elevated'
-          }
+          className="px-2.5 py-1 text-[11px] font-medium transition-colors"
+          style={{
+            backgroundColor: viewMode === 'month' ? 'var(--color-primary)' : 'transparent',
+            color: viewMode === 'month' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+          }}
         >
           Month
-        </Button>
-        <Button
-          size="sm"
-          variant={viewMode === 'week' ? 'default' : 'outline'}
+        </button>
+        <button
           onClick={() => onViewModeChange('week')}
-          className={
-            viewMode === 'week'
-              ? 'bg-primary text-primary-foreground hover:opacity-90'
-              : 'border-border text-muted-foreground hover:bg-elevated'
-          }
+          className="px-2.5 py-1 text-[11px] font-medium transition-colors"
+          style={{
+            backgroundColor: viewMode === 'week' ? 'var(--color-primary)' : 'transparent',
+            color: viewMode === 'week' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+            borderLeft: '1px solid var(--color-border)',
+          }}
         >
           Week
-        </Button>
+        </button>
       </div>
     </div>
   );

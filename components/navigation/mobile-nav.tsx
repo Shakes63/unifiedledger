@@ -12,7 +12,6 @@ import {
   Target,
   Workflow,
   Menu,
-  X,
   ChevronDown,
   FileText,
   Store,
@@ -31,6 +30,12 @@ import { HouseholdSelector } from '@/components/household/household-selector';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/auth/user-menu';
 import { TestModeBadge } from '@/components/dev/test-mode-badge';
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { useBusinessFeatures } from '@/contexts/business-features-context';
 
 interface NavItem {
@@ -106,22 +111,15 @@ const helpNavItem: NavItem = {
 export function MobileNav() {
   const pathname = usePathname();
   const { hasSalesTaxAccounts, hasTaxDeductionAccounts } = useBusinessFeatures();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['Money', 'Planning']);
 
-  // Filter out business-only features based on account settings
-  // Tax: requires at least one account with tax deduction tracking
-  // Sales Tax: requires at least one account with sales tax tracking
   const filteredNavSections = navSections
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => {
-        if (item.href === '/dashboard/tax') {
-          return hasTaxDeductionAccounts;
-        }
-        if (item.href === '/dashboard/sales-tax') {
-          return hasSalesTaxAccounts;
-        }
+        if (item.href === '/dashboard/tax') return hasTaxDeductionAccounts;
+        if (item.href === '/dashboard/sales-tax') return hasSalesTaxAccounts;
         return true;
       }),
     }))
@@ -135,46 +133,35 @@ export function MobileNav() {
     );
   };
 
-  const closeMobileMenu = () => setMobileMenuOpen(false);
-
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      // Exact match for dashboard
-      return pathname === '/dashboard';
-    }
-    // For other paths, match exact or as a prefix
+    if (href === '/dashboard') return pathname === '/dashboard';
     return pathname === href || pathname.startsWith(href + '/');
   };
 
-  const renderMobileItem = (item: NavItem) => {
+  const renderItem = (item: NavItem) => {
     const active = isActive(item.href);
     return (
-      <Link
-        key={item.href}
-        href={item.href}
-        onClick={closeMobileMenu}
-      >
+      <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
         <div
-          className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
-            active
-              ? 'bg-accent/20 text-accent'
-              : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-          }`}
+          className="relative flex items-center justify-between pl-4 pr-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-200"
+          style={{
+            backgroundColor: active ? 'color-mix(in oklch, var(--color-accent) 8%, transparent)' : undefined,
+            color: active ? 'var(--color-accent)' : 'var(--color-muted-foreground)',
+          }}
+          onMouseEnter={(e) => { if (!active) { e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-foreground) 4%, transparent)'; e.currentTarget.style.color = 'var(--color-foreground)'; } }}
+          onMouseLeave={(e) => { if (!active) { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--color-muted-foreground)'; } }}
         >
-          <div className="flex items-center gap-3">
-            <span
-              className={
-                active
-                  ? 'text-accent'
-                  : 'text-muted-foreground'
-              }
-            >
+          {active && (
+            <span className="absolute left-0.5 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full" style={{ backgroundColor: 'var(--color-accent)' }} />
+          )}
+          <span className="flex items-center gap-3">
+            <span className="transition-colors duration-200" style={{ color: active ? 'var(--color-accent)' : undefined }}>
               {item.icon}
             </span>
             <span>{item.label}</span>
-          </div>
+          </span>
           {item.badge && (
-            <span className="px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full">
+            <span className="px-1.5 py-0.5 text-[10px] rounded-full font-medium" style={{ backgroundColor: 'color-mix(in oklch, var(--color-accent) 15%, transparent)', color: 'var(--color-accent)' }}>
               {item.badge}
             </span>
           )}
@@ -185,87 +172,94 @@ export function MobileNav() {
 
   return (
     <div className="lg:hidden w-full max-w-full overflow-x-hidden">
-      {/* Mobile Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border w-full">
-        <div className="px-4 py-3 flex items-center justify-between w-full max-w-full">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="relative w-6 h-6">
-              <Image
-                src="/logo.png"
-                alt="UnifiedLedger"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            <span className="font-bold text-foreground text-sm">Unified</span>
-          </Link>
+      <Sheet open={open} onOpenChange={setOpen}>
+        {/* Header — always visible */}
+        <header className="sticky top-0 z-50 w-full" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}>
+          <div className="px-4 h-14 flex items-center justify-between w-full max-w-full">
+            <Link href="/dashboard" className="flex items-center gap-2.5">
+              <div className="relative w-7 h-7">
+                <Image src="/logo.png" alt="UnifiedLedger" fill className="object-contain" priority />
+              </div>
+              <span className="font-bold text-sm tracking-tight" style={{ color: 'var(--color-foreground)' }}>Unified</span>
+            </Link>
 
-          <div className="flex items-center gap-2">
-            <TestModeBadge />
-            <UserMenu />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-muted-foreground"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <TestModeBadge />
+              <UserMenu />
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9" style={{ color: 'var(--color-muted-foreground)' }}>
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 top-[57px] z-40 bg-background w-full max-w-full overflow-x-hidden">
-          <div className="flex flex-col h-full overflow-y-auto w-full max-w-full">
-            {/* Household Selector */}
-            <div className="px-4 py-4 border-b border-border">
-              <HouseholdSelector />
-            </div>
+        {/* Drawer */}
+        <SheetContent
+          side="left"
+          className="w-[280px] p-0 flex flex-col *:data-[slot=sheet-close]:top-3.5 *:data-[slot=sheet-close]:right-3"
+          style={{ backgroundColor: 'var(--color-background)', borderColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }}
+        >
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
 
-            {/* Navigation */}
-            <nav className="flex-1 px-4 py-4">
-              <div className="min-h-full flex flex-col">
-                <div className="space-y-6">
-                  <div className="space-y-1">{renderMobileItem(dashboardNavItem)}</div>
+          {/* Drawer logo */}
+          <div className="px-4 h-14 flex items-center" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+            <Link href="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3">
+              <div className="relative w-7 h-7 shrink-0">
+                <Image src="/logo.png" alt="UnifiedLedger" fill className="object-contain" />
+              </div>
+              <span className="font-bold text-sm tracking-tight" style={{ color: 'var(--color-foreground)' }}>Unified Ledger</span>
+            </Link>
+          </div>
 
-                  {filteredNavSections.map((section) => (
+          {/* Household selector */}
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+            <HouseholdSelector />
+          </div>
+
+          {/* Nav sections */}
+          <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 py-4">
+            <div className="min-h-full flex flex-col">
+              <div className="space-y-5">
+                <div className="space-y-0.5">{renderItem(dashboardNavItem)}</div>
+
+                {filteredNavSections.map((section) => {
+                  const isExpanded = expandedSections.includes(section.title);
+                  return (
                     <div key={section.title}>
                       <button
                         onClick={() => toggleSection(section.title)}
-                        className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors mb-2"
+                        className="group flex items-center gap-2.5 w-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors duration-200 mb-1.5"
+                        style={{ color: 'color-mix(in oklch, var(--color-muted-foreground) 50%, transparent)' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'color-mix(in oklch, var(--color-muted-foreground) 80%, transparent)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'color-mix(in oklch, var(--color-muted-foreground) 50%, transparent)'; }}
                       >
-                        <span>{section.title}</span>
+                        <span className="shrink-0">{section.title}</span>
+                        <span className="flex-1 h-px bg-border/30 group-hover:bg-border/50 transition-colors duration-200" />
                         <ChevronDown
-                          className={`w-3 h-3 transition-transform ${
-                            expandedSections.includes(section.title) ? 'rotate-180' : ''
+                          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                            isExpanded ? 'rotate-180' : ''
                           }`}
                         />
                       </button>
-
-                      {expandedSections.includes(section.title) && (
-                        <div className="space-y-1">
-                          {section.items.map((item) => renderMobileItem(item))}
+                      {isExpanded && (
+                        <div className="space-y-0.5">
+                          {section.items.map((item) => renderItem(item))}
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-
-                <div className="mt-auto pt-6 border-t border-border">
-                  <div className="space-y-1">{renderMobileItem(helpNavItem)}</div>
-                </div>
+                  );
+                })}
               </div>
-            </nav>
-          </div>
-        </div>
-      )}
+
+              <div className="mt-auto pt-4" style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 30%, transparent)' }}>
+                <div className="space-y-0.5">{renderItem(helpNavItem)}</div>
+              </div>
+            </div>
+          </nav>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

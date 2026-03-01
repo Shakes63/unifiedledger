@@ -61,58 +61,58 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Total Annual Amount */}
-      <Card className="bg-card border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
             <DollarSign className="w-4 h-4" />
             Total Annual
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-primary font-mono">
+          <div className="text-2xl font-bold font-mono" style={{ color: 'var(--color-primary)' }}>
             ${summary.totalAnnualAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             ~${averageMonthly.toFixed(0)}/month average
           </p>
         </CardContent>
       </Card>
 
       {/* Progress */}
-      <Card className="bg-card border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
             <CheckCircle2 className="w-4 h-4" />
             Progress
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-income">
+            <span className="text-2xl font-bold" style={{ color: 'var(--color-income)' }}>
               {summary.paidCount}
             </span>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-lg text-muted-foreground">
+            <span style={{ color: 'var(--color-muted-foreground)' }}>/</span>
+            <span className="text-lg" style={{ color: 'var(--color-muted-foreground)' }}>
               {totalInstances}
             </span>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
               ({progressPercentage}%)
             </span>
           </div>
           {/* Progress Bar */}
-          <div className="mt-2 h-2 bg-border rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-income rounded-full transition-all duration-300"
-              style={{ width: `${progressPercentage}%` }}
+          <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${progressPercentage}%`, backgroundColor: 'var(--color-income)' }}
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Status Breakdown */}
-      <Card className="bg-card border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
             <Clock className="w-4 h-4" />
             Status Breakdown
           </CardTitle>
@@ -121,22 +121,22 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
           <div className="flex items-center gap-4">
             {/* Paid */}
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-income" />
-              <span className="text-sm text-foreground font-medium">{summary.paidCount}</span>
-              <span className="text-xs text-muted-foreground">Paid</span>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--color-income)' }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{summary.paidCount}</span>
+              <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Paid</span>
             </div>
             {/* Pending */}
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-warning" />
-              <span className="text-sm text-foreground font-medium">{summary.pendingCount}</span>
-              <span className="text-xs text-muted-foreground">Due</span>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--color-warning)' }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{summary.pendingCount}</span>
+              <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Due</span>
             </div>
             {/* Overdue */}
             {summary.overdueCount > 0 && (
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-error" />
-                <span className="text-sm text-foreground font-medium">{summary.overdueCount}</span>
-                <span className="text-xs text-muted-foreground">Late</span>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--color-destructive)' }} />
+                <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{summary.overdueCount}</span>
+                <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Late</span>
               </div>
             )}
           </div>
@@ -144,11 +144,17 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
       </Card>
 
       {/* Next Due */}
-      <Card className={`bg-card border-border ${summary.overdueCount > 0 ? 'border-error/30' : ''}`}>
+      <Card
+        className="border"
+        style={{
+          backgroundColor: 'var(--color-background)',
+          borderColor: summary.overdueCount > 0 ? 'color-mix(in oklch, var(--color-destructive) 30%, transparent)' : 'var(--color-border)',
+        }}
+      >
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
             {summary.overdueCount > 0 ? (
-              <AlertCircle className="w-4 h-4 text-error" />
+              <AlertCircle className="w-4 h-4" style={{ color: 'var(--color-destructive)' }} />
             ) : (
               <Calendar className="w-4 h-4" />
             )}
@@ -158,34 +164,34 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
         <CardContent>
           {summary.overdueCount > 0 ? (
             <div>
-              <div className="text-2xl font-bold text-error">
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-destructive)' }}>
                 {summary.overdueCount} Overdue
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                 Requires immediate attention
               </p>
             </div>
           ) : summary.nextDue ? (
             <div>
-              <div className="text-lg font-bold text-foreground truncate" title={summary.nextDue.billName}>
+              <div className="text-lg font-bold truncate" style={{ color: 'var(--color-foreground)' }} title={summary.nextDue.billName}>
                 {summary.nextDue.billName}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-warning">
+                <span className="text-sm" style={{ color: 'var(--color-warning)' }}>
                   {formatNextDue()}
                 </span>
-                <span className="text-sm text-muted-foreground">•</span>
-                <span className="text-sm font-mono text-muted-foreground">
+                <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>•</span>
+                <span className="text-sm font-mono" style={{ color: 'var(--color-muted-foreground)' }}>
                   ${summary.nextDue.amount.toFixed(2)}
                 </span>
               </div>
             </div>
           ) : (
             <div>
-              <div className="text-lg font-medium text-muted-foreground">
+              <div className="text-lg font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
                 All paid for {year}!
               </div>
-              <p className="text-xs text-income mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--color-income)' }}>
                 Great job staying on top of bills
               </p>
             </div>

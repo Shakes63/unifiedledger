@@ -44,7 +44,7 @@ export function HouseholdSelector() {
   };
 
   if (loading) {
-    return <div className="text-sm text-muted-foreground">Loading households...</div>;
+    return <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading households...</div>;
   }
 
   const selectedHousehold = households.find((h) => h.id === selectedHouseholdId);
@@ -69,12 +69,13 @@ export function HouseholdSelector() {
   return (
     <div className="flex flex-col gap-2 min-w-0">
       <div className="flex items-center gap-2 min-w-0">
-        <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+        <Users className="w-4 h-4 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="flex-1 min-w-0 justify-between bg-elevated border-border text-foreground hover:bg-elevated hover:text-foreground"
+              className="flex-1 min-w-0 justify-between border"
+              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               disabled={isLoading}
             >
               {isLoading ? (
@@ -94,25 +95,26 @@ export function HouseholdSelector() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"
-            className="bg-card border-border w-56"
+            className="w-56 border"
+            style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
           >
             {sortedHouseholds.map((household) => (
               <DropdownMenuItem
                 key={household.id}
                 onClick={() => handleHouseholdSwitch(household.id)}
                 disabled={isLoading}
-                className={`text-foreground cursor-pointer ${
-                  household.id === selectedHouseholdId ? 'bg-elevated' : ''
-                }`}
+                className="cursor-pointer"
+                style={{ color: 'var(--color-foreground)', ...(household.id === selectedHouseholdId ? { backgroundColor: 'var(--color-elevated)' } : {}) }}
               >
                 {household.name}
               </DropdownMenuItem>
             ))}
-            <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuSeparator style={{ backgroundColor: 'var(--color-border)' }} />
             <DropdownMenuItem
               onClick={() => router.push(manageHouseholdsUrl)}
               disabled={isLoading}
-              className="text-foreground cursor-pointer"
+              className="cursor-pointer"
+              style={{ color: 'var(--color-foreground)' }}
             >
               <Settings className="w-4 h-4 mr-2" />
               Manage Households
@@ -123,12 +125,13 @@ export function HouseholdSelector() {
 
       {entities.length > 1 && (
         <div className="flex items-center gap-2 min-w-0">
-          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Building2 className="w-4 h-4 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex-1 min-w-0 justify-between bg-elevated border-border text-foreground hover:bg-elevated hover:text-foreground"
+                className="flex-1 min-w-0 justify-between border"
+                style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                 disabled={isEntityLoading}
               >
                 {isEntityLoading ? (
@@ -144,7 +147,7 @@ export function HouseholdSelector() {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-card border-border w-56">
+            <DropdownMenuContent align="start" className="w-56 border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
               {entities.map((entity) => (
                 <DropdownMenuItem
                   key={entity.id}
@@ -160,9 +163,8 @@ export function HouseholdSelector() {
                     }
                   }}
                   disabled={isEntityLoading}
-                  className={`text-foreground cursor-pointer ${
-                    entity.id === selectedEntityId ? 'bg-elevated' : ''
-                  }`}
+                  className="cursor-pointer"
+                  style={{ color: 'var(--color-foreground)', ...(entity.id === selectedEntityId ? { backgroundColor: 'var(--color-elevated)' } : {}) }}
                 >
                   {entity.name}
                 </DropdownMenuItem>

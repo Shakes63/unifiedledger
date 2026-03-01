@@ -56,8 +56,8 @@ function CustomTooltip({
   const total = totalEntry?.value || 0;
 
   return (
-    <div className="bg-elevated border border-border rounded-lg p-3 shadow-lg min-w-[200px]">
-      <p className="text-sm text-muted-foreground mb-2">
+    <div className="rounded-lg p-3 shadow-lg min-w-[200px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+      <p className="text-sm mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
         {label ? parseISO(label).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
       </p>
       
@@ -71,18 +71,18 @@ function CustomTooltip({
                   className="w-2 h-2 rounded-full" 
                   style={{ backgroundColor: entry.color }} 
                 />
-                <span className="text-muted-foreground">{entry.dataKey}</span>
+                <span style={{ color: 'var(--color-muted-foreground)' }}>{entry.dataKey}</span>
               </div>
-              <span className="font-mono font-medium text-foreground">
+              <span className="font-mono font-medium" style={{ color: 'var(--color-foreground)' }}>
                 ${entry.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           ))}
       </div>
       
-      <div className="pt-2 border-t border-border flex justify-between items-center">
-        <span className="text-sm font-medium text-foreground">Total</span>
-        <span className="font-mono font-bold text-error">
+      <div className="pt-2 border-t flex justify-between items-center" style={{ borderColor: 'var(--color-border)' }}>
+        <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Total</span>
+        <span className="font-mono font-bold" style={{ color: 'var(--color-destructive)' }}>
           ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       </div>
@@ -167,11 +167,12 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
             <button
               key={value}
               onClick={() => setDays(value)}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                days === value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-              }`}
+              className="px-3 py-1 rounded text-sm transition-colors"
+              style={{
+                backgroundColor: days === value ? 'var(--color-primary)' : 'var(--color-elevated)',
+                color: days === value ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                border: days === value ? 'none' : '1px solid var(--color-border)',
+              }}
             >
               {label}
             </button>
@@ -183,21 +184,23 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
           <div className="flex gap-2">
             <button
               onClick={() => setViewMode('stacked')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                viewMode === 'stacked'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-              }`}
+              className="px-3 py-1 rounded text-sm transition-colors"
+              style={{
+                backgroundColor: viewMode === 'stacked' ? 'var(--color-primary)' : 'var(--color-elevated)',
+                color: viewMode === 'stacked' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                border: viewMode === 'stacked' ? 'none' : '1px solid var(--color-border)',
+              }}
             >
               Stacked
             </button>
             <button
               onClick={() => setViewMode('individual')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                viewMode === 'individual'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-              }`}
+              className="px-3 py-1 rounded text-sm transition-colors"
+              style={{
+                backgroundColor: viewMode === 'individual' ? 'var(--color-primary)' : 'var(--color-elevated)',
+                color: viewMode === 'individual' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                border: viewMode === 'individual' ? 'none' : '1px solid var(--color-border)',
+              }}
             >
               Individual
             </button>
@@ -206,7 +209,7 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
       </div>
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center h-64 text-muted-foreground">
+        <div className="flex items-center justify-center h-64" style={{ color: 'var(--color-muted-foreground)' }}>
           <p>No balance history available. Check back after recording some credit activity.</p>
         </div>
       ) : (
@@ -261,7 +264,7 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
 
       {/* Account Legend with Current Balances */}
       {accounts.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-4 pt-4 border-t border-border">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
           {accountColors.map((acc) => {
             const latestData = data[data.length - 1];
             const balance = latestData ? (latestData[acc.name] as number || 0) : 0;
@@ -272,8 +275,8 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
                   className="w-3 h-3 rounded-full shrink-0" 
                   style={{ backgroundColor: acc.color }} 
                 />
-                <span className="text-muted-foreground truncate">{acc.name}</span>
-                <span className="font-mono text-foreground ml-auto">
+                <span className="truncate" style={{ color: 'var(--color-muted-foreground)' }}>{acc.name}</span>
+                <span className="font-mono ml-auto" style={{ color: 'var(--color-foreground)' }}>
                   ${balance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </span>
               </div>

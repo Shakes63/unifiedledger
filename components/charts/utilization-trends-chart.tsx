@@ -34,24 +34,24 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
   const data = payload[0].payload;
   const utilizationColor = data.utilization >= 80 
-    ? 'var(--color-error)' 
+    ? 'var(--color-destructive)' 
     : data.utilization >= 30 
     ? 'var(--color-warning)' 
     : 'var(--color-success)';
 
   return (
-    <div className="bg-elevated border border-border rounded-lg p-3 shadow-lg">
-      <p className="text-sm text-muted-foreground mb-2">
+    <div className="rounded-lg p-3 shadow-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+      <p className="text-sm mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
         {label ? parseISO(label).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
       </p>
       <div className="space-y-1">
         <p className="text-lg font-bold" style={{ color: utilizationColor }}>
           {data.utilization.toFixed(1)}% utilization
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
           Balance: ${data.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
           Limit: ${data.creditLimit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
       </div>
@@ -101,7 +101,7 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
   // Determine chart gradient based on current utilization
   const currentUtilization = data.length > 0 ? data[data.length - 1].utilization : 0;
   const gradientColor = currentUtilization >= 80 
-    ? 'var(--color-error)' 
+    ? 'var(--color-destructive)' 
     : currentUtilization >= 30 
     ? 'var(--color-warning)' 
     : 'var(--color-success)';
@@ -124,11 +124,12 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
           <button
             key={value}
             onClick={() => setDays(value)}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              days === value
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-            }`}
+            className="px-3 py-1 rounded text-sm transition-colors"
+            style={{
+              backgroundColor: days === value ? 'var(--color-primary)' : 'var(--color-elevated)',
+              color: days === value ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+              border: days === value ? 'none' : '1px solid var(--color-border)',
+            }}
           >
             {label}
           </button>
@@ -136,7 +137,7 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
       </div>
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center h-64 text-muted-foreground">
+        <div className="flex items-center justify-center h-64" style={{ color: 'var(--color-muted-foreground)' }}>
           <p>No utilization history available. Check back after recording some credit activity.</p>
         </div>
       ) : (
@@ -170,7 +171,7 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
             {/* Reference zones for utilization levels */}
             <ReferenceArea y1={0} y2={30} fill="var(--color-success)" fillOpacity={0.05} />
             <ReferenceArea y1={30} y2={80} fill="var(--color-warning)" fillOpacity={0.05} />
-            <ReferenceArea y1={80} y2={100} fill="var(--color-error)" fillOpacity={0.05} />
+            <ReferenceArea y1={80} y2={100} fill="var(--color-destructive)" fillOpacity={0.05} />
             
             {/* Reference lines for key thresholds */}
             <ReferenceLine 
@@ -183,7 +184,7 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
               y={80} 
               stroke="var(--color-error)" 
               strokeDasharray="3 3"
-              label={{ value: 'High (80%)', position: 'right', fill: 'var(--color-error)', fontSize: 10 }}
+              label={{ value: 'High (80%)', position: 'right', fill: 'var(--color-destructive)', fontSize: 10 }}
             />
             
             <Area
@@ -202,15 +203,15 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
       <div className="flex justify-center gap-4 mt-4 text-xs">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded" style={{ backgroundColor: 'var(--color-success)' }} />
-          <span className="text-muted-foreground">0-30% Excellent</span>
+          <span style={{ color: 'var(--color-muted-foreground)' }}>0-30% Excellent</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded" style={{ backgroundColor: 'var(--color-warning)' }} />
-          <span className="text-muted-foreground">30-80% Fair</span>
+          <span style={{ color: 'var(--color-muted-foreground)' }}>30-80% Fair</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded" style={{ backgroundColor: 'var(--color-error)' }} />
-          <span className="text-muted-foreground">80%+ High</span>
+          <div className="w-3 h-3 rounded" style={{ backgroundColor: 'var(--color-destructive)' }} />
+          <span style={{ color: 'var(--color-muted-foreground)' }}>80%+ High</span>
         </div>
       </div>
     </ChartContainer>

@@ -2,9 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useHousehold } from '@/contexts/household-context';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -23,13 +22,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   User,
   Settings,
-  DollarSign,
-  Users,
   Lock,
   Database,
   Code,
@@ -40,41 +36,77 @@ import {
   Loader2,
   Receipt,
   Bell,
+  ArrowLeft,
+  ChevronRight,
+  Users,
+  DollarSign,
 } from 'lucide-react';
 
-// Import existing tab components
-import { ProfileTab } from '@/components/settings/profile-tab';
-import { PreferencesTab } from '@/components/settings/preferences-tab';
-import { PrivacyTab } from '@/components/settings/privacy-tab';
-import { DataTab } from '@/components/settings/data-tab';
-import { AdvancedTab } from '@/components/settings/advanced-tab';
-import { AdminTab } from '@/components/settings/admin-tab';
-import { HouseholdMembersTab } from '@/components/settings/household-members-tab';
-import { HouseholdPreferencesTab } from '@/components/settings/household-preferences-tab';
-import { HouseholdFinancialTab } from '@/components/settings/household-financial-tab';
-import { HouseholdPersonalTab } from '@/components/settings/household-personal-tab';
-import { TaxMappingTab } from '@/components/settings/tax-mapping-tab';
-import { NotificationsTab } from '@/components/settings/notifications-tab';
+import { ProfileTab }             from '@/components/settings/profile-tab';
+import { PreferencesTab }         from '@/components/settings/preferences-tab';
+import { PrivacyTab }             from '@/components/settings/privacy-tab';
+import { DataTab }                from '@/components/settings/data-tab';
+import { AdvancedTab }            from '@/components/settings/advanced-tab';
+import { AdminTab }               from '@/components/settings/admin-tab';
+import { HouseholdMembersTab }    from '@/components/settings/household-members-tab';
+import { HouseholdPreferencesTab} from '@/components/settings/household-preferences-tab';
+import { HouseholdFinancialTab }  from '@/components/settings/household-financial-tab';
+import { HouseholdPersonalTab }   from '@/components/settings/household-personal-tab';
+import { TaxMappingTab }          from '@/components/settings/tax-mapping-tab';
+import { NotificationsTab }       from '@/components/settings/notifications-tab';
 
-// Account Settings tabs (global user settings)
 const ACCOUNT_TABS = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'preferences', label: 'Preferences', icon: Settings },
-  { id: 'privacy', label: 'Privacy & Security', icon: Lock },
-  { id: 'data', label: 'Data Management', icon: Database },
-  { id: 'advanced', label: 'Advanced', icon: Code },
+  { id: 'profile',      label: 'Profile',            icon: User },
+  { id: 'preferences',  label: 'Preferences',         icon: Settings },
+  { id: 'privacy',      label: 'Privacy & Security',  icon: Lock },
+  { id: 'data',         label: 'Data Management',     icon: Database },
+  { id: 'advanced',     label: 'Advanced',            icon: Code },
 ];
 
-// Household Settings tabs (for each household)
 const HOUSEHOLD_TABS = [
-  { id: 'members', label: 'Members & Access', icon: Users },
-  { id: 'household-preferences', label: 'Household Preferences', icon: Settings },
-  { id: 'household-financial', label: 'Financial Settings', icon: DollarSign },
-  { id: 'tax-mappings', label: 'Tax Mappings', icon: Receipt },
-  { id: 'personal', label: 'Personal Preferences', icon: User },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'members',                label: 'Members & Access',       icon: Users },
+  { id: 'household-preferences',  label: 'Household Preferences',  icon: Settings },
+  { id: 'household-financial',    label: 'Financial Settings',     icon: DollarSign },
+  { id: 'tax-mappings',           label: 'Tax Mappings',           icon: Receipt },
+  { id: 'personal',               label: 'Personal Preferences',   icon: User },
+  { id: 'notifications',          label: 'Notifications',          icon: Bell },
 ];
 
+// ── Sidebar nav item ──────────────────────────────────────────────────────────
+function NavItem({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors text-[12px]"
+      style={{
+        backgroundColor: active ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'transparent',
+        color: active ? 'var(--color-primary)' : 'var(--color-muted-foreground)',
+        fontWeight: active ? 600 : 400,
+      }}
+      onMouseEnter={e => {
+        if (!active) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 80%, transparent)';
+      }}
+      onMouseLeave={e => {
+        if (!active) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+      }}
+    >
+      <Icon className="w-3.5 h-3.5 shrink-0" style={{ opacity: active ? 1 : 0.6 }} />
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+// ── Main content ──────────────────────────────────────────────────────────────
 function SettingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -85,77 +117,34 @@ function SettingsPageContent() {
   const [householdName, setHouseholdName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Check owner status on mount
   useEffect(() => {
-    async function checkOwnerStatus() {
-      try {
-        const response = await fetch('/api/admin/check-owner', {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setIsOwner(data.isOwner === true);
-        } else {
-          setIsOwner(false);
-        }
-      } catch (error) {
-        console.error('Error checking owner status:', error);
-        setIsOwner(false);
-      }
-    }
-    checkOwnerStatus();
+    fetch('/api/admin/check-owner', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { isOwner: false })
+      .then(d => setIsOwner(d.isOwner === true))
+      .catch(() => setIsOwner(false));
   }, []);
 
-  // Fetch member counts for all households
   useEffect(() => {
-    async function fetchMemberCounts() {
-      const counts: Record<string, number> = {};
-      await Promise.all(
-        households.map(async (household) => {
-          try {
-            const response = await fetch(`/api/households/${household.id}/members`, { credentials: 'include' });
-            if (response.ok) {
-              const membersData = await response.json();
-              counts[household.id] = membersData.length;
-            }
-          } catch (_error) {
-            // Silently fail for member counts
-          }
-        })
-      );
-      setMemberCounts(counts);
-    }
-
-    if (households.length > 0) {
-      fetchMemberCounts();
-    }
+    if (households.length === 0) return;
+    const counts: Record<string, number> = {};
+    Promise.all(
+      households.map(async h => {
+        try {
+          const r = await fetch(`/api/households/${h.id}/members`, { credentials: 'include' });
+          if (r.ok) counts[h.id] = (await r.json()).length;
+        } catch { /* silent */ }
+      })
+    ).then(() => setMemberCounts(counts));
   }, [households]);
 
-  // Build ACCOUNT_TABS with conditional Admin tab
   const accountTabs = [
     ...ACCOUNT_TABS,
     ...(isOwner === true ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
   ];
 
-  // Get top-level section (account or households)
-  const section = searchParams.get('section') || 'account';
+  const section    = searchParams.get('section') || 'account';
   const householdId = searchParams.get('household') || selectedHouseholdId || (households.length > 0 ? households[0].id : null);
-  
-  const getDefaultTab = (section: string) => {
-    if (section === 'account') return 'profile';
-    return 'members';
-  };
-  
-  const tab = searchParams.get('tab') || getDefaultTab(section);
-
-  const handleSectionChange = (newSection: string) => {
-    const defaultTab = getDefaultTab(newSection);
-    if (newSection === 'households' && householdId) {
-      router.push(`/dashboard/settings?section=${newSection}&household=${householdId}&tab=${defaultTab}`);
-    } else {
-      router.push(`/dashboard/settings?section=${newSection}&tab=${defaultTab}`);
-    }
-  };
+  const tab        = searchParams.get('tab') || (section === 'account' ? 'profile' : 'members');
 
   const handleTabChange = (newTab: string) => {
     if (section === 'households' && householdId) {
@@ -165,189 +154,198 @@ function SettingsPageContent() {
     }
   };
 
-  const handleHouseholdChange = (newHouseholdId: string) => {
-    router.push(`/dashboard/settings?section=households&household=${newHouseholdId}&tab=members`);
+  const handleSectionChange = (newSection: string) => {
+    const defaultTab = newSection === 'account' ? 'profile' : 'members';
+    if (newSection === 'households' && householdId) {
+      router.push(`/dashboard/settings?section=${newSection}&household=${householdId}&tab=${defaultTab}`);
+    } else {
+      router.push(`/dashboard/settings?section=${newSection}&tab=${defaultTab}`);
+    }
   };
 
-  // Keyboard navigation handler for custom tabs
+  const handleHouseholdChange = (newHouseholdId: string) =>
+    router.push(`/dashboard/settings?section=households&household=${newHouseholdId}&tab=members`);
+
   const handleTabKeyDown = (
     e: React.KeyboardEvent,
     currentTab: string,
-    allTabs: Array<{ id: string; label: string; icon: React.ComponentType<{ className?: string }> }>
+    allTabs: typeof accountTabs
   ) => {
-    const tabIds = allTabs.map((t) => t.id);
-    const currentIndex = tabIds.indexOf(currentTab);
-    let nextIndex = currentIndex;
-
-    switch (e.key) {
-      case 'ArrowRight':
-        nextIndex = (currentIndex + 1) % tabIds.length;
-        break;
-      case 'ArrowLeft':
-        nextIndex = (currentIndex - 1 + tabIds.length) % tabIds.length;
-        break;
-      case 'Home':
-        nextIndex = 0;
-        break;
-      case 'End':
-        nextIndex = tabIds.length - 1;
-        break;
-      default:
-        return;
-    }
-
+    const ids = allTabs.map(t => t.id);
+    const ci = ids.indexOf(currentTab);
+    let ni = ci;
+    if (e.key === 'ArrowRight') ni = (ci + 1) % ids.length;
+    else if (e.key === 'ArrowLeft') ni = (ci - 1 + ids.length) % ids.length;
+    else if (e.key === 'Home') ni = 0;
+    else if (e.key === 'End') ni = ids.length - 1;
+    else return;
     e.preventDefault();
-    handleTabChange(tabIds[nextIndex]);
+    handleTabChange(ids[ni]);
   };
 
   async function createHousehold() {
-    const trimmedName = householdName.trim();
-    if (!trimmedName) {
-      return;
-    }
-
+    const name = householdName.trim();
+    if (!name) return;
     try {
       setSubmitting(true);
-      const response = await fetch('/api/households', {
+      const res = await fetch('/api/households', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name: trimmedName }),
+        body: JSON.stringify({ name }),
       });
-
-      if (response.ok) {
-        const newHousehold = await response.json();
-        toast.success('Household created successfully');
+      if (res.ok) {
+        const hh = await res.json();
+        toast.success('Household created');
         await refreshHouseholds();
         setCreateDialogOpen(false);
         setHouseholdName('');
-        if (newHousehold?.id) {
-          router.push(`/dashboard/settings?section=households&household=${newHousehold.id}&tab=members`);
-        } else {
-          toast.error('Created household response missing id');
-        }
+        if (hh?.id) router.push(`/dashboard/settings?section=households&household=${hh.id}&tab=members`);
       } else {
-        const data = await response.json().catch(() => ({ error: 'Failed to create household' }));
-        toast.error(data?.error || 'Failed to create household');
+        const d = await res.json().catch(() => ({ error: 'Failed' }));
+        toast.error(d?.error || 'Failed to create household');
       }
-    } catch (error) {
-      console.error('Failed to create household:', error);
-      toast.error('Failed to create household');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { toast.error('Failed to create household'); }
+    finally { setSubmitting(false); }
   }
 
-  async function toggleFavorite(householdId: string, currentStatus: boolean, event: React.MouseEvent) {
-    event.stopPropagation();
-
+  async function toggleFavorite(hId: string, current: boolean, e: React.MouseEvent) {
+    e.stopPropagation();
     try {
-      const response = await fetch(`/api/households/${householdId}/favorite`, {
+      await fetch(`/api/households/${hId}/favorite`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isFavorite: !currentStatus }),
+        body: JSON.stringify({ isFavorite: !current }),
       });
-
-      if (response.ok) {
-        await refreshHouseholds();
-      }
-    } catch (error) {
-      console.error('Failed to update favorite status:', error);
-    }
+      await refreshHouseholds();
+    } catch { /* silent */ }
   }
 
-  // Sort households by join date (oldest first)
-  const sortedHouseholds = [...households].sort((a, b) =>
-    new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
+  const sortedHouseholds = [...households].sort(
+    (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
   );
 
+  const currentAccountTab = accountTabs.find(t => t.id === tab);
+
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your account settings and household configurations
-          </p>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+
+      {/* ── Sticky header ──────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
+        >
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shrink-0">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+
+            <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+              Settings
+            </h1>
+
+            {/* Breadcrumb context */}
+            {section === 'account' && currentAccountTab && (
+              <>
+                <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>·</span>
+                <span className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {currentAccountTab.label}
+                </span>
+              </>
+            )}
+            {section === 'households' && (
+              <>
+                <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>·</span>
+                <span className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>Households</span>
+              </>
+            )}
+          </div>
         </div>
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-primary) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
+        />
+      </header>
 
-        {/* Top-Level Tabs: Account vs Households */}
-        <Tabs value={section} onValueChange={handleSectionChange} className="w-full">
-          {/* Top-Level Tab List */}
-          <TabsList className="grid w-full grid-cols-2 bg-elevated border border-border h-12">
-            <TabsTrigger
-              value="account"
-              className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-primary"
-            >
-              <User className="w-4 h-4" />
-              <span className="hidden sm:inline">Account</span>
-              <span className="sm:hidden">Account</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="households"
-              className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-primary"
-            >
-              <Home className="w-4 h-4" />
-              <span className="hidden sm:inline">Households</span>
-              <span className="sm:hidden">Households</span>
-            </TabsTrigger>
-          </TabsList>
+      {/* ── Account section ────────────────────────────────────────────────── */}
+      {section === 'account' && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
+          <div className="flex gap-6 items-start">
 
-          {/* Account Section */}
-          <TabsContent value="account" className="mt-6 space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Personal account settings that apply globally across all households
-              </p>
-            </div>
-
-            <div className="w-full">
-              {/* Desktop: Horizontal Custom Tabs */}
-              <div
-                role="tablist"
-                aria-label="Account settings tabs"
-                className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2 rounded-md"
-              >
-                {accountTabs.map((t) => (
-                  <button
-                    key={t.id}
-                    role="tab"
-                    aria-selected={tab === t.id}
-                    aria-controls={`account-tab-content-${t.id}`}
-                    id={`account-tab-${t.id}`}
-                    tabIndex={tab === t.id ? 0 : -1}
-                    onClick={() => handleTabChange(t.id)}
-                    onKeyDown={(e) => handleTabKeyDown(e, tab, accountTabs)}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      tab === t.id
-                        ? "bg-card text-primary shadow-sm"
-                        : "text-foreground hover:bg-card/50"
-                    )}
+            {/* ── Left sidebar ────────────────────────────────────────────── */}
+            <aside className="hidden lg:block w-48 shrink-0 sticky top-[57px] max-h-[calc(100vh-80px)] overflow-y-auto">
+              <nav className="space-y-5 pr-1">
+                {/* Account nav group */}
+                <div>
+                  <p
+                    className="text-[9px] font-bold uppercase tracking-widest mb-2 px-2.5"
+                    style={{ color: 'var(--color-primary)', opacity: 0.8 }}
                   >
-                    <t.icon className="w-4 h-4" />
-                    <span className="hidden xl:inline">{t.label}</span>
-                  </button>
-                ))}
-              </div>
+                    Account
+                  </p>
+                  <div className="space-y-0.5">
+                    {accountTabs.map(t => (
+                      <NavItem
+                        key={t.id}
+                        icon={t.icon}
+                        label={t.label}
+                        active={tab === t.id}
+                        onClick={() => handleTabChange(t.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-              {/* Mobile: Dropdown */}
+                {/* Households link */}
+                <div>
+                  <div className="h-px mb-3" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+                  <p
+                    className="text-[9px] font-bold uppercase tracking-widest mb-2 px-2.5"
+                    style={{ color: 'var(--color-muted-foreground)', opacity: 0.7 }}
+                  >
+                    Households
+                  </p>
+                  <button
+                    onClick={() => handleSectionChange('households')}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors"
+                    style={{ color: 'var(--color-muted-foreground)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 80%, transparent)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
+                  >
+                    <Home className="w-3.5 h-3.5 shrink-0" style={{ opacity: 0.6 }} />
+                    <span className="text-[12px] flex-1">Manage Households</span>
+                    <ChevronRight className="w-3 h-3 opacity-40 shrink-0" />
+                  </button>
+                </div>
+              </nav>
+            </aside>
+
+            {/* ── Content area ─────────────────────────────────────────────── */}
+            <main className="flex-1 min-w-0">
+              {/* Mobile: dropdown tab selector */}
               <div className="lg:hidden mb-4">
-                <Select value={tab} onValueChange={handleTabChange}>
+                <Select
+                  value={tab}
+                  onValueChange={handleTabChange}
+                >
                   <SelectTrigger
                     id="account-tab-select"
                     name="account-tab"
-                    aria-label="Select account settings tab"
-                    className="w-full bg-card border-border"
+                    className="w-full text-[13px]"
+                    style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                   >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {accountTabs.map((t) => (
+                    {accountTabs.map(t => (
                       <SelectItem key={t.id} value={t.id}>
                         <div className="flex items-center gap-2">
-                          <t.icon className="w-4 h-4" />
+                          <t.icon className="w-3.5 h-3.5" />
                           <span>{t.label}</span>
                         </div>
                       </SelectItem>
@@ -356,390 +354,282 @@ function SettingsPageContent() {
                 </Select>
               </div>
 
-              {/* Account Settings Tab Content */}
-              <Card className="border-border bg-card p-4 sm:p-6">
-                {tab === 'profile' && (
-                  <div
-                    role="tabpanel"
-                    id="account-tab-content-profile"
-                    aria-labelledby="account-tab-profile"
-                    className="mt-0"
-                  >
-                    <ProfileTab />
-                  </div>
-                )}
-                {tab === 'preferences' && (
-                  <div
-                    role="tabpanel"
-                    id="account-tab-content-preferences"
-                    aria-labelledby="account-tab-preferences"
-                    className="mt-0"
-                  >
-                    <PreferencesTab />
-                  </div>
-                )}
-                {tab === 'privacy' && (
-                  <div
-                    role="tabpanel"
-                    id="account-tab-content-privacy"
-                    aria-labelledby="account-tab-privacy"
-                    className="mt-0"
-                  >
-                    <PrivacyTab />
-                  </div>
-                )}
-                {tab === 'data' && (
-                  <div
-                    role="tabpanel"
-                    id="account-tab-content-data"
-                    aria-labelledby="account-tab-data"
-                    className="mt-0"
-                  >
-                    <DataTab />
-                  </div>
-                )}
-                {tab === 'advanced' && (
-                  <div
-                    role="tabpanel"
-                    id="account-tab-content-advanced"
-                    aria-labelledby="account-tab-advanced"
-                    className="mt-0"
-                  >
-                    <AdvancedTab />
-                  </div>
-                )}
-                {isOwner === true && tab === 'admin' && (
-                  <div
-                    role="tabpanel"
-                    id="account-tab-content-admin"
-                    aria-labelledby="account-tab-admin"
-                    className="mt-0"
-                  >
-                    <AdminTab />
-                  </div>
-                )}
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Households Section */}
-          <TabsContent value="households" className="mt-6 space-y-4">
-            {householdsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              {/* Tab content */}
+              <div
+                role="tabpanel"
+                aria-label={currentAccountTab?.label}
+                onKeyDown={e => handleTabKeyDown(e, tab, accountTabs)}
+              >
+                {tab === 'profile'      && <ProfileTab />}
+                {tab === 'preferences'  && <PreferencesTab />}
+                {tab === 'privacy'      && <PrivacyTab />}
+                {tab === 'data'         && <DataTab />}
+                {tab === 'advanced'     && <AdvancedTab />}
+                {isOwner === true && tab === 'admin' && <AdminTab />}
               </div>
-            ) : households.length === 0 ? (
-              <Card className="border-border bg-card p-8">
-                <div className="text-center">
-                  <Home className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    No Households
-                  </h3>
-                  <p className="text-muted-foreground mb-6">
-                    Create a household to collaborate on finances with family or roommates
-                  </p>
-                  <Button
-                    onClick={() => setCreateDialogOpen(true)}
-                    className="bg-primary hover:opacity-90"
+            </main>
+          </div>
+        </div>
+      )}
+
+      {/* ── Households section ───────────────────────────────────────────── */}
+      {section === 'households' && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
+          {householdsLoading ? (
+            <div className="flex gap-6">
+              <div className="hidden lg:block w-48 space-y-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-8 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)', animationDelay: `${i * 60}ms` }} />
+                ))}
+              </div>
+              <div className="flex-1 h-96 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)' }} />
+            </div>
+          ) : households.length === 0 ? (
+            /* Empty state — no households yet */
+            <div className="flex gap-6">
+              <aside className="hidden lg:block w-48 shrink-0 sticky top-[57px]">
+                <nav className="space-y-0.5 pr-1">
+                  <button
+                    onClick={() => handleSectionChange('account')}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors text-[12px] mb-4"
+                    style={{ color: 'var(--color-muted-foreground)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)')}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Household
+                    <ArrowLeft className="w-3.5 h-3.5 shrink-0" /> Account Settings
+                  </button>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-2 px-2.5" style={{ color: 'var(--color-muted-foreground)', opacity: 0.7 }}>Households</p>
+                  <button
+                    onClick={() => setCreateDialogOpen(true)}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors text-[12px]"
+                    style={{ color: 'var(--color-primary)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-primary) 8%, transparent)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
+                  >
+                    <Plus className="w-3.5 h-3.5 shrink-0" /> <span>Create First</span>
+                  </button>
+                </nav>
+              </aside>
+              <main className="flex-1">
+                <div className="rounded-xl py-14 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}>
+                    <Home className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+                  </div>
+                  <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No Households</p>
+                  <p className="text-sm mb-5" style={{ color: 'var(--color-muted-foreground)' }}>Create a household to collaborate on finances with family or roommates.</p>
+                  <Button onClick={() => setCreateDialogOpen(true)} size="sm" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+                    <Plus className="w-3.5 h-3.5 mr-1.5" /> Create Household
                   </Button>
                 </div>
-              </Card>
-            ) : (
-              <>
-                {/* Household Selector - Top Level */}
-                <div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select a household to manage its settings
-                  </p>
-                  
-                  {/* Desktop: Horizontal Tabs */}
-                  <div className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2 rounded-md">
-                    {sortedHouseholds.map((household) => (
-                      <button
-                        key={household.id}
-                        onClick={() => handleHouseholdChange(household.id)}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors relative group",
-                          householdId === household.id
-                            ? "bg-card text-primary shadow-sm"
-                            : "text-foreground hover:bg-card/50"
-                        )}
-                      >
-                        <Star
-                          className={cn(
-                            "w-4 h-4 cursor-pointer transition-colors shrink-0",
-                            household.isFavorite
-                              ? "fill-warning text-warning"
-                              : "text-muted-foreground hover:text-warning"
-                          )}
-                          onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
-                        />
-                        <Home className="w-4 h-4" />
-                        <span>{household.name}</span>
-                        {memberCounts[household.id] !== undefined && (
-                          <span className="px-1.5 py-0.5 bg-elevated text-xs rounded text-muted-foreground ml-1">
-                            {memberCounts[household.id]}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+              </main>
+            </div>
+          ) : (
+            <div className="flex gap-6 items-start">
+
+              {/* ── Households sidebar ────────────────────────────────────── */}
+              <aside className="hidden lg:block w-48 shrink-0 sticky top-[57px] max-h-[calc(100vh-80px)] overflow-y-auto">
+                <nav className="space-y-4 pr-1">
+
+                  {/* Back to Account */}
+                  <button
+                    onClick={() => handleSectionChange('account')}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors text-[12px]"
+                    style={{ color: 'var(--color-muted-foreground)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)')}
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 shrink-0" /> Account Settings
+                  </button>
+
+                  {/* Household list */}
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-widest mb-2 px-2.5" style={{ color: 'var(--color-muted-foreground)', opacity: 0.7 }}>
+                      Households
+                    </p>
+                    <div className="space-y-0.5">
+                      {sortedHouseholds.map(hh => {
+                        const isActive = householdId === hh.id;
+                        return (
+                          <button
+                            key={hh.id}
+                            onClick={() => handleHouseholdChange(hh.id)}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors group"
+                            style={{
+                              backgroundColor: isActive ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'transparent',
+                            }}
+                            onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 80%, transparent)'; }}
+                            onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
+                          >
+                            <Star
+                              className="w-3 h-3 shrink-0 cursor-pointer"
+                              style={{ color: hh.isFavorite ? 'var(--color-warning)' : 'var(--color-muted-foreground)', fill: hh.isFavorite ? 'var(--color-warning)' : 'none', opacity: hh.isFavorite ? 1 : 0.4 }}
+                              onClick={e => toggleFavorite(hh.id, hh.isFavorite, e)}
+                            />
+                            <span className="flex-1 truncate text-[12px]" style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-muted-foreground)', fontWeight: isActive ? 600 : 400 }}>
+                              {hh.name}
+                            </span>
+                            {memberCounts[hh.id] !== undefined && (
+                              <span className="text-[10px] px-1 py-0.5 rounded shrink-0" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)' }}>
+                                {memberCounts[hh.id]}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                     <button
                       onClick={() => setCreateDialogOpen(true)}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors text-primary hover:bg-card/50"
-                      )}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors text-[12px] mt-1"
+                      style={{ color: 'var(--color-primary)', opacity: 0.8 }}
+                      onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-primary) 8%, transparent)')}
+                      onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Create New</span>
+                      <Plus className="w-3.5 h-3.5 shrink-0" /> <span>Create New</span>
                     </button>
                   </div>
 
-                  {/* Mobile: Dropdown */}
-                  <div className="lg:hidden mb-4">
-                    <Select
-                      value={householdId || ''}
-                      onValueChange={(value) => {
-                        if (value === 'create-new') {
-                          setCreateDialogOpen(true);
-                        } else {
-                          handleHouseholdChange(value);
-                        }
-                      }}
-                    >
-                      <SelectTrigger
-                        id="household-select"
-                        name="household-select"
-                        aria-label="Select household"
-                        className="w-full bg-card border-border"
-                      >
+                  {/* Household tabs (shown when a household is selected) */}
+                  {householdId && (
+                    <div>
+                      <div className="h-px my-1" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+                      <p className="text-[9px] font-bold uppercase tracking-widest mb-2 px-2.5" style={{ color: 'var(--color-primary)', opacity: 0.8 }}>
+                        Settings
+                      </p>
+                      <div className="space-y-0.5">
+                        {HOUSEHOLD_TABS.map(t => (
+                          <NavItem
+                            key={t.id}
+                            icon={t.icon}
+                            label={t.label}
+                            active={tab === t.id}
+                            onClick={() => handleTabChange(t.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </nav>
+              </aside>
+
+              {/* ── Content ───────────────────────────────────────────────── */}
+              <main className="flex-1 min-w-0">
+
+                {/* Mobile: selectors */}
+                <div className="lg:hidden space-y-2 mb-4">
+                  <Select value={householdId || ''} onValueChange={v => v === 'create-new' ? setCreateDialogOpen(true) : handleHouseholdChange(v)}>
+                    <SelectTrigger id="household-select" name="household-select" className="w-full text-[13px]" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
+                      <SelectValue placeholder="Select household" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sortedHouseholds.map(hh => (
+                        <SelectItem key={hh.id} value={hh.id}>
+                          <div className="flex items-center gap-2">
+                            <Home className="w-4 h-4" />
+                            <span>{hh.name}</span>
+                            {memberCounts[hh.id] !== undefined && <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>({memberCounts[hh.id]})</span>}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="create-new">
+                        <div className="flex items-center gap-2" style={{ color: 'var(--color-primary)' }}>
+                          <Plus className="w-4 h-4" /> Create New Household
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {householdId && (
+                    <Select value={tab} onValueChange={handleTabChange}>
+                      <SelectTrigger id="household-settings-tab-select" name="household-settings-tab" className="w-full text-[13px]" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {sortedHouseholds.map((household) => (
-                          <SelectItem key={household.id} value={household.id}>
-                            <div className="flex items-center gap-2 w-full">
-                              <Star
-                                className={cn(
-                                  "w-4 h-4 cursor-pointer transition-colors shrink-0",
-                                  household.isFavorite
-                                    ? "fill-warning text-warning"
-                                    : "text-muted-foreground"
-                                )}
-                                onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
-                              />
-                              <Home className="w-4 h-4" />
-                              <span>{household.name}</span>
-                              {memberCounts[household.id] !== undefined && (
-                                <span className="text-muted-foreground text-xs ml-auto">
-                                  ({memberCounts[household.id]} members)
-                                </span>
-                              )}
-                            </div>
+                        {HOUSEHOLD_TABS.map(t => (
+                          <SelectItem key={t.id} value={t.id}>
+                            <div className="flex items-center gap-2"><t.icon className="w-4 h-4" /><span>{t.label}</span></div>
                           </SelectItem>
                         ))}
-                        <SelectItem value="create-new">
-                          <div className="flex items-center gap-2 text-primary">
-                            <Plus className="w-4 h-4" />
-                            <span>Create New Household</span>
-                          </div>
-                        </SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+                  )}
                 </div>
 
-                {/* Household Settings Tabs - Second Level */}
-                {householdId && (
-                  <div className="w-full">
-                    {/* Desktop: Horizontal Custom Tabs */}
-                    <div
-                      role="tablist"
-                      aria-label="Household settings tabs"
-                      className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2 rounded-md"
-                    >
-                      {HOUSEHOLD_TABS.map((t) => (
-                        <button
-                          key={t.id}
-                          role="tab"
-                          aria-selected={tab === t.id}
-                          aria-controls={`household-tab-content-${t.id}`}
-                          id={`household-tab-${t.id}`}
-                          tabIndex={tab === t.id ? 0 : -1}
-                          onClick={() => handleTabChange(t.id)}
-                          onKeyDown={(e) => handleTabKeyDown(e, tab, HOUSEHOLD_TABS)}
-                          className={cn(
-                            "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                            tab === t.id
-                              ? "bg-card text-primary shadow-sm"
-                              : "text-foreground hover:bg-card/50"
-                          )}
-                        >
-                          <t.icon className="w-4 h-4" />
-                          <span>{t.label}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Mobile: Dropdown */}
-                    <div className="lg:hidden mb-4">
-                      <Select value={tab} onValueChange={handleTabChange}>
-                        <SelectTrigger
-                          id="household-settings-tab-select"
-                          name="household-settings-tab"
-                          aria-label="Select household settings tab"
-                          className="w-full bg-card border-border"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {HOUSEHOLD_TABS.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              <div className="flex items-center gap-2">
-                                <t.icon className="w-4 h-4" />
-                                <span>{t.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Household Settings Tab Content */}
-                    <Card className="border-border bg-card p-4 sm:p-6">
-                      {tab === 'members' && (
-                        <div
-                          role="tabpanel"
-                          id="household-tab-content-members"
-                          aria-labelledby="household-tab-members"
-                          className="mt-0"
-                        >
-                          <HouseholdMembersTab householdId={householdId} />
-                        </div>
-                      )}
-                      {tab === 'household-preferences' && (
-                        <div
-                          role="tabpanel"
-                          id="household-tab-content-household-preferences"
-                          aria-labelledby="household-tab-household-preferences"
-                          className="mt-0"
-                        >
-                          <HouseholdPreferencesTab />
-                        </div>
-                      )}
-                      {tab === 'household-financial' && (
-                        <div
-                          role="tabpanel"
-                          id="household-tab-content-household-financial"
-                          aria-labelledby="household-tab-household-financial"
-                          className="mt-0"
-                        >
-                          <HouseholdFinancialTab />
-                        </div>
-                      )}
-                      {tab === 'tax-mappings' && (
-                        <div
-                          role="tabpanel"
-                          id="household-tab-content-tax-mappings"
-                          aria-labelledby="household-tab-tax-mappings"
-                          className="mt-0"
-                        >
-                          <TaxMappingTab />
-                        </div>
-                      )}
-                      {tab === 'personal' && (
-                        <div
-                          role="tabpanel"
-                          id="household-tab-content-personal"
-                          aria-labelledby="household-tab-personal"
-                          className="mt-0"
-                        >
-                          <HouseholdPersonalTab householdId={householdId} />
-                        </div>
-                      )}
-                      {tab === 'notifications' && (
-                        <div
-                          role="tabpanel"
-                          id="household-tab-content-notifications"
-                          aria-labelledby="household-tab-notifications"
-                          className="mt-0"
-                        >
-                          <NotificationsTab />
-                        </div>
-                      )}
-                    </Card>
+                {/* Tab content */}
+                {householdId ? (
+                  <div>
+                    {tab === 'members'               && <HouseholdMembersTab householdId={householdId} />}
+                    {tab === 'household-preferences' && <HouseholdPreferencesTab />}
+                    {tab === 'household-financial'   && <HouseholdFinancialTab />}
+                    {tab === 'tax-mappings'          && <TaxMappingTab />}
+                    {tab === 'personal'              && <HouseholdPersonalTab householdId={householdId} />}
+                    {tab === 'notifications'         && <NotificationsTab />}
+                  </div>
+                ) : (
+                  <div className="rounded-xl py-12 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+                    <p className="text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>Select a household from the sidebar to manage its settings.</p>
                   </div>
                 )}
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        {/* Create Household Dialog */}
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">Create Household</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Choose a name for your new household
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="py-4">
-              <Label htmlFor="create-household-name" className="text-foreground">
-                Household Name
-              </Label>
-              <Input
-                id="create-household-name"
-                name="create-household-name"
-                type="text"
-                value={householdName}
-                onChange={(e) => setHouseholdName(e.target.value)}
-                placeholder="e.g., The Smiths"
-                className="mt-1 bg-elevated border-border"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && householdName.trim()) {
-                    createHousehold();
-                  }
-                }}
-                autoFocus
-              />
+              </main>
             </div>
+          )}
+        </div>
+      )}
 
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setCreateDialogOpen(false);
-                  setHouseholdName('');
-                }}
-                className="border-border"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={createHousehold}
-                disabled={!householdName.trim() || submitting}
-                className="bg-primary hover:opacity-90"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Household
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      {/* ── Create Household Dialog ───────────────────────────────────────── */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent
+          style={{
+            backgroundColor: 'var(--color-background)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '1rem',
+            maxWidth: '26rem',
+            boxShadow: '0 24px 64px -12px color-mix(in oklch, var(--color-foreground) 18%, transparent)',
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>
+              Create Household
+            </DialogTitle>
+            <DialogDescription className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+              Choose a name for your new household.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Label htmlFor="create-household-name" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>
+              Household Name
+            </Label>
+            <Input
+              id="create-household-name"
+              name="create-household-name"
+              type="text"
+              value={householdName}
+              onChange={e => setHouseholdName(e.target.value)}
+              placeholder="e.g., The Smiths"
+              className="mt-1.5 h-9 text-[13px]"
+              style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+              onKeyDown={e => { if (e.key === 'Enter' && householdName.trim()) createHousehold(); }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => { setCreateDialogOpen(false); setHouseholdName(''); }}
+              className="text-[13px]"
+              style={{ color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={createHousehold}
+              disabled={!householdName.trim() || submitting}
+              className="text-[13px] font-medium"
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+            >
+              {submitting ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Creating…</> : <><Plus className="w-3.5 h-3.5 mr-1.5" /> Create</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -747,10 +637,17 @@ function SettingsPageContent() {
 export default function SettingsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-background p-4 sm:p-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground mt-1">Loading...</p>
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-4">
+          <div className="w-24 h-6 rounded animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          <div className="flex gap-6">
+            <div className="w-48 space-y-2 hidden lg:block">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-8 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)', animationDelay: `${i * 60}ms` }} />
+              ))}
+            </div>
+            <div className="flex-1 h-96 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)' }} />
+          </div>
         </div>
       </div>
     }>

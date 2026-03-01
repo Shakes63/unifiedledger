@@ -57,14 +57,14 @@ interface CostTooltipProps {
 const CustomTooltip = ({ active, payload }: CostTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card border border-border rounded-lg p-4 shadow-lg">
-        <p className="text-sm font-semibold text-foreground mb-2">
+      <div className="rounded-lg p-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <p className="text-sm font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>
           {payload[0].name}
         </p>
-        <p className="text-lg font-bold text-foreground font-mono">
+        <p className="text-lg font-bold font-mono" style={{ color: 'var(--color-foreground)' }}>
           ${payload[0].value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           {((payload[0].value / payload[0].payload.total) * 100).toFixed(1)}% of total cost
         </p>
       </div>
@@ -103,7 +103,7 @@ export function TotalCostPieChart({
   if (!schedule || !costData) {
     return (
       <div className={`text-center p-8 ${className}`}>
-        <p className="text-muted-foreground">No cost data available</p>
+        <p style={{ color: 'var(--color-muted-foreground)' }}>No cost data available</p>
       </div>
     );
   }
@@ -122,13 +122,13 @@ export function TotalCostPieChart({
   ];
 
   return (
-    <div className={`bg-card border border-border rounded-xl p-6 ${className}`}>
+    <div className={`rounded-xl p-6 ${className}`} style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground mb-2">
+        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>
           Total Cost Breakdown
         </h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
           The true cost of this debt including all interest payments
         </p>
       </div>
@@ -163,50 +163,50 @@ export function TotalCostPieChart({
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Original Debt */}
-        <div className="bg-elevated rounded-lg p-4">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-elevated)' }}>
           <div className="flex items-center gap-2 mb-2">
             <div
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: COLORS.principal }}
             />
-            <span className="text-xs text-muted-foreground uppercase">Original Debt</span>
+            <span className="text-xs uppercase" style={{ color: 'var(--color-muted-foreground)' }}>Original Debt</span>
           </div>
-          <div className="text-2xl font-bold text-foreground font-mono">
+          <div className="text-2xl font-bold font-mono" style={{ color: 'var(--color-foreground)' }}>
             ${costData.principal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
+          <div className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             {costData.principalPercent.toFixed(1)}% of total cost
           </div>
         </div>
 
         {/* Total Interest */}
-        <div className="bg-elevated rounded-lg p-4">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-elevated)' }}>
           <div className="flex items-center gap-2 mb-2">
             <div
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: COLORS.interest }}
             />
-            <span className="text-xs text-muted-foreground uppercase">Total Interest</span>
+            <span className="text-xs uppercase" style={{ color: 'var(--color-muted-foreground)' }}>Total Interest</span>
           </div>
-          <div className="text-2xl font-bold text-foreground font-mono">
+          <div className="text-2xl font-bold font-mono" style={{ color: 'var(--color-foreground)' }}>
             ${costData.interest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
+          <div className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             {costData.interestPercent.toFixed(1)}% of total cost
           </div>
         </div>
       </div>
 
       {/* Total Cost Banner */}
-      <div className="bg-gradient-to-r from-accent/20 to-accent/10 border border-accent/30 rounded-lg p-4 mb-4">
+      <div className="rounded-lg p-4 mb-4" style={{ background: 'linear-gradient(to right, color-mix(in oklch, var(--color-accent) 20%, transparent), color-mix(in oklch, var(--color-accent) 10%, transparent))', border: '1px solid color-mix(in oklch, var(--color-accent) 30%, transparent)' }}>
         <div className="text-center">
-          <div className="text-xs text-muted-foreground uppercase mb-1">
+          <div className="text-xs uppercase mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
             Total Amount You&apos;ll Pay
           </div>
-          <div className="text-3xl font-bold text-foreground font-mono">
+          <div className="text-3xl font-bold font-mono" style={{ color: 'var(--color-foreground)' }}>
             ${costData.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="text-sm text-muted-foreground mt-2">
+          <div className="text-sm mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
             Over {schedule.monthsToPayoff} months ({(schedule.monthsToPayoff / 12).toFixed(1)} years)
           </div>
         </div>
@@ -214,14 +214,14 @@ export function TotalCostPieChart({
 
       {/* Cost Multiplier Alert */}
       {costData.interestMultiplier > 1.5 && (
-        <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)' }}>
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+            <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: 'var(--color-warning)' }} />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-warning mb-1">
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-warning)' }}>
                 High Interest Cost
               </p>
-              <p className="text-sm text-foreground">
+              <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                 You&apos;ll pay <span className="font-bold">{costData.interestMultiplier.toFixed(2)}x</span> the original amount
                 due to interest. Consider making extra payments to reduce this cost significantly.
               </p>
@@ -232,14 +232,14 @@ export function TotalCostPieChart({
 
       {/* Low Interest Success */}
       {costData.interestMultiplier <= 1.2 && costData.interest > 0 && (
-        <div className="bg-success/10 border border-success/30 rounded-lg p-4">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)' }}>
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+            <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: 'var(--color-success)' }} />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-success mb-1">
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-success)' }}>
                 Great Interest Rate
               </p>
-              <p className="text-sm text-foreground">
+              <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                 Your total cost is only <span className="font-bold">{costData.interestMultiplier.toFixed(2)}x</span> the original amount.
                 This is a favorable rate!
               </p>
@@ -250,14 +250,14 @@ export function TotalCostPieChart({
 
       {/* Zero Interest */}
       {costData.interest === 0 && (
-        <div className="bg-success/10 border border-success/30 rounded-lg p-4">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)' }}>
           <div className="flex items-start gap-3">
-            <PartyPopper className="w-5 h-5 text-success shrink-0" />
+            <PartyPopper className="w-5 h-5 shrink-0" style={{ color: 'var(--color-success)' }} />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-success mb-1">
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-success)' }}>
                 Interest-Free Debt
               </p>
-              <p className="text-sm text-foreground">
+              <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                 This debt has no interest charges. You&apos;ll pay exactly what you borrowed!
               </p>
             </div>

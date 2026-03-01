@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2, Copy, Check, Edit, Plus, Star, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -451,27 +448,19 @@ export function HouseholdTab() {
 
   function getRoleIcon(role: string) {
     switch (role) {
-      case 'owner':
-        return <Crown className="w-4 h-4 text-warning" />;
-      case 'admin':
-        return <Shield className="w-4 h-4 text-primary" />;
-      case 'viewer':
-        return <Eye className="w-4 h-4 text-muted-foreground" />;
-      default:
-        return <Users className="w-4 h-4 text-muted-foreground" />;
+      case 'owner': return <Crown className="w-3 h-3" style={{ color: 'var(--color-warning)' }} />;
+      case 'admin': return <Shield className="w-3 h-3" style={{ color: 'var(--color-primary)' }} />;
+      case 'viewer': return <Eye className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />;
+      default: return <Users className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />;
     }
   }
 
-  function getRoleBadgeColor(role: string) {
+  function getRoleBadgeStyle(role: string): React.CSSProperties {
     switch (role) {
-      case 'owner':
-        return 'bg-warning text-white';
-      case 'admin':
-        return 'bg-primary text-white';
-      case 'viewer':
-        return 'bg-elevated text-muted-foreground';
-      default:
-        return 'bg-card text-foreground';
+      case 'owner': return { backgroundColor: 'color-mix(in oklch, var(--color-warning) 15%, transparent)', color: 'var(--color-warning)', border: '1px solid color-mix(in oklch, var(--color-warning) 25%, transparent)' };
+      case 'admin': return { backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)', color: 'var(--color-primary)', border: '1px solid color-mix(in oklch, var(--color-primary) 25%, transparent)' };
+      case 'viewer': return { backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' };
+      default: return { backgroundColor: 'var(--color-background)', color: 'var(--color-foreground)', border: '1px solid var(--color-border)' };
     }
   }
 
@@ -482,7 +471,7 @@ export function HouseholdTab() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
+      <div className="flex items-center justify-center py-12" style={{ color: 'var(--color-muted-foreground)' }}>
         <Loader2 className="w-6 h-6 animate-spin mr-2" />
         Loading...
       </div>
@@ -500,66 +489,34 @@ export function HouseholdTab() {
 
   if (households.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="text-center py-12">
-          <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            Not in a Household
-          </h3>
-          <p className="text-muted-foreground mb-6">
-            Create a household to collaborate on finances with family or roommates
-          </p>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Household
+      <div className="space-y-4">
+        <div className="text-center py-14 rounded-xl" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)' }}>
+            <Users className="w-7 h-7" style={{ color: 'var(--color-primary)' }} />
+          </div>
+          <h3 className="text-[15px] font-semibold mb-1.5" style={{ color: 'var(--color-foreground)' }}>Not in a Household</h3>
+          <p className="text-[13px] mb-5" style={{ color: 'var(--color-muted-foreground)' }}>Create a household to collaborate on finances with family or roommates</p>
+          <Button onClick={() => setCreateDialogOpen(true)} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" />Create Household
           </Button>
         </div>
 
-        {/* Create Household Dialog */}
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
             <DialogHeader>
-              <DialogTitle className="text-foreground">Create Household</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Choose a name for your household
-              </DialogDescription>
+              <DialogTitle className="text-[15px]" style={{ color: 'var(--color-foreground)' }}>Create Household</DialogTitle>
+              <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>Choose a name for your household</DialogDescription>
             </DialogHeader>
-
-            <div className="py-4">
-              <Label htmlFor="householdName" className="text-foreground">
-                Household Name
-              </Label>
-              <Input
-                id="householdName"
-                name="householdName"
-                type="text"
-                value={householdName}
-                onChange={(e) => setHouseholdName(e.target.value)}
-                placeholder="e.g., The Smiths"
-                className="mt-1 bg-elevated border-border"
-              />
+            <div className="mt-1">
+              <Label htmlFor="householdName" className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>Household Name</Label>
+              <Input id="householdName" name="householdName" type="text" value={householdName} onChange={e => setHouseholdName(e.target.value)} placeholder="e.g., The Smiths" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }} />
             </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setCreateDialogOpen(false);
-                  setHouseholdName('');
-                }}
-                className="border-border"
-              >
-                Cancel
+            <div className="flex justify-end gap-2 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <Button variant="outline" onClick={() => { setCreateDialogOpen(false); setHouseholdName(''); }} className="h-9 text-[13px]">Cancel</Button>
+              <Button onClick={createHousehold} disabled={!householdName.trim() || submitting} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}Create Household
               </Button>
-              <Button onClick={createHousehold} disabled={!householdName.trim() || submitting}>
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4 mr-2" />
-                )}
-                Create Household
-              </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -567,252 +524,160 @@ export function HouseholdTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="w-full">
         {/* Desktop: Horizontal Tabs */}
-        <div className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2 rounded-md">
+        <div className="hidden lg:flex w-full gap-1 p-1.5 rounded-xl overflow-x-auto" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
           {sortedHouseholds.map((household) => (
-            <button
-              key={household.id}
-              onClick={() => handleTabChange(household.id)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors relative group",
-                activeTab === household.id
-                  ? "bg-card text-primary shadow-sm"
-                  : "text-foreground hover:bg-card/50"
-              )}
-            >
-              <Star
-                className={cn(
-                  "w-4 h-4 cursor-pointer transition-colors shrink-0",
-                  household.isFavorite
-                    ? "fill-warning text-warning"
-                    : "text-muted-foreground hover:text-warning"
-                )}
-                onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
-              />
-              <Users className="w-4 h-4" />
+            <button key={household.id} onClick={() => handleTabChange(household.id)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all shrink-0"
+              style={{
+                backgroundColor: activeTab === household.id ? 'var(--color-elevated)' : 'transparent',
+                color: activeTab === household.id ? 'var(--color-primary)' : 'var(--color-foreground)',
+                boxShadow: activeTab === household.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              }}>
+              <Star className="w-3.5 h-3.5 shrink-0 transition-colors cursor-pointer"
+                style={{ color: household.isFavorite ? 'var(--color-warning)' : 'var(--color-muted-foreground)', fill: household.isFavorite ? 'var(--color-warning)' : 'transparent' }}
+                onClick={e => toggleFavorite(household.id, household.isFavorite, e)} />
+              <Users className="w-3.5 h-3.5" />
               <span>{household.name}</span>
               {memberCounts[household.id] !== undefined && (
-                <Badge variant="secondary" className="ml-1 text-xs">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium tabular-nums" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', color: 'var(--color-primary)' }}>
                   {memberCounts[household.id]}
-                </Badge>
+                </span>
               )}
             </button>
           ))}
-          <button
-            onClick={() => handleTabChange('create-new')}
-            className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors",
-              activeTab === 'create-new'
-                ? "bg-card text-primary shadow-sm"
-                : "text-primary hover:bg-card/50"
-            )}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New</span>
+          <button onClick={() => handleTabChange('create-new')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all shrink-0"
+            style={{
+              backgroundColor: activeTab === 'create-new' ? 'var(--color-elevated)' : 'transparent',
+              color: 'var(--color-primary)',
+            }}>
+            <Plus className="w-3.5 h-3.5" />Create New
           </button>
         </div>
 
         {/* Mobile: Dropdown */}
         <div className="lg:hidden mb-4">
           <Select value={activeTab} onValueChange={handleTabChange}>
-            <SelectTrigger
-              id="household-tab-select"
-              name="household-tab"
-              aria-label="Select household"
-              className="w-full bg-card border-border"
-            >
+            <SelectTrigger id="household-tab-select" name="household-tab" aria-label="Select household" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {sortedHouseholds.map((household) => (
-                <SelectItem key={household.id} value={household.id}>
-                  <div className="flex items-center gap-2 w-full">
-                    <Star
-                      className={cn(
-                        "w-4 h-4 cursor-pointer transition-colors shrink-0",
-                        household.isFavorite
-                          ? "fill-warning text-warning"
-                          : "text-muted-foreground hover:text-warning"
-                      )}
-                      onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
-                    />
-                    <Users className="w-4 h-4" />
-                    <span>{household.name}</span>
-                    {memberCounts[household.id] !== undefined && (
-                      <span className="text-muted-foreground text-xs ml-auto">
-                        ({memberCounts[household.id]} members)
-                      </span>
-                    )}
+              {sortedHouseholds.map(h => (
+                <SelectItem key={h.id} value={h.id}>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>{h.name}</span>
+                    {memberCounts[h.id] !== undefined && <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>({memberCounts[h.id]})</span>}
                   </div>
                 </SelectItem>
               ))}
               <SelectItem value="create-new">
-                <div className="flex items-center gap-2 text-primary">
-                  <Plus className="w-4 h-4" />
-                  <span>Create New Household</span>
+                <div className="flex items-center gap-2" style={{ color: 'var(--color-primary)' }}>
+                  <Plus className="w-3.5 h-3.5" /><span>Create New Household</span>
                 </div>
               </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Tab Content for each household */}
-        {sortedHouseholds.map((household) => (
-          activeTab === household.id && (
-          <div key={household.id} className="mt-6 space-y-6">
+        {/* Tab Content */}
+        {sortedHouseholds.map(household => activeTab === household.id && (
+          <div key={household.id} className="mt-4 space-y-4">
             {/* Household Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-border">
+            <div className="flex items-start justify-between pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
-                <h3 className="text-2xl font-semibold text-foreground">{household.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Created {new Date(household.createdAt).toLocaleDateString()} • {members.length} members
+                <h3 className="text-[17px] font-semibold" style={{ color: 'var(--color-foreground)' }}>{household.name}</h3>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                  Created {new Date(household.createdAt).toLocaleDateString()} · {members.length} member{members.length !== 1 ? 's' : ''}
                 </p>
               </div>
-
-              {/* Household Actions */}
               <div className="flex items-center gap-2">
                 {currentUserRole === 'owner' && (
                   <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setNewHouseholdName(household.name);
-                        setRenameDialogOpen(true);
-                      }}
-                      className="border-border"
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Rename
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDeleteDialogOpen(true)}
-                      className="border-error text-error hover:bg-error/10"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
-                    </Button>
+                    <button onClick={() => { setNewHouseholdName(household.name); setRenameDialogOpen(true); }}
+                      className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium transition-colors"
+                      style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
+                      <Edit className="w-3 h-3" />Rename
+                    </button>
+                    <button onClick={() => setDeleteDialogOpen(true)}
+                      className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium transition-colors"
+                      style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 20%, transparent)', color: 'var(--color-destructive)' }}>
+                      <Trash2 className="w-3 h-3" />Delete
+                    </button>
                   </>
                 )}
                 {canLeave && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLeaveDialogOpen(true)}
-                    className="border-error text-error hover:bg-error/10"
-                  >
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Leave
-                  </Button>
+                  <button onClick={() => setLeaveDialogOpen(true)}
+                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium transition-colors"
+                    style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 20%, transparent)', color: 'var(--color-destructive)' }}>
+                    <LogOut className="w-3 h-3" />Leave
+                  </button>
                 )}
               </div>
             </div>
 
             {/* Members List */}
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-medium text-foreground">
-                  Members ({members.length})
-                </h4>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Members ({members.length})</p>
                 {canInvite && (
-                  <Button
-                    size="sm"
-                    onClick={() => setInviteDialogOpen(true)}
-                    className="bg-primary hover:opacity-90"
-                  >
-                    <UserPlus className="w-4 h-4 mr-1" />
-                    Invite Member
-                  </Button>
+                  <button onClick={() => setInviteDialogOpen(true)}
+                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+                    <UserPlus className="w-3.5 h-3.5" />Invite Member
+                  </button>
                 )}
               </div>
-
-              <div className="space-y-2">
-                {members.map((member) => (
-                  <Card
-                    key={member.id}
-                    className="p-4 bg-elevated border-border"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <UserAvatar
-                          userId={member.userId}
-                          userName={member.userName || member.userEmail}
-                          avatarUrl={member.userAvatarUrl}
-                          size="md"
-                          className="shrink-0"
-                        />
-
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-foreground truncate">
-                            {member.userName || 'Unknown'}
-                          </div>
-                          <div className="text-sm text-muted-foreground truncate">
-                            {member.userEmail}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {canManagePermissions ? (
-                          <Select
-                            value={member.role}
-                            onValueChange={(newRole) => changeMemberRole(member.id, newRole)}
-                          >
-                            <SelectTrigger className="w-32 bg-card border-border text-foreground text-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border">
-                              <SelectItem value="owner">Owner</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="member">Member</SelectItem>
-                              <SelectItem value="viewer">Viewer</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Badge className={getRoleBadgeColor(member.role)}>
-                            <div className="flex items-center gap-1">
-                              {getRoleIcon(member.role)}
-                              {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                            </div>
-                          </Badge>
-                        )}
-
-                        {canManagePermissions && member.role !== 'owner' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedMemberForPermissions({
-                                id: member.id,
-                                name: member.userName || member.userEmail,
-                                role: member.role,
-                              });
-                              setPermissionManagerOpen(true);
-                            }}
-                            className="text-foreground hover:bg-elevated"
-                            title="Manage Permissions"
-                          >
-                            <Settings className="w-4 h-4" />
-                          </Button>
-                        )}
-
-                        {canRemoveMembers && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeMember(member.id)}
-                            className="text-error hover:bg-error/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
+                {members.map((member, idx) => (
+                  <div key={member.id} className="flex items-center justify-between px-4 py-3 gap-3"
+                    style={{ borderTop: idx > 0 ? '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' : 'none' }}>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <UserAvatar userId={member.userId} userName={member.userName || member.userEmail} avatarUrl={member.userAvatarUrl} size="md" className="shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium truncate" style={{ color: 'var(--color-foreground)' }}>{member.userName || 'Unknown'}</p>
+                        <p className="text-[11px] truncate" style={{ color: 'var(--color-muted-foreground)' }}>{member.userEmail}</p>
                       </div>
                     </div>
-                  </Card>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {canManagePermissions ? (
+                        <Select value={member.role} onValueChange={r => changeMemberRole(member.id, r)}>
+                          <SelectTrigger className="h-7 text-[12px] w-28" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="owner">Owner</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="member">Member</SelectItem>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md font-medium" style={getRoleBadgeStyle(member.role)}>
+                          {getRoleIcon(member.role)}
+                          {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                        </span>
+                      )}
+                      {canManagePermissions && member.role !== 'owner' && (
+                        <button onClick={() => { setSelectedMemberForPermissions({ id: member.id, name: member.userName || member.userEmail, role: member.role }); setPermissionManagerOpen(true); }}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                          style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
+                          title="Manage Permissions">
+                          <Settings className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />
+                        </button>
+                      )}
+                      {canRemoveMembers && (
+                        <button onClick={() => removeMember(member.id)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                          style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 20%, transparent)' }}>
+                          <Trash2 className="w-3.5 h-3.5" style={{ color: 'var(--color-destructive)' }} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -820,353 +685,165 @@ export function HouseholdTab() {
             {/* Pending Invitations */}
             {invitations.length > 0 && (
               <div>
-                <h4 className="font-medium text-foreground mb-4">
-                  Pending Invitations ({invitations.length})
-                </h4>
-
-                <div className="space-y-2">
-                  {invitations.map((invitation) => (
-                    <Card
-                      key={invitation.id}
-                      className="p-4 bg-elevated border-border border-warning/30"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-foreground truncate">
-                            {invitation.invitedEmail}
-                          </div>
-                          <div className="text-sm text-muted-foreground capitalize">
-                            Role: {invitation.role}
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyInviteLink(invitation.invitationToken)}
-                          className="border-border text-muted-foreground shrink-0"
-                        >
-                          {copiedToken === invitation.invitationToken ? (
-                            <>
-                              <Check className="w-4 h-4 mr-1" />
-                              Copied
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-4 h-4 mr-1" />
-                              Copy Link
-                            </>
-                          )}
-                        </Button>
+                <p className="text-[12px] font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--color-muted-foreground)' }}>Pending Invitations ({invitations.length})</p>
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in oklch, var(--color-warning) 25%, var(--color-border))', backgroundColor: 'var(--color-elevated)' }}>
+                  {invitations.map((invitation, idx) => (
+                    <div key={invitation.id} className="flex items-center justify-between px-4 py-3 gap-3"
+                      style={{ borderTop: idx > 0 ? '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' : 'none' }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium truncate" style={{ color: 'var(--color-foreground)' }}>{invitation.invitedEmail}</p>
+                        <p className="text-[11px] capitalize" style={{ color: 'var(--color-muted-foreground)' }}>Role: {invitation.role}</p>
                       </div>
-                    </Card>
+                      <button onClick={() => copyInviteLink(invitation.invitationToken)}
+                        className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[12px] shrink-0 transition-colors"
+                        style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }}>
+                        {copiedToken === invitation.invitationToken ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy Link</>}
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
-          )
         ))}
 
         {/* Create New Household Tab Content */}
         {activeTab === 'create-new' && (
-        <div className="mt-6">
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              Create a New Household
-            </h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Create a household to collaborate on finances with family, roommates, or teams
-            </p>
-            <div className="max-w-sm mx-auto space-y-4">
-              <Input
-                type="text"
-                value={householdName}
-                onChange={(e) => setHouseholdName(e.target.value)}
-                placeholder="Household name (e.g., The Smiths)"
-                className="bg-elevated border-border"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && householdName.trim()) {
-                    createHousehold();
-                  }
-                }}
-              />
-              <Button
-                onClick={createHousehold}
-                disabled={!householdName.trim() || submitting}
-                className="w-full bg-primary hover:opacity-90"
-              >
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4 mr-2" />
-                )}
-                Create Household
-              </Button>
+          <div className="mt-4">
+            <div className="text-center py-12 rounded-xl" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)' }}>
+                <Users className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
+              </div>
+              <h3 className="text-[15px] font-semibold mb-1.5" style={{ color: 'var(--color-foreground)' }}>Create a New Household</h3>
+              <p className="text-[13px] mb-5 max-w-sm mx-auto" style={{ color: 'var(--color-muted-foreground)' }}>Collaborate on finances with family, roommates, or teams</p>
+              <div className="max-w-xs mx-auto space-y-2.5">
+                <Input type="text" value={householdName} onChange={e => setHouseholdName(e.target.value)}
+                  placeholder="e.g., The Smiths" className="h-9 text-[13px]"
+                  style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
+                  onKeyDown={e => { if (e.key === 'Enter' && householdName.trim()) createHousehold(); }} />
+                <Button onClick={createHousehold} disabled={!householdName.trim() || submitting} className="w-full h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+                  {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}Create Household
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
         )}
       </div>
 
       {/* Invite Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Invite Member</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Send an invitation to join your household
-            </DialogDescription>
+            <DialogTitle className="text-[15px]" style={{ color: 'var(--color-foreground)' }}>Invite Member</DialogTitle>
+            <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>Send an invitation to join your household</DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 mt-1">
             <div>
-              <Label htmlFor="inviteEmail" className="text-foreground">Email</Label>
-              <Input
-                id="inviteEmail"
-                name="inviteEmail"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="member@example.com"
-                className="mt-1 bg-elevated border-border"
-              />
+              <Label htmlFor="inviteEmail" className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>Email Address</Label>
+              <Input id="inviteEmail" name="inviteEmail" type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="member@example.com" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }} />
             </div>
-
             <div>
-              <Label htmlFor="inviteRole" className="text-foreground">Role</Label>
-              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as 'admin' | 'member' | 'viewer')}>
-                <SelectTrigger id="inviteRole" className="mt-1 bg-elevated border-border">
+              <Label htmlFor="inviteRole" className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>Role</Label>
+              <Select value={inviteRole} onValueChange={v => setInviteRole(v as 'admin' | 'member' | 'viewer')}>
+                <SelectTrigger id="inviteRole" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin - Full access</SelectItem>
-                  <SelectItem value="member">Member - Standard access</SelectItem>
-                  <SelectItem value="viewer">Viewer - Read only</SelectItem>
+                  <SelectItem value="admin">Admin — Full access</SelectItem>
+                  <SelectItem value="member">Member — Standard access</SelectItem>
+                  <SelectItem value="viewer">Viewer — Read only</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setInviteDialogOpen(false);
-                setInviteEmail('');
-                setInviteRole('member');
-              }}
-              className="border-border"
-            >
-              Cancel
+          <div className="flex justify-end gap-2 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <Button variant="outline" onClick={() => { setInviteDialogOpen(false); setInviteEmail(''); setInviteRole('member'); }} className="h-9 text-[13px]">Cancel</Button>
+            <Button onClick={inviteMember} disabled={!inviteEmail.trim() || submitting} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5 mr-1.5" />}Send Invitation
             </Button>
-            <Button onClick={inviteMember} disabled={!inviteEmail.trim() || submitting}>
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <UserPlus className="w-4 h-4 mr-2" />
-              )}
-              Send Invitation
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Leave Dialog */}
       <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-error">
-              Leave Household
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle className="text-[15px]" style={{ color: 'var(--color-destructive)' }}>Leave Household</DialogTitle>
+            <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
               Are you sure you want to leave &quot;{currentHousehold?.name}&quot;? You&apos;ll lose access to all shared data.
             </DialogDescription>
           </DialogHeader>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setLeaveDialogOpen(false)}
-              className="border-border"
-            >
-              Cancel
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setLeaveDialogOpen(false)} className="h-9 text-[13px]">Cancel</Button>
+            <Button onClick={leaveHousehold} disabled={submitting} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5 mr-1.5" />}Leave Household
             </Button>
-            <Button
-              variant="destructive"
-              onClick={leaveHousehold}
-              disabled={submitting}
-              className="bg-error hover:bg-error/90"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <LogOut className="w-4 h-4 mr-2" />
-              )}
-              Leave Household
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Rename Household Dialog */}
+      {/* Rename Dialog */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">
-              Rename Household
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Enter a new name for your household
-            </DialogDescription>
+            <DialogTitle className="text-[15px]" style={{ color: 'var(--color-foreground)' }}>Rename Household</DialogTitle>
+            <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>Enter a new name for your household</DialogDescription>
           </DialogHeader>
-
-          <div className="py-4">
-            <Label htmlFor="newHouseholdName" className="text-foreground">
-              Household Name
-            </Label>
-            <Input
-              id="newHouseholdName"
-              name="newHouseholdName"
-              type="text"
-              value={newHouseholdName}
-              onChange={(e) => setNewHouseholdName(e.target.value)}
-              placeholder="e.g., The Smiths"
-              className="mt-2 bg-elevated border-border"
-              autoFocus
-            />
+          <div className="mt-1">
+            <Label htmlFor="newHouseholdName" className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>Household Name</Label>
+            <Input id="newHouseholdName" name="newHouseholdName" type="text" value={newHouseholdName} onChange={e => setNewHouseholdName(e.target.value)} placeholder="e.g., The Smiths" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }} autoFocus />
           </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRenameDialogOpen(false);
-                setNewHouseholdName('');
-              }}
-              className="border-border"
-            >
-              Cancel
+          <div className="flex justify-end gap-2 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <Button variant="outline" onClick={() => { setRenameDialogOpen(false); setNewHouseholdName(''); }} className="h-9 text-[13px]">Cancel</Button>
+            <Button onClick={renameHousehold} disabled={!newHouseholdName.trim() || submitting} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Edit className="w-3.5 h-3.5 mr-1.5" />}Rename Household
             </Button>
-            <Button
-              onClick={renameHousehold}
-              disabled={!newHouseholdName.trim() || submitting}
-              className="bg-primary hover:opacity-90"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Edit className="w-4 h-4 mr-2" />
-              )}
-              Rename Household
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Household Dialog */}
+      {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-error">
-              Delete Household
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              This action is permanent and cannot be undone. All household data including transactions,
-              budgets, and bills will be permanently deleted.
+            <DialogTitle className="text-[15px]" style={{ color: 'var(--color-destructive)' }}>Delete Household</DialogTitle>
+            <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              This action is permanent and cannot be undone. All household data including transactions, budgets, and bills will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="py-4">
-            <Label htmlFor="deleteConfirm" className="text-foreground">
-              Type the household name <span className="font-semibold">&quot;{currentHousehold?.name}&quot;</span> to confirm
+          <div className="mt-1">
+            <Label htmlFor="deleteConfirm" className="text-[11px] font-medium block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>
+              Type <span className="font-semibold" style={{ color: 'var(--color-foreground)' }}>&quot;{currentHousehold?.name}&quot;</span> to confirm
             </Label>
-            <Input
-              id="deleteConfirm"
-              name="deleteConfirm"
-              type="text"
-              value={deleteConfirmName}
-              onChange={(e) => setDeleteConfirmName(e.target.value)}
-              placeholder={currentHousehold?.name}
-              className="mt-2 bg-elevated border-border"
-            />
+            <Input id="deleteConfirm" name="deleteConfirm" type="text" value={deleteConfirmName} onChange={e => setDeleteConfirmName(e.target.value)} placeholder={currentHousehold?.name} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }} />
           </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                setDeleteConfirmName('');
-              }}
-              className="border-border"
-            >
-              Cancel
+          <div className="flex justify-end gap-2 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeleteConfirmName(''); }} className="h-9 text-[13px]">Cancel</Button>
+            <Button onClick={deleteHousehold} disabled={deleteConfirmName !== currentHousehold?.name || submitting} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />}Delete Household
             </Button>
-            <Button
-              variant="destructive"
-              onClick={deleteHousehold}
-              disabled={deleteConfirmName !== currentHousehold?.name || submitting}
-              className="bg-error hover:bg-error/90"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Delete Household
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Create Household Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Create Household</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Choose a name for your new household
-            </DialogDescription>
+            <DialogTitle className="text-[15px]" style={{ color: 'var(--color-foreground)' }}>Create Household</DialogTitle>
+            <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>Choose a name for your new household</DialogDescription>
           </DialogHeader>
-
-          <div className="py-4">
-            <Label htmlFor="createHouseholdName" className="text-foreground">
-              Household Name
-            </Label>
-            <Input
-              id="createHouseholdName"
-              name="createHouseholdName"
-              type="text"
-              value={householdName}
-              onChange={(e) => setHouseholdName(e.target.value)}
-              placeholder="e.g., The Smiths"
-              className="mt-1 bg-elevated border-border"
-              autoFocus
-            />
+          <div className="mt-1">
+            <Label htmlFor="createHouseholdName" className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>Household Name</Label>
+            <Input id="createHouseholdName" name="createHouseholdName" type="text" value={householdName} onChange={e => setHouseholdName(e.target.value)} placeholder="e.g., The Smiths" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }} autoFocus />
           </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCreateDialogOpen(false);
-                setHouseholdName('');
-              }}
-              className="border-border"
-            >
-              Cancel
+          <div className="flex justify-end gap-2 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <Button variant="outline" onClick={() => { setCreateDialogOpen(false); setHouseholdName(''); }} className="h-9 text-[13px]">Cancel</Button>
+            <Button onClick={createHousehold} disabled={!householdName.trim() || submitting} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}Create Household
             </Button>
-            <Button onClick={createHousehold} disabled={!householdName.trim() || submitting}>
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              Create Household
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1174,22 +851,12 @@ export function HouseholdTab() {
       {selectedMemberForPermissions && activeTab && activeTab !== 'create-new' && (
         <PermissionManager
           open={permissionManagerOpen}
-          onOpenChange={(open) => {
-            setPermissionManagerOpen(open);
-            if (!open) {
-              setSelectedMemberForPermissions(null);
-            }
-          }}
+          onOpenChange={open => { setPermissionManagerOpen(open); if (!open) setSelectedMemberForPermissions(null); }}
           householdId={activeTab}
           memberId={selectedMemberForPermissions.id}
           memberName={selectedMemberForPermissions.name}
           memberRole={selectedMemberForPermissions.role}
-          onSave={() => {
-            // Refresh member list after saving permissions
-            if (activeTab) {
-              fetchHouseholdDetails(activeTab);
-            }
-          }}
+          onSave={() => { if (activeTab) fetchHouseholdDetails(activeTab); }}
         />
       )}
     </div>

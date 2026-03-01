@@ -151,7 +151,10 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {/* Name and Target Amount */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-1 ${errors.name ? 'text-error' : 'text-muted-foreground'}`}>
+          <Label
+            className="text-sm mb-1"
+            style={{ color: errors.name ? 'var(--color-destructive)' : 'var(--color-muted-foreground)' }}
+          >
             Goal Name
           </Label>
           <Input
@@ -162,16 +165,22 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
               if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
             }}
             placeholder="e.g., Vacation Fund"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.name ? 'border-error' : 'border-border'
-            }`}
+            className="placeholder:italic"
+            style={{
+              backgroundColor: 'var(--color-elevated)',
+              color: 'var(--color-foreground)',
+              border: errors.name ? '1px solid var(--color-destructive)' : '1px solid var(--color-border)',
+            }}
           />
           {errors.name && (
-            <p className="text-error text-xs mt-1">{errors.name}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-destructive)' }}>{errors.name}</p>
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-1 ${errors.targetAmount ? 'text-error' : 'text-muted-foreground'}`}>
+          <Label
+            className="text-sm mb-1"
+            style={{ color: errors.targetAmount ? 'var(--color-destructive)' : 'var(--color-muted-foreground)' }}
+          >
             Target Amount
           </Label>
           <Input
@@ -185,12 +194,15 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
             placeholder="Enter amount"
             step="0.01"
             min="0"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.targetAmount ? 'border-error' : 'border-border'
-            }`}
+            className="placeholder:italic"
+            style={{
+              backgroundColor: 'var(--color-elevated)',
+              color: 'var(--color-foreground)',
+              border: errors.targetAmount ? '1px solid var(--color-destructive)' : '1px solid var(--color-border)',
+            }}
           />
           {errors.targetAmount && (
-            <p className="text-error text-xs mt-1">{errors.targetAmount}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-destructive)' }}>{errors.targetAmount}</p>
           )}
         </div>
       </div>
@@ -198,7 +210,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {/* Current Amount and Priority */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">Current Amount</Label>
+          <Label className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Current Amount</Label>
           <Input
             name="currentAmount"
             type="number"
@@ -207,18 +219,26 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
             placeholder="0.00"
             step="0.01"
             min="0"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            style={{
+              backgroundColor: 'var(--color-elevated)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-foreground)',
+            }}
           />
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">Priority</Label>
+          <Label className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Priority</Label>
           <Input
             name="priority"
             type="number"
             value={formData.priority}
             onChange={handleChange}
             placeholder="0"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            style={{
+              backgroundColor: 'var(--color-elevated)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-foreground)',
+            }}
           />
         </div>
       </div>
@@ -226,14 +246,14 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {/* Category and Target Date */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">Category</Label>
+          <Label className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Category</Label>
           <Select value={formData.category} onValueChange={(v) => handleSelectChange('category', v)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
+            <SelectTrigger style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border">
+            <SelectContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
               {GOAL_CATEGORIES.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value} className="text-foreground">
+                <SelectItem key={cat.value} value={cat.value} style={{ color: 'var(--color-foreground)' }}>
                   {cat.label}
                 </SelectItem>
               ))}
@@ -241,20 +261,20 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
           </Select>
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">Target Date</Label>
+          <Label className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Target Date</Label>
           <Input
             name="targetDate"
             type="date"
             value={formData.targetDate}
             onChange={handleChange}
-            className="bg-elevated border-border text-foreground"
+            style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
           />
         </div>
       </div>
 
       {/* Monthly Contribution */}
       <div>
-        <Label className="text-muted-foreground text-sm mb-1">Monthly Contribution (Optional)</Label>
+        <Label className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Monthly Contribution (Optional)</Label>
         <Input
           name="monthlyContribution"
           type="number"
@@ -263,32 +283,42 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
           placeholder="0.00"
           step="0.01"
           min="0"
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+          style={{
+            backgroundColor: 'var(--color-elevated)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-foreground)',
+          }}
         />
       </div>
 
       {/* Recommended Monthly Savings */}
       {recommendation && (
-        <div className="bg-elevated border border-border rounded-lg p-4">
+        <div
+          className="border rounded-lg p-4"
+          style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
+        >
           <div className="flex items-start gap-3">
-            <div className="p-2 rounded-full bg-primary/10 shrink-0">
-              <Lightbulb className="w-4 h-4 text-primary" />
+            <div
+              className="p-2 rounded-full shrink-0"
+              style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)' }}
+            >
+              <Lightbulb className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground mb-1">
+              <p className="text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>
                 Recommended Monthly Savings
               </p>
               {recommendation.recommendedMonthly !== null ? (
                 <>
-                  <p className="text-xl font-semibold text-primary font-mono">
+                  <p className="text-xl font-semibold font-mono" style={{ color: 'var(--color-primary)' }}>
                     {formatCurrency(recommendation.recommendedMonthly)}
-                    <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
+                    <span className="text-sm font-normal ml-1" style={{ color: 'var(--color-muted-foreground)' }}>/month</span>
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                     {recommendation.message}
                   </p>
                   {recommendation.isTightTimeline && (
-                    <p className="text-xs text-warning mt-1">
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-warning)' }}>
                       Tight timeline - consider adjusting your target date
                     </p>
                   )}
@@ -297,11 +327,12 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
                     size="sm"
                     onClick={handleApplyRecommendation}
                     disabled={isRecommendationApplied}
-                    className={`mt-3 ${
+                    className="mt-3"
+                    style={
                       isRecommendationApplied
-                        ? 'bg-success/20 text-success cursor-default'
-                        : 'bg-primary hover:opacity-90 text-primary-foreground'
-                    }`}
+                        ? { backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)', color: 'var(--color-success)', cursor: 'default' }
+                        : { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                    }
                   >
                     {isRecommendationApplied ? (
                       <>
@@ -314,7 +345,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
                   </Button>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                   {recommendation.message}
                 </p>
               )}
@@ -325,7 +356,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
 
       {/* Color Picker */}
       <div>
-        <Label className="text-muted-foreground text-sm mb-2">Color</Label>
+        <Label className="text-sm mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Color</Label>
         <div className="flex gap-2">
           {GOAL_COLORS.map((color) => (
             <button
@@ -333,9 +364,12 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
               type="button"
               onClick={() => handleColorChange(color)}
               className={`w-8 h-8 rounded-full border-2 transition-all ${
-                formData.color === color ? 'border-foreground scale-110' : 'border-border'
+                formData.color === color ? 'scale-110' : ''
               }`}
-              style={{ backgroundColor: color }}
+              style={{
+                backgroundColor: color,
+                borderColor: formData.color === color ? 'var(--color-foreground)' : 'var(--color-border)',
+              }}
             />
           ))}
         </div>
@@ -343,25 +377,35 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
 
       {/* Description */}
       <div>
-        <Label className="text-muted-foreground text-sm mb-1">Description (Optional)</Label>
+        <Label className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Description (Optional)</Label>
         <Textarea
           name="description"
           value={formData.description}
           onChange={handleChange}
           placeholder="Why is this goal important to you?"
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground min-h-20"
+          className="min-h-20"
+          style={{
+            backgroundColor: 'var(--color-elevated)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-foreground)',
+          }}
         />
       </div>
 
       {/* Notes */}
       <div>
-        <Label className="text-muted-foreground text-sm mb-1">Notes (Optional)</Label>
+        <Label className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Notes (Optional)</Label>
         <Textarea
           name="notes"
           value={formData.notes}
           onChange={handleChange}
           placeholder="Additional notes..."
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground min-h-20"
+          className="min-h-20"
+          style={{
+            backgroundColor: 'var(--color-elevated)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-foreground)',
+          }}
         />
       </div>
 
@@ -370,7 +414,8 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
         <Button
           type="submit"
           disabled={isLoading}
-          className="flex-1 bg-primary hover:opacity-90 text-primary-foreground"
+          className="flex-1 hover:opacity-90"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
         >
           {isLoading ? 'Saving...' : goal ? 'Update Goal' : 'Create Goal'}
         </Button>
@@ -378,7 +423,8 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
           type="button"
           onClick={onCancel}
           variant="outline"
-          className="flex-1 border-border text-muted-foreground hover:text-foreground"
+          className="flex-1 hover:text-[var(--color-foreground)]"
+          style={{ border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }}
         >
           Cancel
         </Button>

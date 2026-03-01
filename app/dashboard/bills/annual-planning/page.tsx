@@ -353,37 +353,39 @@ export default function AnnualBillPlanningPage() {
           <div>
             <div className="flex items-center gap-3">
               <Link href="/dashboard/bills">
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-elevated">
+                <Button variant="ghost" size="sm" className="hover:[color:var(--color-foreground)] hover:[background-color:var(--color-elevated)]" style={{ color: 'var(--color-muted-foreground)' }}>
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Bills
                 </Button>
               </Link>
             </div>
-            <h1 className="text-3xl font-bold text-foreground mt-2">Annual Bill Planning</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold mt-2" style={{ color: 'var(--color-foreground)' }}>Annual Bill Planning</h1>
+            <p className="mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
               Plan and track your quarterly, semi-annual, and annual bills
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Year Navigation */}
-            <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-1">
+            <div className="flex items-center gap-1 rounded-lg p-1" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handlePrevYear}
-                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+                className="hover:[color:var(--color-foreground)] hover:[background-color:var(--color-elevated)]"
+                style={{ color: 'var(--color-muted-foreground)' }}
                 aria-label="Previous year"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <button
                 onClick={handleCurrentYear}
-                className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+                className="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors hover:[background-color:var(--color-elevated)]"
+                style={
                   isCurrentYear
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-foreground hover:bg-elevated'
-                }`}
+                    ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                    : { color: 'var(--color-foreground)' }
+                }
               >
                 {year}
               </button>
@@ -391,7 +393,8 @@ export default function AnnualBillPlanningPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleNextYear}
-                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+                className="hover:[color:var(--color-foreground)] hover:[background-color:var(--color-elevated)]"
+                style={{ color: 'var(--color-muted-foreground)' }}
                 aria-label="Next year"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -404,7 +407,8 @@ export default function AnnualBillPlanningPage() {
               size="sm"
               onClick={handleExportCSV}
               disabled={loading || !data || data.bills.length === 0}
-              className="bg-elevated border-border text-foreground hover:bg-elevated"
+              className="hover:[background-color:var(--color-elevated)]"
+              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
             >
               <Download className="w-4 h-4 mr-2" />
               Export
@@ -412,7 +416,7 @@ export default function AnnualBillPlanningPage() {
 
             {/* Add Bill Button */}
             <Link href="/dashboard/bills/new">
-              <Button className="bg-primary hover:opacity-90 text-primary-foreground">
+              <Button className="hover:opacity-90" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Bill
               </Button>
@@ -425,20 +429,21 @@ export default function AnnualBillPlanningPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 bg-card animate-pulse rounded-xl" />
+                <div key={i} className="h-24 animate-pulse rounded-xl" style={{ backgroundColor: 'var(--color-background)' }} />
               ))}
             </div>
-            <div className="h-96 bg-card animate-pulse rounded-xl" />
+            <div className="h-96 animate-pulse rounded-xl" style={{ backgroundColor: 'var(--color-background)' }} />
           </div>
         )}
 
         {/* Error State */}
         {!loading && error && (
-          <div className="bg-error/10 border border-error/30 rounded-xl p-6 text-center">
-            <p className="text-error mb-4">{error}</p>
+          <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 30%, transparent)' }}>
+            <p className="mb-4" style={{ color: 'var(--color-destructive)' }}>{error}</p>
             <Button
               onClick={fetchData}
-              className="bg-error hover:opacity-90 text-white"
+              className="hover:opacity-90"
+              style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}
             >
               Try Again
             </Button>
@@ -447,10 +452,10 @@ export default function AnnualBillPlanningPage() {
 
         {/* No Household Selected */}
         {!loading && !selectedHouseholdId && (
-          <div className="bg-card border border-border rounded-xl p-8 text-center">
-            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">No Household Selected</h3>
-            <p className="text-muted-foreground">
+          <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+            <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--color-muted-foreground)' }} />
+            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>No Household Selected</h3>
+            <p style={{ color: 'var(--color-muted-foreground)' }}>
               Please select a household from the sidebar to view your annual bill planning.
             </p>
           </div>
@@ -472,24 +477,24 @@ export default function AnnualBillPlanningPage() {
 
             {/* Helpful Info */}
             {data.bills.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-2">Legend</h3>
+              <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+                <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>Legend</h3>
                 <div className="flex flex-wrap gap-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-income/20 border border-income/30" />
-                    <span className="text-sm text-muted-foreground">Paid</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-income) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-income) 30%, transparent)' }} />
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Paid</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-warning/20 border border-warning/30" />
-                    <span className="text-sm text-muted-foreground">Pending</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)' }} />
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Pending</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-error/20 border border-error/30" />
-                    <span className="text-sm text-muted-foreground">Overdue</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 30%, transparent)' }} />
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Overdue</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-muted/30 border border-muted-foreground/20" />
-                    <span className="text-sm text-muted-foreground">Skipped</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-muted) 30%, transparent)', border: '1px solid color-mix(in oklch, var(--color-muted-foreground) 20%, transparent)' }} />
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Skipped</span>
                   </div>
                 </div>
               </div>

@@ -216,16 +216,16 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   return (
     <Dialog open={open} onOpenChange={showCloseButton ? onOpenChange : undefined}>
       <DialogContent
-        className="max-w-[95vw] sm:max-w-3xl max-h-[95vh] p-0 flex flex-col bg-background border-border"
+        className="max-w-[95vw] sm:max-w-3xl max-h-[95vh] p-0 flex flex-col"
+        style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '20px' }}
         showCloseButton={showCloseButton}
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Onboarding</DialogTitle>
           <DialogDescription>Complete the onboarding flow to get started</DialogDescription>
         </DialogHeader>
-        {/* Progress Indicator */}
         {currentStep > 1 && (
-          <div className="border-b border-border">
+          <div style={{ borderBottom: '1px solid var(--color-border)' }}>
             <OnboardingProgress
               currentStep={currentStep}
               totalSteps={totalSteps}
@@ -234,12 +234,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
             />
           </div>
         )}
-
-        {/* Step Content */}
-        <div 
-          ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto min-h-0"
-        >
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0">
           {renderStep()}
         </div>
       </DialogContent>

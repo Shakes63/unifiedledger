@@ -32,7 +32,7 @@ function EmailVerifiedPageContent() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <div className="bg-card border border-border rounded-xl p-8 text-center">
+        <div className="bg-background border border-border rounded-xl p-8 text-center">
           {/* Success Icon */}
           <div className="mx-auto w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mb-6">
             <CheckCircle2 className="w-10 h-10 text-success" />
@@ -74,7 +74,7 @@ export default function EmailVerifiedPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <div className="bg-card border border-border rounded-xl p-8 text-center">
+          <div className="bg-background border border-border rounded-xl p-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
             <p className="text-muted-foreground mt-4">Loading...</p>
           </div>

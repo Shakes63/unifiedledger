@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ChevronDown, ChevronUp, Edit2, Trash2, CreditCard, AlertTriangle, History, BarChart3, TrendingUp, Clock, Zap } from 'lucide-react';
 import { CreditUtilizationBadge } from './credit-utilization-badge';
@@ -140,13 +139,26 @@ export function DebtPayoffTracker({
   };
 
   return (
-    <Card className="bg-card border-border p-4 hover:border-border transition-colors">
+    <div
+      className="p-4 transition-colors"
+      style={{
+        backgroundColor: 'var(--color-background)',
+        border: '1px solid var(--color-border)',
+      }}
+    >
       <div className="space-y-4">
         {/* Clickable Header */}
         <div>
           <div
             onClick={toggleExpanded}
-            className="flex items-start justify-between cursor-pointer hover:bg-elevated/50 transition-colors rounded-lg -mx-2 -mt-2 px-2 pt-2 pb-2"
+            className="flex items-start justify-between cursor-pointer transition-colors rounded-lg -mx-2 -mt-2 px-2 pt-2 pb-2"
+            style={{ backgroundColor: 'transparent' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 50%, transparent)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -154,21 +166,21 @@ export function DebtPayoffTracker({
                   className="w-4 h-4 rounded-full shrink-0"
                   style={{ backgroundColor: debt.color }}
                 />
-                <h3 className="font-semibold text-foreground">{debt.name}</h3>
+                <h3 className="font-semibold" style={{ color: 'var(--color-foreground)' }}>{debt.name}</h3>
                 <EntityIdBadge id={debt.id} label="Debt" />
                 {debt.status === 'paid_off' && (
-                  <span className="text-xs bg-income/30 text-income px-2 py-1 rounded">
+                  <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-income) 30%, transparent)', color: 'var(--color-income)' }}>
                     Paid Off
                   </span>
                 )}
                 {debt.status === 'paused' && (
-                  <span className="text-xs bg-warning/30 text-warning px-2 py-1 rounded">
+                  <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 30%, transparent)', color: 'var(--color-warning)' }}>
                     Paused
                   </span>
                 )}
                 {/* Extra Payment Badge */}
                 {(debt.additionalMonthlyPayment ?? 0) > 0 && debt.status !== 'paid_off' && (
-                  <span className="text-xs bg-income/20 text-income px-2 py-1 rounded flex items-center gap-1">
+                  <span className="text-xs px-2 py-1 rounded flex items-center gap-1" style={{ backgroundColor: 'color-mix(in oklch, var(--color-income) 20%, transparent)', color: 'var(--color-income)' }}>
                     <TrendingUp className="w-3 h-3" />
                     Extra
                   </span>
@@ -184,13 +196,14 @@ export function DebtPayoffTracker({
                   />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{debt.creditorName}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>{debt.creditorName}</p>
             </div>
             <div className="flex gap-2 items-start">
               <ChevronDown
-                className={`w-5 h-5 text-muted-foreground transition-transform duration-300 shrink-0 ${
+                className={`w-5 h-5 transition-transform duration-300 shrink-0 ${
                   isExpanded ? 'rotate-180' : ''
                 }`}
+                style={{ color: 'var(--color-muted-foreground)' }}
               />
               <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                 {onEdit && (
@@ -198,7 +211,7 @@ export function DebtPayoffTracker({
                     size="sm"
                     variant="ghost"
                     onClick={() => onEdit(debt)}
-                    className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+                    style={{ color: 'var(--color-muted-foreground)' }}
                   >
                     <Edit2 className="w-4 h-4" />
                   </Button>
@@ -208,7 +221,7 @@ export function DebtPayoffTracker({
                     size="sm"
                     variant="ghost"
                     onClick={() => onDelete(debt.id)}
-                    className="text-muted-foreground hover:text-error hover:bg-error/20"
+                    style={{ color: 'var(--color-muted-foreground)' }}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -219,7 +232,7 @@ export function DebtPayoffTracker({
 
           {/* Collapsed Summary */}
           {!isExpanded && (
-            <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground mt-2 px-2">
+            <div className="flex items-center justify-between gap-4 text-sm mt-2 px-2" style={{ color: 'var(--color-muted-foreground)' }}>
               <span className="font-mono">
                 ${debt.remainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} / ${debt.originalAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </span>
@@ -237,35 +250,35 @@ export function DebtPayoffTracker({
             {/* Progress Bar */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>
                   ${debt.remainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} remaining of $
                   {debt.originalAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                 </span>
-                <span className="text-foreground font-semibold">{Math.round(progressPercent)}%</span>
+                <span className="font-semibold" style={{ color: 'var(--color-foreground)' }}>{Math.round(progressPercent)}%</span>
               </div>
-              <Progress value={progressPercent} className="h-2 bg-elevated" />
+              <Progress value={progressPercent} className="h-2" style={{ backgroundColor: 'var(--color-elevated)' }} />
             </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 text-center text-sm">
           <div>
-            <p className="text-muted-foreground text-xs">Paid Off</p>
-            <p className="text-foreground font-semibold">
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Paid Off</p>
+            <p className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
               ${paidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
           {(debt.minimumPayment || debt.additionalMonthlyPayment) ? (
             <div>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 {(debt.additionalMonthlyPayment ?? 0) > 0 
                   ? 'Planned Payment' 
                   : 'Min Payment'}
               </p>
-              <p className="text-foreground font-semibold">
+              <p className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
                 ${((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)).toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
               {(debt.additionalMonthlyPayment ?? 0) > 0 && (
-                <p className="text-xs text-income flex items-center justify-center gap-1 mt-0.5">
+                <p className="text-xs flex items-center justify-center gap-1 mt-0.5" style={{ color: 'var(--color-income)' }}>
                   <TrendingUp className="w-3 h-3" />
                   +${(debt.additionalMonthlyPayment ?? 0).toLocaleString('en-US', { maximumFractionDigits: 2 })} extra
                 </p>
@@ -274,54 +287,63 @@ export function DebtPayoffTracker({
           ) : null}
           {daysLeft !== null ? (
             <div>
-              <p className="text-muted-foreground text-xs">Days Left</p>
-              <p className={`font-semibold ${daysLeft < 0 ? 'text-error' : 'text-foreground'}`}>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Days Left</p>
+              <p
+                className="font-semibold"
+                style={{ color: daysLeft < 0 ? 'var(--color-destructive)' : 'var(--color-foreground)' }}
+              >
                 {daysLeft < 0 ? `${Math.abs(daysLeft)} ago` : daysLeft}
               </p>
             </div>
           ) : (
             <div>
-              <p className="text-muted-foreground text-xs">Type</p>
-              <p className="text-foreground font-semibold capitalize">{debt.type.replace(/_/g, ' ')}</p>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Type</p>
+              <p className="font-semibold capitalize" style={{ color: 'var(--color-foreground)' }}>{debt.type.replace(/_/g, ' ')}</p>
             </div>
           )}
         </div>
 
         {/* Payoff Timeline (Strategy vs Minimum) */}
         {payoffTimeline && debt.status !== 'paid_off' && (
-          <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
+          <div
+            className="rounded-lg p-3"
+            style={{
+              backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)',
+              border: '1px solid color-mix(in oklch, var(--color-primary) 30%, transparent)',
+            }}
+          >
             <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-4 h-4 text-primary" />
-              <span className="text-xs font-semibold text-foreground">
+              <Zap className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+              <span className="text-xs font-semibold" style={{ color: 'var(--color-foreground)' }}>
                 Payoff Timeline ({payoffTimeline.method})
               </span>
-              <span className="text-xs text-muted-foreground ml-auto">
+              <span className="text-xs ml-auto" style={{ color: 'var(--color-muted-foreground)' }}>
                 #{payoffTimeline.order} priority
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">With Strategy</p>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>With Strategy</p>
                 <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-income" />
-                  <span className="text-sm font-semibold text-income">
+                  <Clock className="w-3 h-3" style={{ color: 'var(--color-income)' }} />
+                  <span className="text-sm font-semibold" style={{ color: 'var(--color-income)' }}>
                     {payoffTimeline.strategyMonths} months
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                   {new Date(payoffTimeline.strategyDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Min Payments Only</p>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Min Payments Only</p>
                 <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-sm font-semibold text-muted-foreground">
+                  <Clock className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />
+                  <span className="text-sm font-semibold" style={{ color: 'var(--color-muted-foreground)' }}>
                     {payoffTimeline.minimumOnlyMonths === -1 ? 'Never' : `${payoffTimeline.minimumOnlyMonths} months`}
                   </span>
                 </div>
                 {payoffTimeline.minimumOnlyMonths > 0 && payoffTimeline.minimumOnlyMonths !== -1 && (
-                  <p className="text-xs text-income">
+                  <p className="text-xs" style={{ color: 'var(--color-income)' }}>
                     {payoffTimeline.minimumOnlyMonths - payoffTimeline.strategyMonths} months faster!
                   </p>
                 )}
@@ -332,20 +354,27 @@ export function DebtPayoffTracker({
 
         {/* Interest Rate */}
         {debt.interestRate > 0 && (
-          <div className="bg-elevated border border-border rounded p-2">
+          <div
+            className="rounded p-2"
+            style={{
+              backgroundColor: 'var(--color-elevated)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Interest Rate</span>
-              <span className="text-sm text-foreground font-semibold">{debt.interestRate.toFixed(2)}%</span>
+              <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Interest Rate</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>{debt.interestRate.toFixed(2)}%</span>
             </div>
           </div>
         )}
 
         {/* Credit Utilization Section (Credit Cards Only) */}
         {hasLimit && (
-          <div className="border-t border-border pt-3">
+          <div className="pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
             <button
               onClick={() => setShowUtilization(!showUtilization)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+              className="flex items-center gap-2 text-sm transition-colors w-full"
+              style={{ color: 'var(--color-muted-foreground)' }}
             >
               {showUtilization ? (
                 <ChevronUp className="w-4 h-4" />
@@ -355,22 +384,28 @@ export function DebtPayoffTracker({
               <CreditCard className="w-4 h-4" />
               <span>Credit Utilization</span>
               {isOverTarget && (
-                <AlertTriangle className="w-3 h-3 text-warning ml-auto" />
+                <AlertTriangle className="w-3 h-3 ml-auto" style={{ color: 'var(--color-warning)' }} />
               )}
             </button>
 
             {showUtilization && (
-              <div className="mt-4 space-y-3 bg-elevated rounded-lg p-3 border border-border">
+              <div
+                className="mt-4 space-y-3 rounded-lg p-3"
+                style={{
+                  backgroundColor: 'var(--color-elevated)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
                 {/* Utilization Progress Bar */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Utilization</span>
-                    <span className="text-foreground font-semibold">{utilization.toFixed(1)}%</span>
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Utilization</span>
+                    <span className="font-semibold" style={{ color: 'var(--color-foreground)' }}>{utilization.toFixed(1)}%</span>
                   </div>
-                  <Progress value={utilization} className="h-2 bg-card" />
-                  <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <Progress value={utilization} className="h-2" style={{ backgroundColor: 'var(--color-background)' }} />
+                  <div className="flex justify-between items-center text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                     <span>0%</span>
-                    <span className="text-warning">30% target</span>
+                    <span style={{ color: 'var(--color-warning)' }}>30% target</span>
                     <span>100%</span>
                   </div>
                 </div>
@@ -378,14 +413,14 @@ export function DebtPayoffTracker({
                 {/* Credit Info Grid */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-muted-foreground text-xs mb-1">Credit Limit</p>
-                    <p className="text-foreground font-semibold font-mono">
+                    <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Credit Limit</p>
+                    <p className="font-semibold font-mono" style={{ color: 'var(--color-foreground)' }}>
                       ${debt.creditLimit!.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs mb-1">Available Credit</p>
-                    <p className="text-success font-semibold font-mono">
+                    <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Available Credit</p>
+                    <p className="font-semibold font-mono" style={{ color: 'var(--color-success)' }}>
                       ${available.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                     </p>
                   </div>
@@ -393,21 +428,33 @@ export function DebtPayoffTracker({
 
                 {/* Recommendation */}
                 {recommendation && (
-                  <div className="bg-card rounded-lg p-3 border border-border">
-                    <p className="text-xs text-muted-foreground">{recommendation}</p>
+                  <div
+                    className="rounded-lg p-3"
+                    style={{
+                      backgroundColor: 'var(--color-background)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                  >
+                    <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{recommendation}</p>
                   </div>
                 )}
 
                 {/* Payment to Target */}
                 {paymentToTarget > 0 && (
-                  <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
+                  <div
+                    className="rounded-lg p-3"
+                    style={{
+                      backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)',
+                      border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)',
+                    }}
+                  >
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
                       <div className="flex-1">
-                        <p className="text-xs font-semibold text-foreground mb-1">
+                        <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>
                           Pay ${paymentToTarget.toLocaleString()} to reach 30%
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                           Keeping utilization below 30% helps maintain a healthy credit score.
                         </p>
                       </div>
@@ -421,10 +468,11 @@ export function DebtPayoffTracker({
 
         {/* Milestones */}
         {milestones.length > 0 && (
-          <div className="border-t border-border pt-3">
+          <div className="pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
             <button
               onClick={() => setShowMilestones(!showMilestones)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-sm transition-colors"
+              style={{ color: 'var(--color-muted-foreground)' }}
             >
               {showMilestones ? (
                 <ChevronUp className="w-4 h-4" />
@@ -439,18 +487,19 @@ export function DebtPayoffTracker({
                   <div key={milestone.id} className="flex items-center gap-3 text-sm">
                     <div className="flex-1">
                       <div className="flex justify-between mb-1">
-                        <span className="text-muted-foreground">{milestone.percentage}%</span>
-                        <span className="text-muted-foreground">
+                        <span style={{ color: 'var(--color-muted-foreground)' }}>{milestone.percentage}%</span>
+                        <span style={{ color: 'var(--color-muted-foreground)' }}>
                           ${milestone.milestoneBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       <Progress
                         value={milestone.achievedAt ? 100 : 0}
-                        className="h-1.5 bg-elevated"
+                        className="h-1.5"
+                        style={{ backgroundColor: 'var(--color-elevated)' }}
                       />
                     </div>
                     {milestone.achievedAt && (
-                      <span className="text-income text-xs">✓</span>
+                      <span className="text-xs" style={{ color: 'var(--color-income)' }}>✓</span>
                     )}
                   </div>
                 ))}
@@ -460,13 +509,14 @@ export function DebtPayoffTracker({
         )}
 
             {/* Payment History Section */}
-            <div className="border-t border-border pt-3">
+            <div className="pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowPaymentHistory(!showPaymentHistory);
                 }}
-                className="flex items-center justify-between w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center justify-between w-full text-sm transition-colors"
+                style={{ color: 'var(--color-muted-foreground)' }}
               >
                 <span className="flex items-center gap-2">
                   {showPaymentHistory ? (
@@ -487,13 +537,14 @@ export function DebtPayoffTracker({
 
             {/* Amortization Schedule Section */}
             {debt.interestRate > 0 && (
-              <div className="border-t border-border pt-3">
+              <div className="pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowAmortization(!showAmortization);
                   }}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-2 text-sm transition-colors"
+                  style={{ color: 'var(--color-muted-foreground)' }}
                 >
                   {showAmortization ? (
                     <ChevronUp className="w-4 h-4" />
@@ -513,11 +564,15 @@ export function DebtPayoffTracker({
 
             {/* Record Payment Button */}
             {debt.status !== 'paid_off' && (
-              <div className="border-t border-border pt-3">
+              <div className="pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
                 {!showPayment ? (
                   <Button
                     onClick={() => setShowPayment(true)}
-                    className="w-full bg-primary hover:opacity-90 text-primary-foreground"
+                    className="w-full hover:opacity-90"
+                    style={{
+                      backgroundColor: 'var(--color-primary)',
+                      color: 'var(--color-primary-foreground)',
+                    }}
                   >
                     Record Payment
                   </Button>
@@ -528,20 +583,32 @@ export function DebtPayoffTracker({
                       placeholder="Amount"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-income"
+                      className="flex-1 rounded px-3 py-2 text-sm"
+                      style={{
+                        backgroundColor: 'var(--color-elevated)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-foreground)',
+                      }}
                       step="0.01"
                       min="0"
                     />
                     <Button
                       onClick={handlePayment}
-                      className="bg-primary hover:opacity-90 text-primary-foreground"
+                      className="hover:opacity-90"
+                      style={{
+                        backgroundColor: 'var(--color-primary)',
+                        color: 'var(--color-primary-foreground)',
+                      }}
                     >
                       Record
                     </Button>
                     <Button
                       onClick={() => setShowPayment(false)}
                       variant="outline"
-                      className="border-border text-muted-foreground hover:text-foreground"
+                      style={{
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-muted-foreground)',
+                      }}
                     >
                       Cancel
                     </Button>
@@ -552,6 +619,6 @@ export function DebtPayoffTracker({
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

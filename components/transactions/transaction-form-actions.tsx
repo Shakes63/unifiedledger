@@ -26,7 +26,8 @@ export function TransactionFormActions({
           type="submit"
           onClick={onSave}
           disabled={loading}
-          className="flex-1 bg-primary text-white hover:opacity-90 font-medium h-12 md:h-10 text-base md:text-sm"
+          className="flex-1 hover:opacity-90 font-medium h-12 md:h-10 text-base md:text-sm"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
         >
           {isEditMode
             ? loading && saveMode === 'save'
@@ -41,7 +42,8 @@ export function TransactionFormActions({
             type="submit"
             onClick={onSaveAndAdd}
             disabled={loading}
-            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium h-12 md:h-10 text-base md:text-sm"
+            className="flex-1 font-medium h-12 md:h-10 text-base md:text-sm"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
           >
             {loading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
           </Button>
@@ -52,7 +54,10 @@ export function TransactionFormActions({
         variant="outline"
         onClick={onCancel}
         disabled={loading}
-        className="w-full bg-elevated text-foreground border-border hover:bg-elevated/80 h-12 md:h-10 text-base md:text-sm"
+        className="w-full h-12 md:h-10 text-base md:text-sm"
+        style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', border: '1px solid var(--color-border)' }}
+        onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 80%, transparent)'; }}
+        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
       >
         Cancel
       </Button>

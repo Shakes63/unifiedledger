@@ -180,7 +180,7 @@ export function MerchantSelector({
 
   return (
     <div className="space-y-2">
-      {!hideLabel && <label className="text-sm font-medium text-foreground">Merchant</label>}
+      {!hideLabel && <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Merchant</label>}
       {/* Keep Select mounted but hidden during creation to preserve controlled value state */}
       <div className={`flex gap-2 ${isCreating ? 'hidden' : ''}`}>
         <div className="flex-1 space-y-2">
@@ -189,10 +189,14 @@ export function MerchantSelector({
             placeholder="Search merchants..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-elevated border border-border text-foreground rounded-lg"
+            className="rounded-lg"
+            style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
           />
           <Select value={selectedMerchant || ''} onValueChange={onMerchantChange}>
-            <SelectTrigger className="bg-elevated border border-border text-foreground rounded-lg">
+            <SelectTrigger
+              className="rounded-lg"
+              style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+            >
               <SelectValue placeholder={loading ? 'Loading merchants...' : 'Select or skip'}>
                 {selectedMerchantName}
               </SelectValue>
@@ -204,7 +208,15 @@ export function MerchantSelector({
                   <div className="flex items-center gap-2">
                     <span>{merchant.name}</span>
                     {merchant.isSalesTaxExempt && (
-                      <Badge variant="outline" className="text-[10px] px-1 py-0 bg-success/10 text-success border-success/30">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1 py-0"
+                        style={{
+                          backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)',
+                          color: 'var(--color-success)',
+                          borderColor: 'color-mix(in oklch, var(--color-success) 30%, transparent)',
+                        }}
+                      >
                         Tax Exempt
                       </Badge>
                     )}
@@ -212,7 +224,7 @@ export function MerchantSelector({
                 </SelectItem>
               ))}
               {!loading && merchants.length === 0 && (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                <div className="px-2 py-1.5 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                   {debouncedSearchQuery.length >= 2 ? 'No merchants found' : 'No merchants yet'}
                 </div>
               )}
@@ -224,7 +236,8 @@ export function MerchantSelector({
                     size="sm"
                     onClick={loadMoreMerchants}
                     disabled={loadingMore}
-                    className="w-full border-border"
+                    className="w-full"
+                    style={{ borderColor: 'var(--color-border)' }}
                   >
                     {loadingMore ? 'Loading...' : `Load more (${merchants.length}/${totalMerchants})`}
                   </Button>
@@ -238,7 +251,12 @@ export function MerchantSelector({
           variant="outline"
           size="icon"
           onClick={() => setIsCreating(true)}
-          className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+          className="hover:opacity-90"
+          style={{
+            backgroundColor: 'var(--color-elevated)',
+            borderColor: 'var(--color-border)',
+            color: 'var(--color-muted-foreground)',
+          }}
         >
           <Plus className="w-4 h-4" />
         </Button>
@@ -252,14 +270,20 @@ export function MerchantSelector({
             value={newMerchantName}
             onChange={(e) => setNewMerchantName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-elevated border border-primary text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+            style={{
+              backgroundColor: 'var(--color-elevated)',
+              border: '1px solid var(--color-primary)',
+              color: 'var(--color-foreground)',
+            }}
           />
           <Button
             type="button"
             size="icon"
             onClick={handleCreateMerchant}
             disabled={creatingMerchant || !newMerchantName.trim()}
-            className="bg-primary hover:opacity-90 text-primary-foreground"
+            className="hover:opacity-90"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
           >
             <Plus className="w-4 h-4" />
           </Button>
@@ -271,7 +295,12 @@ export function MerchantSelector({
               setIsCreating(false);
               setNewMerchantName('');
             }}
-            className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+            className="hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--color-elevated)',
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-muted-foreground)',
+            }}
           >
             <X className="w-4 h-4" />
           </Button>

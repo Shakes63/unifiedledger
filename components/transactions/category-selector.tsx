@@ -196,11 +196,11 @@ export function CategorySelector({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground">Category</label>
+      <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Category</label>
       {/* Keep Select mounted but hidden during creation to preserve controlled value state */}
       <div className={`flex gap-2 ${isCreating ? 'hidden' : ''}`}>
         <Select value={selectedCategory || 'none'} onValueChange={(value) => onCategoryChange(value === 'none' ? null : value)}>
-          <SelectTrigger className="flex-1 bg-elevated border-border text-foreground rounded-lg">
+          <SelectTrigger className="flex-1 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
             <SelectValue placeholder="Select or skip" />
           </SelectTrigger>
           <SelectContent>
@@ -373,7 +373,10 @@ export function CategorySelector({
           variant="outline"
           size="icon"
           onClick={() => setIsCreating(true)}
-          className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+          className="transition-colors"
+          style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-foreground)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
         >
           <Plus className="w-4 h-4" />
         </Button>
@@ -387,14 +390,16 @@ export function CategorySelector({
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-elevated border border-primary text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 rounded-lg focus:outline-none focus:ring-2"
+            style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-primary)', color: 'var(--color-foreground)' }}
           />
           <Button
             type="button"
             size="icon"
             onClick={handleCreateCategory}
             disabled={creatingCategory || !newCategoryName.trim()}
-            className="bg-primary hover:opacity-90 text-primary-foreground"
+            className="hover:opacity-90"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
           >
             <Plus className="w-4 h-4" />
           </Button>
@@ -406,7 +411,10 @@ export function CategorySelector({
               setIsCreating(false);
               setNewCategoryName('');
             }}
-            className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+            className="transition-colors"
+          style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-foreground)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
           >
             <X className="w-4 h-4" />
           </Button>

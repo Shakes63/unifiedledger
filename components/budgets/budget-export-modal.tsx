@@ -154,67 +154,47 @@ export function BudgetExportModal({
     }
   };
 
+  const fs = { backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' };
+  const lbl = 'text-[11px] font-medium uppercase tracking-wide block mb-1.5';
+  const lblS = { color: 'var(--color-muted-foreground)' };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border">
+      <DialogContent className="sm:max-w-[440px]" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
         <DialogHeader>
-          <DialogTitle className="text-foreground">Export Budget Data</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogTitle className="flex items-center gap-2 text-[15px]" style={{ color: 'var(--color-foreground)' }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)' }}>
+              <Download className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+            </div>
+            Export Budget Data
+          </DialogTitle>
+          <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
             Download your budget data as a CSV file for external analysis
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Date Range Selection */}
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-4 mt-1">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="start-month" className="text-sm text-muted-foreground">
-                Start Month
-              </Label>
-              <select
-                id="start-month"
-                value={startMonth}
-                onChange={(e) => setStartMonth(e.target.value)}
-                className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {monthOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+              <label className={lbl} style={lblS} htmlFor="start-month">Start Month</label>
+              <select id="start-month" value={startMonth} onChange={e => setStartMonth(e.target.value)}
+                className="w-full rounded-lg px-3 py-2 text-[13px] h-9" style={fs}>
+                {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
-
             <div>
-              <Label htmlFor="end-month" className="text-sm text-muted-foreground">
-                End Month
-              </Label>
-              <select
-                id="end-month"
-                value={endMonth}
-                onChange={(e) => setEndMonth(e.target.value)}
-                className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {monthOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+              <label className={lbl} style={lblS} htmlFor="end-month">End Month</label>
+              <select id="end-month" value={endMonth} onChange={e => setEndMonth(e.target.value)}
+                className="w-full rounded-lg px-3 py-2 text-[13px] h-9" style={fs}>
+                {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Category Filter */}
           <div>
-            <Label htmlFor="category-filter" className="text-sm text-muted-foreground">
-              Category Filter
-            </Label>
-            <select
-              id="category-filter"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as 'all' | 'income' | 'expenses' | 'savings')}
-              className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
-            >
+            <label className={lbl} style={lblS} htmlFor="category-filter">Category Filter</label>
+            <select id="category-filter" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as 'all' | 'income' | 'expenses' | 'savings')}
+              className="w-full rounded-lg px-3 py-2 text-[13px] h-9" style={fs}>
               <option value="all">All Categories</option>
               <option value="income">Income Only</option>
               <option value="expenses">Expenses Only</option>
@@ -222,62 +202,28 @@ export function BudgetExportModal({
             </select>
           </div>
 
-          {/* Export Options */}
-          <div className="space-y-3">
-            <Label className="text-sm text-muted-foreground">Export Options</Label>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="include-summary"
-                checked={includeSummary}
-                onCheckedChange={(checked) => setIncludeSummary(checked as boolean)}
-              />
-              <label
-                htmlFor="include-summary"
-                className="text-sm text-foreground cursor-pointer"
-              >
-                Include summary row
-              </label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="include-variable-bills"
-                checked={includeVariableBills}
-                onCheckedChange={(checked) => setIncludeVariableBills(checked as boolean)}
-              />
-              <label
-                htmlFor="include-variable-bills"
-                className="text-sm text-foreground cursor-pointer"
-              >
-                Include variable bills section
-              </label>
-            </div>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+            {[
+              { id: 'include-summary', checked: includeSummary, onChange: setIncludeSummary, label: 'Include summary row' },
+              { id: 'include-variable-bills', checked: includeVariableBills, onChange: setIncludeVariableBills, label: 'Include variable bills section' },
+            ].map(({ id, checked, onChange, label }, i, arr) => (
+              <div key={id} className="flex items-center gap-3 px-3 py-2.5" style={{ backgroundColor: 'var(--color-elevated)', borderBottom: i < arr.length - 1 ? '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' : 'none' }}>
+                <Checkbox id={id} checked={checked} onCheckedChange={v => onChange(v as boolean)} />
+                <label htmlFor={id} className="text-[13px] cursor-pointer" style={{ color: 'var(--color-foreground)' }}>{label}</label>
+              </div>
+            ))}
           </div>
 
-          {/* Preview */}
-          <div className={`p-3 rounded-lg ${preview.valid ? 'bg-accent/10' : 'bg-error/10'}`}>
-            <p className={`text-sm ${preview.valid ? 'text-foreground' : 'text-error'}`}>
-              {preview.message}
-            </p>
+          <div className="px-3 py-2.5 rounded-lg" style={{ backgroundColor: preview.valid ? 'color-mix(in oklch, var(--color-primary) 6%, transparent)' : 'color-mix(in oklch, var(--color-destructive) 6%, transparent)', border: `1px solid ${preview.valid ? 'color-mix(in oklch, var(--color-primary) 20%, transparent)' : 'color-mix(in oklch, var(--color-destructive) 20%, transparent)'}` }}>
+            <p className="text-[12px]" style={{ color: preview.valid ? 'var(--color-primary)' : 'var(--color-destructive)' }}>{preview.message}</p>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="border-border text-muted-foreground hover:text-foreground"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleExport}
-            disabled={!preview.valid || exporting}
-            className="bg-primary text-white hover:opacity-90"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {exporting ? 'Generating...' : 'Generate CSV'}
+        <DialogFooter className="mt-2">
+          <Button variant="outline" onClick={onClose} className="h-9 text-[13px]">Cancel</Button>
+          <Button onClick={handleExport} disabled={!preview.valid || exporting} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            {exporting ? 'Generating…' : 'Generate CSV'}
           </Button>
         </DialogFooter>
       </DialogContent>

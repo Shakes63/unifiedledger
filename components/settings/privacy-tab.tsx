@@ -2,14 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +13,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -59,6 +51,38 @@ interface Session {
   isCurrent: boolean;
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  footer,
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+      </div>
+      <div className="px-4 py-4">{children}</div>
+      {footer && (
+        <div className="px-4 py-3 flex items-center justify-end gap-2" style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 35%, transparent)' }}>
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function PrivacyTab() {
   const { selectedHouseholdId } = useHousehold();
   const router = useRouter();
@@ -75,110 +99,61 @@ export function PrivacyTab() {
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchSessions();
-  }, []);
+  useEffect(() => { fetchSessions(); }, []);
 
   async function fetchSessions() {
     try {
-      // Fetch sessions
-      const sessionsResponse = await fetch('/api/user/sessions', { credentials: 'include' });
-      if (sessionsResponse.ok) {
-        const data = await sessionsResponse.json();
-        setSessions(data.sessions);
-      }
+      const sessRes = await fetch('/api/user/sessions', { credentials: 'include' });
+      if (sessRes.ok) { const d = await sessRes.json(); setSessions(d.sessions); }
 
-      // Fetch user settings for session timeout
-      const settingsResponse = await fetch('/api/user/settings', { credentials: 'include' });
-      if (settingsResponse.ok) {
-        const settingsData = await settingsResponse.json();
-        setSessionTimeout(settingsData.settings.sessionTimeout || 30);
-      }
-    } catch (_error) {
-      toast.error('Failed to load sessions');
-    } finally {
-      setLoading(false);
-    }
+      const setRes = await fetch('/api/user/settings', { credentials: 'include' });
+      if (setRes.ok) { const d = await setRes.json(); setSessionTimeout(d.settings.sessionTimeout || 30); }
+    } catch { toast.error('Failed to load sessions'); }
+    finally { setLoading(false); }
   }
 
   async function handleTimeoutChange(value: string) {
-    const newTimeout = parseInt(value, 10);
-    setSessionTimeout(newTimeout);
-
+    const n = parseInt(value, 10);
+    setSessionTimeout(n);
     try {
       setSavingTimeout(true);
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionTimeout: newTimeout }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save session timeout');
-      }
-
-      toast.success('Session timeout updated successfully');
-    } catch (_error) {
-      toast.error('Failed to save session timeout');
-      // Revert on error
-      fetchSessions();
-    } finally {
-      setSavingTimeout(false);
-    }
+      const res = await fetch('/api/user/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionTimeout: n }) });
+      if (!res.ok) throw new Error('Failed');
+      toast.success('Session timeout updated');
+    } catch { toast.error('Failed to save session timeout'); fetchSessions(); }
+    finally { setSavingTimeout(false); }
   }
 
-  async function revokeSession(sessionId: string) {
+  async function revokeSession(id: string) {
     try {
-      const response = await fetch(`/api/user/sessions/${sessionId}`, { credentials: 'include', method: 'DELETE', });
-
-      if (response.ok) {
-        toast.success('Session revoked successfully');
-        fetchSessions(); // Refresh list
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to revoke session');
-      }
-    } catch (_error) {
-      toast.error('Failed to revoke session');
-    }
+      const res = await fetch(`/api/user/sessions/${id}`, { credentials: 'include', method: 'DELETE' });
+      if (res.ok) { toast.success('Session revoked'); fetchSessions(); }
+      else { const d = await res.json(); toast.error(d.error || 'Failed to revoke session'); }
+    } catch { toast.error('Failed to revoke session'); }
   }
 
   async function revokeAllSessions() {
     try {
-      const response = await fetch('/api/user/sessions/revoke-all', { credentials: 'include', method: 'POST', });
-
-      if (response.ok) {
-        toast.success('All other sessions revoked');
-        fetchSessions();
-      } else {
-        toast.error('Failed to revoke sessions');
-      }
-    } catch (_error) {
-      toast.error('Failed to revoke sessions');
-    }
+      const res = await fetch('/api/user/sessions/revoke-all', { credentials: 'include', method: 'POST' });
+      if (res.ok) { toast.success('All other sessions revoked'); fetchSessions(); }
+      else { toast.error('Failed to revoke sessions'); }
+    } catch { toast.error('Failed to revoke sessions'); }
   }
 
   async function exportAllData() {
     try {
       setExporting(true);
-      const response = await fetch('/api/user/export', { credentials: 'include' });
-      if (response.ok) {
-        const blob = await response.blob();
+      const res = await fetch('/api/user/export', { credentials: 'include' });
+      if (res.ok) {
+        const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `unifiedledger-export-${getTodayLocalDateString()}.json`;
-        a.click();
+        a.href = url; a.download = `unifiedledger-export-${getTodayLocalDateString()}.json`; a.click();
         window.URL.revokeObjectURL(url);
-        toast.success('Data exported successfully');
-      } else {
-        toast.error('Failed to export data');
-      }
-    } catch (_error) {
-      toast.error('Failed to export data');
-    } finally {
-      setExporting(false);
-    }
+        toast.success('Data exported');
+      } else { toast.error('Failed to export data'); }
+    } catch { toast.error('Failed to export data'); }
+    finally { setExporting(false); }
   }
 
   async function exportCSV() {
@@ -187,488 +162,235 @@ export function PrivacyTab() {
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
+      if (!selectedHouseholdId) { toast.error('Please select a household first'); return; }
 
-      if (!selectedHouseholdId) {
-        toast.error('Please select a household first');
-        return;
-      }
-
-      const response = await fetch(`/api/user/export/csv?${params}`, {
-        credentials: 'include',
-        headers: {
-          'x-household-id': selectedHouseholdId,
-        },
-      });
-      if (response.ok) {
-        const blob = await response.blob();
+      const res = await fetch(`/api/user/export/csv?${params}`, { credentials: 'include', headers: { 'x-household-id': selectedHouseholdId } });
+      if (res.ok) {
+        const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `transactions-${startDate || 'all'}-${endDate || 'all'}.csv`;
-        a.click();
+        a.href = url; a.download = `transactions-${startDate || 'all'}-${endDate || 'all'}.csv`; a.click();
         window.URL.revokeObjectURL(url);
-        toast.success('Transactions exported successfully');
-        setCsvDialogOpen(false);
-        setStartDate('');
-        setEndDate('');
-      } else {
-        toast.error('Failed to export transactions');
-      }
-    } catch (_error) {
-      toast.error('Failed to export transactions');
-    } finally {
-      setExporting(false);
-    }
+        toast.success('Transactions exported');
+        setCsvDialogOpen(false); setStartDate(''); setEndDate('');
+      } else { toast.error('Failed to export transactions'); }
+    } catch { toast.error('Failed to export transactions'); }
+    finally { setExporting(false); }
   }
 
   async function deleteAccount() {
-    if (deleteConfirmation !== 'DELETE MY ACCOUNT') {
-      toast.error('Please type the confirmation text exactly');
-      return;
-    }
-
-    if (!deletePassword) {
-      toast.error('Password is required');
-      return;
-    }
-
+    if (deleteConfirmation !== 'DELETE MY ACCOUNT') { toast.error('Please type the confirmation text exactly'); return; }
+    if (!deletePassword) { toast.error('Password is required'); return; }
     try {
       setDeleting(true);
-      const response = await fetch('/api/user/delete-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password: deletePassword,
-          confirmation: deleteConfirmation,
-        }),
-      });
-
-      if (response.ok) {
-        toast.success('Account deleted. Goodbye!');
-        // Redirect to home page
-        setTimeout(() => {
-          router.push('/');
-        }, 1000);
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to delete account');
-      }
-    } catch (_error) {
-      toast.error('Failed to delete account');
-    } finally {
-      setDeleting(false);
-    }
+      const res = await fetch('/api/user/delete-account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: deletePassword, confirmation: deleteConfirmation }) });
+      if (res.ok) { toast.success('Account deleted. Goodbye!'); setTimeout(() => router.push('/'), 1000); }
+      else { const d = await res.json(); toast.error(d.error || 'Failed to delete account'); }
+    } catch { toast.error('Failed to delete account'); }
+    finally { setDeleting(false); }
   }
 
-  function formatLastActive(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
+  function formatLastActive(ds: string) {
+    const diffMins = Math.floor((Date.now() - new Date(ds).getTime()) / 60000);
     if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const h = Math.floor(diffMins / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
   }
 
-  function getCountryFlag(countryCode: string | null): string {
-    if (!countryCode || countryCode.length !== 2) return '';
-
-    try {
-      const codePoints = countryCode
-        .toUpperCase()
-        .split('')
-        .map((char) => 127397 + char.charCodeAt(0));
-      return String.fromCodePoint(...codePoints);
-    } catch {
-      return '';
-    }
+  function getCountryFlag(cc: string | null) {
+    if (!cc || cc.length !== 2) return '';
+    try { return String.fromCodePoint(...cc.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0))); }
+    catch { return ''; }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Active Sessions Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Active Sessions</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Manage devices where you&apos;re currently signed in
-        </p>
+    <div className="space-y-4">
 
+      {/* ── Active Sessions ───────────────────────────────────────────── */}
+      <Section
+        icon={Monitor}
+        label="Active Sessions"
+        footer={sessions.length > 1 ? (
+          <Button variant="outline" size="sm" onClick={revokeAllSessions} className="text-[12px] h-8" style={{ borderColor: 'var(--color-destructive)', color: 'var(--color-destructive)' }}>
+            <LogOut className="w-3.5 h-3.5 mr-1.5" />
+            Revoke All Other Sessions
+          </Button>
+        ) : undefined}
+      >
         {loading ? (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin mr-2" />
-            Loading sessions...
+          <div className="space-y-2">
+            {[...Array(2)].map((_, i) => <div key={i} className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)', animationDelay: `${i * 80}ms` }} />)}
           </div>
         ) : sessions.length === 0 ? (
-          <Card className="p-8 bg-elevated border-border text-center">
-            <p className="text-muted-foreground">No active sessions found</p>
-          </Card>
+          <p className="text-[13px] py-4 text-center" style={{ color: 'var(--color-muted-foreground)' }}>No active sessions found</p>
         ) : (
-          <div className="space-y-3">
-            {sessions.map((session) => (
-              <Card
-                key={session.id}
-                className="p-4 bg-elevated border-border"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    {session.deviceInfo.includes('iPhone') ||
-                     session.deviceInfo.includes('Android') ? (
-                      <Smartphone className="w-5 h-5 text-muted-foreground mt-0.5" />
-                    ) : (
-                      <Monitor className="w-5 h-5 text-muted-foreground mt-0.5" />
-                    )}
-
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-foreground">
-                          {session.deviceInfo}
-                        </span>
-                        {session.isCurrent && (
-                          <Badge
-                            variant="secondary"
-                            className="bg-success text-white"
-                          >
-                            Current
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="text-sm text-muted-foreground space-y-0.5">
-                        {session.ipAddress && (
-                          <div>IP: {session.ipAddress}</div>
-                        )}
-                        {session.location && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="cursor-help">
-                                  Location: {getCountryFlag(session.countryCode)}{' '}
-                                  {session.location}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="bg-card border-border">
-                                <p className="text-foreground">
-                                  Location is determined by IP address
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                        <div>Last active: {formatLastActive(session.lastActive)}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {!session.isCurrent && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => revokeSession(session.id)}
-                      className="text-error hover:text-error hover:bg-error/10"
-                    >
-                      <LogOut className="w-4 h-4 mr-1" />
-                      Revoke
-                    </Button>
-                  )}
+          <div className="divide-y rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+            {sessions.map(s => (
+              <div key={s.id} className="flex items-center gap-3 px-3 py-2.5" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+                  {s.deviceInfo.includes('iPhone') || s.deviceInfo.includes('Android')
+                    ? <Smartphone className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />
+                    : <Monitor className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />}
                 </div>
-              </Card>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[13px] font-medium truncate" style={{ color: 'var(--color-foreground)' }}>{s.deviceInfo}</span>
+                    {s.isCurrent && (
+                      <Badge className="text-[10px] h-4 px-1.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 15%, transparent)', color: 'var(--color-success)', border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)' }}>
+                        Current
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-[11px] flex items-center gap-2 flex-wrap" style={{ color: 'var(--color-muted-foreground)', opacity: 0.8 }}>
+                    {s.ipAddress && <span>{s.ipAddress}</span>}
+                    {s.location && <span>{getCountryFlag(s.countryCode)} {s.location}</span>}
+                    <span>{formatLastActive(s.lastActive)}</span>
+                  </div>
+                </div>
+                {!s.isCurrent && (
+                  <Button variant="ghost" size="sm" onClick={() => revokeSession(s.id)} className="h-7 text-[11px] shrink-0" style={{ color: 'var(--color-destructive)' }}>
+                    <LogOut className="w-3.5 h-3.5 mr-1" />
+                    Revoke
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         )}
+      </Section>
 
-        {sessions.length > 1 && (
-          <Button
-            variant="outline"
-            onClick={revokeAllSessions}
-            className="mt-4 border-error text-error hover:bg-error/10"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Revoke All Other Sessions
-          </Button>
-        )}
-      </div>
-
-      <Separator className="bg-border" />
-
-      {/* Session Security Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Session Security</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Automatically log out after a period of inactivity to protect your account
-        </p>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="sessionTimeout" className="text-foreground flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Session Timeout
-            </Label>
-            <Select
-              value={sessionTimeout.toString()}
-              onValueChange={handleTimeoutChange}
-              disabled={savingTimeout}
-            >
-              <SelectTrigger
-                id="sessionTimeout"
-                name="sessionTimeout"
-                aria-label="Select session timeout duration"
-                className="bg-background border-border text-foreground"
-              >
-                <SelectValue placeholder="Select timeout duration" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="15" className="text-foreground hover:bg-elevated">
-                  15 minutes
-                </SelectItem>
-                <SelectItem value="30" className="text-foreground hover:bg-elevated">
-                  30 minutes (recommended)
-                </SelectItem>
-                <SelectItem value="60" className="text-foreground hover:bg-elevated">
-                  1 hour
-                </SelectItem>
-                <SelectItem value="120" className="text-foreground hover:bg-elevated">
-                  2 hours
-                </SelectItem>
-                <SelectItem value="240" className="text-foreground hover:bg-elevated">
-                  4 hours
-                </SelectItem>
-                <SelectItem value="480" className="text-foreground hover:bg-elevated">
-                  8 hours
-                </SelectItem>
-                <SelectItem value="0" className="text-foreground hover:bg-elevated">
-                  Never (not recommended)
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {sessionTimeout === 0 ? (
-                <span className="flex items-center gap-1 text-warning">
-                  <AlertTriangle className="w-3 h-3" />
-                  Disabling session timeout reduces account security. Only use on trusted devices.
-                </span>
-              ) : (
-                `You'll be automatically logged out after ${sessionTimeout} ${sessionTimeout === 1 ? 'minute' : 'minutes'} of inactivity.`
-              )}
+      {/* ── Session Security ──────────────────────────────────────────── */}
+      <Section icon={Clock} label="Session Security" accent="var(--color-warning)">
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Session Timeout</p>
+          <Select value={sessionTimeout.toString()} onValueChange={handleTimeoutChange} disabled={savingTimeout}>
+            <SelectTrigger id="sessionTimeout" name="sessionTimeout" aria-label="Select session timeout" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="15">15 minutes</SelectItem>
+              <SelectItem value="30">30 minutes (recommended)</SelectItem>
+              <SelectItem value="60">1 hour</SelectItem>
+              <SelectItem value="120">2 hours</SelectItem>
+              <SelectItem value="240">4 hours</SelectItem>
+              <SelectItem value="480">8 hours</SelectItem>
+              <SelectItem value="0">Never (not recommended)</SelectItem>
+            </SelectContent>
+          </Select>
+          {sessionTimeout === 0 ? (
+            <p className="text-[11px] flex items-center gap-1" style={{ color: 'var(--color-warning)' }}>
+              <AlertTriangle className="w-3 h-3" />
+              Disabling session timeout reduces account security.
             </p>
-          </div>
+          ) : (
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
+              You'll be logged out after {sessionTimeout} {sessionTimeout === 1 ? 'minute' : 'minutes'} of inactivity.
+            </p>
+          )}
+          {savingTimeout && <p className="text-[11px] flex items-center gap-1" style={{ color: 'var(--color-primary)' }}><Loader2 className="w-3 h-3 animate-spin" />Saving…</p>}
         </div>
-      </div>
+      </Section>
 
-      <Separator className="bg-border" />
-
-      {/* Two-Factor Authentication Section */}
+      {/* ── 2FA ──────────────────────────────────────────────────────── */}
       <TwoFactorSection />
 
-      <Separator className="bg-border" />
-
-      {/* OAuth Providers Section */}
+      {/* ── OAuth Providers ───────────────────────────────────────────── */}
       <OAuthProvidersSection />
 
-      <Separator className="bg-border" />
+      {/* ── Data Export ───────────────────────────────────────────────── */}
+      <Section icon={Download} label="Data Export" accent="var(--color-primary)">
+        <div className="space-y-2">
+          <p className="text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>Download your data for backup or migration.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={exportAllData} disabled={exporting} className="text-[12px] h-8">
+              {exporting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Download className="w-3.5 h-3.5 mr-1.5" />}
+              Export All Data (JSON)
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)} disabled={exporting} className="text-[12px] h-8">
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              Export Transactions (CSV)
+            </Button>
+          </div>
+        </div>
+      </Section>
 
-      {/* Data Export Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Data Export</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Download your data for backup or migration
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            onClick={exportAllData}
-            disabled={exporting}
-            className="border-border"
-          >
-            {exporting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            Export All Data (JSON)
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => setCsvDialogOpen(true)}
-            disabled={exporting}
-            className="border-border"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Transactions (CSV)
+      {/* ── Danger Zone ───────────────────────────────────────────────── */}
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid color-mix(in oklch, var(--color-destructive) 35%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-destructive) 4%, var(--color-background))' }}>
+        <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-destructive) 20%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-destructive) 8%, transparent)', borderLeft: '3px solid var(--color-destructive)' }}>
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-destructive)', opacity: 0.85 }} />
+          <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-destructive)' }}>Danger Zone</span>
+        </div>
+        <div className="px-4 py-4 flex items-start gap-3">
+          <div className="flex-1 space-y-1">
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Delete Account</p>
+            <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setDeleteDialogOpen(true)} className="shrink-0 text-[12px] h-8" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            Delete Account
           </Button>
         </div>
       </div>
 
-      <Separator className="bg-border" />
-
-      {/* Danger Zone Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-error mb-2">Danger Zone</h3>
-        <Card className="p-4 border-error bg-error/5">
-          <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className="w-5 h-5 text-error mt-0.5" />
-            <div>
-              <h4 className="font-medium text-foreground mb-1">Delete Account</h4>
-              <p className="text-sm text-muted-foreground">
-                Permanently delete your account and all associated data. This action cannot be undone.
-              </p>
-            </div>
-          </div>
-
-          <Button
-            variant="destructive"
-            onClick={() => setDeleteDialogOpen(true)}
-            className="bg-error hover:bg-error/90"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete My Account
-          </Button>
-        </Card>
-      </div>
-
-      {/* CSV Export Dialog */}
+      {/* ── CSV Export Dialog ─────────────────────────────────────────── */}
       <Dialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Export Transactions</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Select a date range for your transaction export (optional)
+            <DialogTitle style={{ color: 'var(--color-foreground)' }}>Export Transactions</DialogTitle>
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
+              Select a date range (optional) to narrow the export.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="startDate" className="text-foreground">Start Date</Label>
-              <Input
-                id="startDate"
-                name="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="mt-1 bg-elevated border-border"
-              />
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="startDate" className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Start Date</Label>
+              <Input id="startDate" name="startDate" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }} />
             </div>
-
-            <div>
-              <Label htmlFor="endDate" className="text-foreground">End Date</Label>
-              <Input
-                id="endDate"
-                name="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="mt-1 bg-elevated border-border"
-              />
+            <div className="space-y-1.5">
+              <Label htmlFor="endDate" className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>End Date</Label>
+              <Input id="endDate" name="endDate" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }} />
             </div>
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCsvDialogOpen(false);
-                setStartDate('');
-                setEndDate('');
-              }}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button onClick={exportCSV} disabled={exporting}>
-              {exporting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4 mr-2" />
-              )}
+            <Button variant="outline" size="sm" onClick={() => { setCsvDialogOpen(false); setStartDate(''); setEndDate(''); }} className="text-[12px]">Cancel</Button>
+            <Button size="sm" onClick={exportCSV} disabled={exporting} className="text-[12px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {exporting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Download className="w-3.5 h-3.5 mr-1.5" />}
               Export CSV
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Account Dialog */}
+      {/* ── Delete Account Dialog ─────────────────────────────────────── */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'color-mix(in oklch, var(--color-destructive) 40%, var(--color-border))', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-error">
-              Delete Account
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              This action is permanent and cannot be undone. All your data will be deleted.
+            <DialogTitle style={{ color: 'var(--color-destructive)' }}>Delete Account</DialogTitle>
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
+              This is permanent and cannot be undone. All your data will be deleted.
             </DialogDescription>
           </DialogHeader>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              deleteAccount();
-            }}
-          >
-            <div className="space-y-4 py-4">
-              <div>
-                <Label htmlFor="deletePassword" className="text-foreground">Password</Label>
-                <Input
-                  id="deletePassword"
-                  name="deletePassword"
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="mt-1 bg-elevated border-border"
-                  required
-                />
+          <form onSubmit={e => { e.preventDefault(); deleteAccount(); }}>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="deletePassword" className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Password</Label>
+                <Input id="deletePassword" name="deletePassword" type="password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} placeholder="Enter your password" required className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }} />
               </div>
-
-              <div>
-                <Label htmlFor="deleteConfirm" className="text-foreground">
+              <div className="space-y-1.5">
+                <Label htmlFor="deleteConfirm" className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>
                   Type &quot;DELETE MY ACCOUNT&quot; to confirm
                 </Label>
-                <Input
-                  id="deleteConfirm"
-                  name="deleteConfirm"
-                  type="text"
-                  value={deleteConfirmation}
-                  onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  placeholder="DELETE MY ACCOUNT"
-                  className="mt-1 bg-elevated border-border"
-                  required
-                />
+                <Input id="deleteConfirm" name="deleteConfirm" type="text" value={deleteConfirmation} onChange={e => setDeleteConfirmation(e.target.value)} placeholder="DELETE MY ACCOUNT" required className="h-9 text-[13px] font-mono" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }} />
               </div>
             </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setDeleteDialogOpen(false);
-                  setDeletePassword('');
-                  setDeleteConfirmation('');
-                }}
-                className="border-border"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="destructive"
-                disabled={
-                  deleteConfirmation !== 'DELETE MY ACCOUNT' || !deletePassword || deleting
-                }
-                className="bg-error hover:bg-error/90"
-              >
-                {deleting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4 mr-2" />
-                )}
+            <DialogFooter className="mt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => { setDeleteDialogOpen(false); setDeletePassword(''); setDeleteConfirmation(''); }} className="text-[12px]">Cancel</Button>
+              <Button type="submit" size="sm" disabled={deleteConfirmation !== 'DELETE MY ACCOUNT' || !deletePassword || deleting} className="text-[12px]" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>
+                {deleting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />}
                 Delete Account
               </Button>
             </DialogFooter>

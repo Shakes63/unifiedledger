@@ -236,21 +236,21 @@ export default function TaxPage() {
     switch (type) {
       case 'business':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 20%, transparent)', color: 'var(--color-primary)' }}>
             <Building2 className="w-3 h-3" />
             Business
           </span>
         );
       case 'personal':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-success/20 text-success">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)', color: 'var(--color-success)' }}>
             <User className="w-3 h-3" />
             Personal
           </span>
         );
       case 'mixed':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'var(--color-muted)', color: 'var(--color-muted-foreground)' }}>
             Mixed
           </span>
         );
@@ -261,8 +261,8 @@ export default function TaxPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading tax information...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: 'var(--color-primary)' }}></div>
+          <p style={{ color: 'var(--color-muted-foreground)' }}>Loading tax information...</p>
         </div>
       </div>
     );
@@ -272,8 +272,8 @@ export default function TaxPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-error font-medium mb-2">Error</p>
-          <p className="text-muted-foreground mb-4">{error || 'Unknown error'}</p>
+          <p className="font-medium mb-2" style={{ color: 'var(--color-destructive)' }}>Error</p>
+          <p className="mb-4" style={{ color: 'var(--color-muted-foreground)' }}>{error || 'Unknown error'}</p>
           <Button onClick={fetchTaxData}>Try Again</Button>
         </div>
       </div>
@@ -300,8 +300,8 @@ export default function TaxPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Tax Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Track deductions and prepare for tax season</p>
+            <h1 className="text-3xl font-bold" style={{ color: 'var(--color-foreground)' }}>Tax Dashboard</h1>
+            <p className="mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Track deductions and prepare for tax season</p>
           </div>
           <div className="flex items-center gap-3">
             <Select value={year} onValueChange={setYear}>
@@ -365,12 +365,12 @@ export default function TaxPage() {
         {!hasData && (
           <Card className="text-center py-12">
             <CardContent>
-              <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">No Tax Data Available</h3>
-              <p className="text-muted-foreground mb-4">
+              <FileText className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-muted-foreground)' }} />
+              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>No Tax Data Available</h3>
+              <p className="mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
                 There are no {typeFilter !== 'all' ? typeFilter : ''} transactions with tax-deductible categories for {year}.
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 Start tracking your deductible expenses by marking categories as &quot;Tax Deductible&quot; in the Categories page.
               </p>
             </CardContent>
@@ -382,13 +382,13 @@ export default function TaxPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
                   <TrendingUp className="w-4 h-4" />
                   Total Income
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-income">
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-income)' }}>
                   ${data.summary.totalIncome.toFixed(2)}
                 </p>
               </CardContent>
@@ -396,13 +396,13 @@ export default function TaxPage() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
                   <DollarSign className="w-4 h-4" />
                   Total Deductions
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
                   ${data.summary.totalDeductions.toFixed(2)}
                 </p>
               </CardContent>
@@ -410,46 +410,46 @@ export default function TaxPage() {
 
             <Card className={typeFilter === 'personal' ? 'opacity-50' : ''}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
                   <Building2 className="w-4 h-4" />
                   Business Deductions
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
                   ${data.summary.businessDeductions.toFixed(2)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Schedule C</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Schedule C</p>
               </CardContent>
             </Card>
 
             <Card className={typeFilter === 'business' ? 'opacity-50' : ''}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
                   <User className="w-4 h-4" />
                   Personal Deductions
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-success">
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-success)' }}>
                   ${data.summary.personalDeductions.toFixed(2)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Schedule A</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Schedule A</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
                   <AlertCircle className="w-4 h-4" />
                   Est. Quarterly Payment
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-warning">
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-warning)' }}>
                   ${data.estimates.estimatedQuarterlyPayment.toFixed(2)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                   Annual: ${data.estimates.estimatedAnnualTax.toFixed(2)}
                 </p>
               </CardContent>
@@ -479,61 +479,58 @@ export default function TaxPage() {
                   return (
                     <div 
                       key={item.type} 
-                      className={`p-4 rounded-lg border ${
+                      className="p-4 rounded-lg border"
+                      style={
                         limitStatus?.isAtLimit 
-                          ? 'bg-error/10 border-error/30' 
+                          ? { backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)', borderColor: 'color-mix(in oklch, var(--color-destructive) 30%, transparent)' }
                           : limitStatus?.isApproachingLimit 
-                            ? 'bg-warning/10 border-warning/30'
-                            : 'bg-elevated border-border'
-                      }`}
+                            ? { backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)', borderColor: 'color-mix(in oklch, var(--color-warning) 30%, transparent)' }
+                            : { backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }
+                      }
                     >
                       <div className="flex items-center gap-2 mb-2">
                         {getInterestTypeIcon(item.type)}
-                        <span className="text-sm font-medium text-foreground">
+                        <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                           {formatInterestType(item.type)}
                         </span>
                       </div>
-                      <p className="text-2xl font-bold text-income font-mono">
+                      <p className="text-2xl font-bold font-mono" style={{ color: 'var(--color-income)' }}>
                         ${item.totalDeductible.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                         {item.paymentCount} payment{item.paymentCount !== 1 ? 's' : ''}
                       </p>
                       
                       {hasLimit && (
                         <div className="mt-3">
                           <div className="flex justify-between text-xs mb-1">
-                            <span className="text-muted-foreground">Annual Limit</span>
-                            <span className={`font-medium ${
-                              limitStatus?.isAtLimit 
-                                ? 'text-error' 
-                                : limitStatus?.isApproachingLimit 
-                                  ? 'text-warning'
-                                  : 'text-foreground'
-                            }`}>
+                            <span style={{ color: 'var(--color-muted-foreground)' }}>Annual Limit</span>
+                            <span 
+                              className="font-medium"
+                              style={{ 
+                                color: limitStatus?.isAtLimit ? 'var(--color-destructive)' : limitStatus?.isApproachingLimit ? 'var(--color-warning)' : 'var(--color-foreground)' 
+                              }}
+                            >
                               {percentUsed.toFixed(0)}% used
                             </span>
                           </div>
-                          <div className="h-2 bg-border rounded-full overflow-hidden">
+                          <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border)' }}>
                             <div 
-                              className={`h-full rounded-full transition-all ${
-                                limitStatus?.isAtLimit 
-                                  ? 'bg-error' 
-                                  : limitStatus?.isApproachingLimit 
-                                    ? 'bg-warning'
-                                    : 'bg-income'
-                              }`}
-                              style={{ width: `${Math.min(100, percentUsed)}%` }}
+                              className="h-full rounded-full transition-all"
+                              style={{ 
+                                backgroundColor: limitStatus?.isAtLimit ? 'var(--color-destructive)' : limitStatus?.isApproachingLimit ? 'var(--color-warning)' : 'var(--color-income)',
+                                width: `${Math.min(100, percentUsed)}%`
+                              }}
                             />
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                             ${item.remainingCapacity?.toLocaleString('en-US', { minimumFractionDigits: 2 })} remaining of ${item.annualLimit?.toLocaleString('en-US')}
                           </p>
                         </div>
                       )}
                       
                       {!hasLimit && (
-                        <p className="text-xs text-muted-foreground mt-3">
+                        <p className="text-xs mt-3" style={{ color: 'var(--color-muted-foreground)' }}>
                           No annual limit
                         </p>
                       )}
@@ -543,22 +540,22 @@ export default function TaxPage() {
               </div>
               
               {/* Interest Totals Summary */}
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Total Interest Paid</p>
-                  <p className="text-xl font-bold text-foreground font-mono">
+                  <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Total Interest Paid</p>
+                  <p className="text-xl font-bold font-mono" style={{ color: 'var(--color-foreground)' }}>
                     ${interestData.summary.totals.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Total Deductible</p>
-                  <p className="text-xl font-bold text-income font-mono">
+                  <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Total Deductible</p>
+                  <p className="text-xl font-bold font-mono" style={{ color: 'var(--color-income)' }}>
                     ${interestData.summary.totals.totalDeductible.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Limited by Caps</p>
-                  <p className="text-xl font-bold text-warning font-mono">
+                  <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Limited by Caps</p>
+                  <p className="text-xl font-bold font-mono" style={{ color: 'var(--color-warning)' }}>
                     ${interestData.summary.totals.totalLimitReductions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -599,21 +596,21 @@ export default function TaxPage() {
                     const isBusinessForm = formType === 'schedule_c';
 
                     return (
-                      <div key={formType} className={`border-l-2 pl-4 ${isBusinessForm ? 'border-primary' : 'border-success'}`}>
+                      <div key={formType} className="border-l-2 pl-4" style={{ borderColor: isBusinessForm ? 'var(--color-primary)' : 'var(--color-success)' }}>
                         <div className="flex items-center gap-2">
-                          <p className="text-foreground font-semibold">
+                          <p className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
                             {formType.replace(/_/g, ' ').toUpperCase()}
                           </p>
                           {isBusinessForm ? (
-                            <span className="text-xs text-primary">(Business)</span>
+                            <span className="text-xs" style={{ color: 'var(--color-primary)' }}>(Business)</span>
                           ) : formType === 'schedule_a' ? (
-                            <span className="text-xs text-success">(Personal)</span>
+                            <span className="text-xs" style={{ color: 'var(--color-success)' }}>(Personal)</span>
                           ) : null}
                         </div>
-                        <p className={`text-2xl font-bold ${isBusinessForm ? 'text-primary' : 'text-success'}`}>
+                        <p className="text-2xl font-bold" style={{ color: isBusinessForm ? 'var(--color-primary)' : 'var(--color-success)' }}>
                           ${total.toFixed(2)}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">{items.length} categories</p>
+                        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>{items.length} categories</p>
                       </div>
                     );
                   })}
@@ -629,36 +626,36 @@ export default function TaxPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-4 border-b border-border">
-                    <span className="text-muted-foreground">Total Income:</span>
-                    <span className="text-foreground font-semibold">
+                  <div className="flex justify-between items-center pb-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Total Income:</span>
+                    <span className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
                       ${data.summary.totalIncome.toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-border">
-                    <span className="text-muted-foreground">Business Deductions:</span>
-                    <span className="text-primary font-semibold">
+                  <div className="flex justify-between items-center pb-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Business Deductions:</span>
+                    <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>
                       -${data.summary.businessDeductions.toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-border">
-                    <span className="text-muted-foreground">Personal Deductions:</span>
-                    <span className="text-success font-semibold">
+                  <div className="flex justify-between items-center pb-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Personal Deductions:</span>
+                    <span className="font-semibold" style={{ color: 'var(--color-success)' }}>
                       -${data.summary.personalDeductions.toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-border">
-                    <span className="text-muted-foreground">Taxable Income:</span>
-                    <span className="text-warning font-bold text-lg">
+                  <div className="flex justify-between items-center pb-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Taxable Income:</span>
+                    <span className="font-bold text-lg" style={{ color: 'var(--color-warning)' }}>
                       ${data.summary.taxableIncome.toFixed(2)}
                     </span>
                   </div>
-                  <div className="bg-card rounded-lg p-3 mt-4">
-                    <p className="text-xs text-muted-foreground mb-2">ESTIMATED TAX PAYMENT</p>
-                    <p className="text-2xl font-bold text-warning">
+                  <div className="rounded-lg p-3 mt-4" style={{ backgroundColor: 'var(--color-background)' }}>
+                    <p className="text-xs mb-2" style={{ color: 'var(--color-muted-foreground)' }}>ESTIMATED TAX PAYMENT</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--color-warning)' }}>
                       ${data.estimates.estimatedQuarterlyPayment.toFixed(2)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
                       Per quarter (est. annual: ${data.estimates.estimatedAnnualTax.toFixed(2)})
                     </p>
                   </div>
@@ -679,12 +676,12 @@ export default function TaxPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 text-muted-foreground font-medium">Category</th>
-                      <th className="text-left py-3 text-muted-foreground font-medium">Type</th>
-                      <th className="text-left py-3 text-muted-foreground font-medium">Form</th>
-                      <th className="text-right py-3 text-muted-foreground font-medium">Amount</th>
-                      <th className="text-right py-3 text-muted-foreground font-medium">Count</th>
+                    <tr className="border-b" style={{ borderColor: 'var(--color-border)' }}>
+                      <th className="text-left py-3 font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Category</th>
+                      <th className="text-left py-3 font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Type</th>
+                      <th className="text-left py-3 font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Form</th>
+                      <th className="text-right py-3 font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Amount</th>
+                      <th className="text-right py-3 font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Count</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -692,16 +689,16 @@ export default function TaxPage() {
                       .filter((c) => c.isDeductible)
                       .sort((a, b) => b.totalAmount - a.totalAmount)
                       .map((category) => (
-                        <tr key={category.categoryId} className="border-b border-border/50 hover:bg-card">
-                          <td className="py-3 text-foreground">{category.categoryName}</td>
+                        <tr key={category.categoryId} className="border-b hover:[background-color:var(--color-elevated)]" style={{ borderColor: 'color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+                          <td className="py-3" style={{ color: 'var(--color-foreground)' }}>{category.categoryName}</td>
                           <td className="py-3">{getDeductionTypeBadge(category.deductionType)}</td>
-                          <td className="py-3 text-muted-foreground text-xs">
+                          <td className="py-3 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                             {category.formType.replace(/_/g, ' ').toUpperCase()}
                           </td>
-                          <td className="py-3 text-right text-foreground font-medium font-mono">
+                          <td className="py-3 text-right font-medium font-mono" style={{ color: 'var(--color-foreground)' }}>
                             ${category.totalAmount.toFixed(2)}
                           </td>
-                          <td className="py-3 text-right text-muted-foreground">
+                          <td className="py-3 text-right" style={{ color: 'var(--color-muted-foreground)' }}>
                             {category.transactionCount}
                           </td>
                         </tr>
@@ -715,14 +712,14 @@ export default function TaxPage() {
 
         {/* Helpful Tips */}
         {hasData && (
-          <Card className="bg-warning/10 border-warning/30">
+          <Card style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)' }}>
             <CardHeader>
-              <CardTitle className="text-warning flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2" style={{ color: 'var(--color-warning)' }}>
                 <AlertCircle className="w-5 h-5" />
                 Tax Preparation Tips
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-foreground/80">
+            <CardContent className="space-y-2 text-sm" style={{ color: 'color-mix(in oklch, var(--color-foreground) 80%, transparent)' }}>
               <p>
                 - Keep detailed records of all transactions and receipts for audit purposes
               </p>

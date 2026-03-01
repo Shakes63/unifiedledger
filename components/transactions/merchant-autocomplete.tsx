@@ -129,28 +129,30 @@ export function MerchantAutocomplete({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 mt-2 bg-elevated border border-border rounded-lg shadow-lg z-50"
+          className="absolute top-full left-0 right-0 mt-2 rounded-lg shadow-lg z-50"
+          style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}
         >
           {suggestions.map((suggestion, index) => (
             <button
               key={index}
               onClick={() => handleSelectSuggestion(suggestion)}
-              className="w-full text-left px-4 py-2 hover:bg-muted border-b border-border last:border-b-0 transition-colors flex items-center justify-between"
+              className="w-full text-left px-4 py-2 border-b last:border-b-0 transition-colors flex items-center justify-between hover:bg-(--color-elevated)"
+          style={{ borderColor: 'var(--color-border)' }}
             >
               <div className="flex items-center gap-2 flex-1">
-                <HistoryIcon className="w-4 h-4 text-muted-foreground" />
+                <HistoryIcon className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
                 <div>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                     {suggestion.label}
                   </p>
                   {suggestion.averageAmount && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       Avg: ${suggestion.averageAmount.toFixed(2)}
                     </p>
                   )}
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 {suggestion.frequency}x
               </span>
             </button>

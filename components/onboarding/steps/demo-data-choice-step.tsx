@@ -151,14 +151,20 @@ export function DemoDataChoiceStep({
       <div className="flex flex-col space-y-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="mt-4 text-muted-foreground">Loading demo data info...</p>
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--color-primary)' }} />
+            <p className="mt-4" style={{ color: 'var(--color-muted-foreground)' }}>Loading demo data info...</p>
           </div>
         ) : error && !summary ? (
-          <div className="bg-error/10 border border-error/30 rounded-xl p-4 text-center">
-            <AlertCircle className="w-6 h-6 text-error mx-auto mb-2" />
-            <p className="text-sm text-error">{error}</p>
-            <p className="text-xs text-muted-foreground mt-2">
+          <div
+            className="rounded-xl p-4 text-center border"
+            style={{
+              backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)',
+              borderColor: 'color-mix(in oklch, var(--color-destructive) 30%, transparent)',
+            }}
+          >
+            <AlertCircle className="w-6 h-6 mx-auto mb-2" style={{ color: 'var(--color-destructive)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-destructive)' }}>{error}</p>
+            <p className="text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
               You can continue with onboarding anyway.
             </p>
           </div>
@@ -173,38 +179,33 @@ export function DemoDataChoiceStep({
                 disabled={clearing}
                 className={cn(
                   'flex flex-col items-center p-6 rounded-xl border-2 transition-all text-left',
-                  'hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50',
-                  choice === 'keep'
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border bg-card',
+                  'focus:outline-none focus:ring-2',
                   clearing && 'opacity-50 cursor-not-allowed'
                 )}
+                style={{
+                  borderColor: choice === 'keep' ? 'var(--color-primary)' : 'var(--color-border)',
+                  backgroundColor: choice === 'keep' ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'var(--color-background)',
+                }}
               >
                 <div
-                  className={cn(
-                    'w-14 h-14 rounded-full flex items-center justify-center mb-4',
-                    choice === 'keep'
-                      ? 'bg-primary/20'
-                      : 'bg-elevated'
-                  )}
+                  className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+                  style={{
+                    backgroundColor: choice === 'keep' ? 'color-mix(in oklch, var(--color-primary) 20%, transparent)' : 'var(--color-elevated)',
+                  }}
                 >
                   <Database
-                    className={cn(
-                      'w-7 h-7',
-                      choice === 'keep'
-                        ? 'text-primary'
-                        : 'text-muted-foreground'
-                    )}
+                    className="w-7 h-7"
+                    style={{ color: choice === 'keep' ? 'var(--color-primary)' : 'var(--color-muted-foreground)' }}
                   />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>
                   Keep Demo Data
                 </h3>
-                <p className="text-sm text-muted-foreground text-center">
+                <p className="text-sm text-center" style={{ color: 'var(--color-muted-foreground)' }}>
                   Practice with sample accounts, transactions, and bills to learn the app.
                 </p>
                 {choice === 'keep' && (
-                  <div className="mt-4 flex items-center text-primary">
+                  <div className="mt-4 flex items-center" style={{ color: 'var(--color-primary)' }}>
                     <Check className="w-5 h-5 mr-1" />
                     <span className="text-sm font-medium">Selected</span>
                   </div>
@@ -218,38 +219,33 @@ export function DemoDataChoiceStep({
                 disabled={clearing}
                 className={cn(
                   'flex flex-col items-center p-6 rounded-xl border-2 transition-all text-left',
-                  'hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50',
-                  choice === 'clear'
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border bg-card',
+                  'focus:outline-none focus:ring-2',
                   clearing && 'opacity-50 cursor-not-allowed'
                 )}
+                style={{
+                  borderColor: choice === 'clear' ? 'var(--color-primary)' : 'var(--color-border)',
+                  backgroundColor: choice === 'clear' ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'var(--color-background)',
+                }}
               >
                 <div
-                  className={cn(
-                    'w-14 h-14 rounded-full flex items-center justify-center mb-4',
-                    choice === 'clear'
-                      ? 'bg-primary/20'
-                      : 'bg-elevated'
-                  )}
+                  className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+                  style={{
+                    backgroundColor: choice === 'clear' ? 'color-mix(in oklch, var(--color-primary) 20%, transparent)' : 'var(--color-elevated)',
+                  }}
                 >
                   <Sparkles
-                    className={cn(
-                      'w-7 h-7',
-                      choice === 'clear'
-                        ? 'text-primary'
-                        : 'text-muted-foreground'
-                    )}
+                    className="w-7 h-7"
+                    style={{ color: choice === 'clear' ? 'var(--color-primary)' : 'var(--color-muted-foreground)' }}
                   />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>
                   Start Fresh
                 </h3>
-                <p className="text-sm text-muted-foreground text-center">
+                <p className="text-sm text-center" style={{ color: 'var(--color-muted-foreground)' }}>
                   Clear all demo data and begin with a clean slate.
                 </p>
                 {choice === 'clear' && (
-                  <div className="mt-4 flex items-center text-primary">
+                  <div className="mt-4 flex items-center" style={{ color: 'var(--color-primary)' }}>
                     <Check className="w-5 h-5 mr-1" />
                     <span className="text-sm font-medium">Selected</span>
                   </div>
@@ -259,69 +255,69 @@ export function DemoDataChoiceStep({
 
             {/* Demo Data Summary */}
             {summary && totalDemoItems > 0 && (
-              <div className="bg-elevated border border-border rounded-xl p-4">
-                <p className="text-sm font-medium text-foreground mb-3">
+              <div className="rounded-xl p-4 border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+                <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-foreground)' }}>
                   Demo Data Summary:
                 </p>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center">
                   <div className="flex flex-col">
-                    <span className="text-lg font-semibold text-foreground">
+                    <span className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                       {summary.accounts}
                     </span>
-                    <span className="text-xs text-muted-foreground">Accounts</span>
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Accounts</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-lg font-semibold text-foreground">
+                    <span className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                       {summary.categories}
                     </span>
-                    <span className="text-xs text-muted-foreground">Categories</span>
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Categories</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-lg font-semibold text-foreground">
+                    <span className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                       {summary.transactions}
                     </span>
-                    <span className="text-xs text-muted-foreground">Transactions</span>
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Transactions</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-lg font-semibold text-foreground">
+                    <span className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                       {summary.bills}
                     </span>
-                    <span className="text-xs text-muted-foreground">Bills</span>
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Bills</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-lg font-semibold text-foreground">
+                    <span className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                       {summary.goals}
                     </span>
-                    <span className="text-xs text-muted-foreground">Goals</span>
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Goals</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-lg font-semibold text-foreground">
+                    <span className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                       {summary.debts}
                     </span>
-                    <span className="text-xs text-muted-foreground">Debts</span>
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Debts</span>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Helpful Info */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <p className="text-sm text-muted-foreground">
+            <div className="rounded-xl p-4 border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 {choice === 'clear' ? (
                   <>
-                    <span className="font-medium text-foreground">Note:</span> All demo
+                    <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>Note:</span> All demo
                     data (items prefixed with &quot;Demo&quot;) will be permanently deleted. This
                     action cannot be undone.
                   </>
                 ) : choice === 'keep' ? (
                   <>
-                    <span className="font-medium text-foreground">Tip:</span> Demo data is
+                    <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>Tip:</span> Demo data is
                     clearly marked and won&apos;t interfere with real finances. You can delete
                     it later from the settings.
                   </>
                 ) : (
                   <>
-                    <span className="font-medium text-foreground">Choose an option</span>{' '}
+                    <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>Choose an option</span>{' '}
                     to continue with onboarding.
                   </>
                 )}
@@ -330,8 +326,14 @@ export function DemoDataChoiceStep({
 
             {/* Error Display */}
             {error && (
-              <div className="bg-error/10 border border-error/30 rounded-xl p-4">
-                <p className="text-sm text-error">{error}</p>
+              <div
+                className="rounded-xl p-4 border"
+                style={{
+                  backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)',
+                  borderColor: 'color-mix(in oklch, var(--color-destructive) 30%, transparent)',
+                }}
+              >
+                <p className="text-sm" style={{ color: 'var(--color-destructive)' }}>{error}</p>
               </div>
             )}
           </>

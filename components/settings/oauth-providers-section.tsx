@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -25,6 +24,7 @@ import {
   Unlink,
   AlertTriangle,
   Globe,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { betterAuthClient } from '@/lib/better-auth-client';
@@ -44,6 +44,31 @@ interface AvailableProvider {
   description: string;
 }
 
+// ── Section helper ────────────────────────────────────────────────────────────
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+      </div>
+      <div className="px-4 py-4">{children}</div>
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function OAuthProvidersSection() {
   const [providers, setProviders] = useState<OAuthProvider[]>([]);
   const [availableProviders, setAvailableProviders] = useState<AvailableProvider[]>([]);
@@ -54,362 +79,198 @@ export function OAuthProvidersSection() {
   const [unlinkDialogOpen, setUnlinkDialogOpen] = useState(false);
   const [unlinkProvider, setUnlinkProvider] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchProviders();
-    fetchAvailableProviders();
-  }, []);
+  useEffect(() => { fetchProviders(); fetchAvailableProviders(); }, []);
 
   async function fetchProviders() {
     try {
-      const response = await fetch('/api/user/oauth/providers', {
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setProviders(data.providers || []);
-        setPrimaryLoginMethod(data.primaryLoginMethod || 'email');
+      const res = await fetch('/api/user/oauth/providers', { credentials: 'include' });
+      if (res.ok) {
+        const d = await res.json();
+        setProviders(d.providers || []);
+        setPrimaryLoginMethod(d.primaryLoginMethod || 'email');
       }
-    } catch (error) {
-      console.error('Failed to fetch OAuth providers:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error('Failed to fetch OAuth providers:', e); }
+    finally { setLoading(false); }
   }
 
   async function fetchAvailableProviders() {
     try {
-      const response = await fetch('/api/user/oauth/available', {
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableProviders(data.providers || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch available providers:', error);
-    }
+      const res = await fetch('/api/user/oauth/available', { credentials: 'include' });
+      if (res.ok) { const d = await res.json(); setAvailableProviders(d.providers || []); }
+    } catch (e) { console.error('Failed to fetch available providers:', e); }
   }
 
   async function handleLinkProvider(providerId: string) {
     try {
       setLinking(providerId);
+      const validateRes = await fetch(`/api/user/oauth/link/${providerId}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+      if (!validateRes.ok) { const d = await validateRes.json(); throw new Error(d.error || 'Failed to validate provider'); }
 
-      // Validate provider first
-      const validateResponse = await fetch(`/api/user/oauth/link/${providerId}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!validateResponse.ok) {
-        const errorData = await validateResponse.json();
-        throw new Error(errorData.error || 'Failed to validate provider');
-      }
-
-      // Use Better Auth client to initiate OAuth flow
       const callbackURL = `${window.location.origin}/dashboard/settings`;
-      const result = await betterAuthClient.signIn.social({
-        provider: providerId,
-        callbackURL,
-      });
-
-      // Better Auth's social sign-in returns a redirect URL
-      // Handle both Data wrapper and direct result types
+      const result = await betterAuthClient.signIn.social({ provider: providerId, callbackURL });
       const url = ('data' in result && result.data && typeof result.data === 'object' && 'url' in result.data)
         ? (result.data as { url: string }).url
-        : ('url' in result && typeof result.url === 'string')
-        ? result.url
-        : null;
+        : ('url' in result && typeof result.url === 'string') ? result.url : null;
 
-      if (url) {
-        // Redirect to OAuth provider
-        window.location.href = url;
-      } else {
-        throw new Error('Failed to get OAuth authorization URL');
-      }
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to link provider'
-      );
-      setLinking(null);
-    }
+      if (url) { window.location.href = url; }
+      else { throw new Error('Failed to get OAuth authorization URL'); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to link provider'); setLinking(null); }
   }
 
   async function handleUnlinkProvider(providerId: string) {
     try {
       setUnlinking(providerId);
-      const response = await fetch(`/api/user/oauth/unlink/${providerId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to unlink provider');
-      }
-
-      toast.success(`${providerId} account unlinked successfully`);
-      setUnlinkDialogOpen(false);
-      setUnlinkProvider(null);
+      const res = await fetch(`/api/user/oauth/unlink/${providerId}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to unlink'); }
+      toast.success(`${providerId} account unlinked`);
+      setUnlinkDialogOpen(false); setUnlinkProvider(null);
       fetchProviders();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to unlink provider'
-      );
-    } finally {
-      setUnlinking(null);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to unlink provider'); }
+    finally { setUnlinking(null); }
   }
 
   async function handleSetPrimary(providerId: string) {
     try {
-      const response = await fetch('/api/user/oauth/set-primary', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ providerId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to set primary login method');
-      }
-
+      const res = await fetch('/api/user/oauth/set-primary', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ providerId }) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
       toast.success('Primary login method updated');
       setPrimaryLoginMethod(providerId);
       fetchProviders();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to set primary method'
-      );
-    }
-  }
-
-  function getProviderIcon(_providerId: string) {
-    // Use Globe as default icon - can be replaced with actual provider icons
-    return Globe;
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to set primary method'); }
   }
 
   function getProviderName(providerId: string) {
-    const provider = availableProviders.find((p) => p.id === providerId);
-    return provider?.name || providerId.charAt(0).toUpperCase() + providerId.slice(1);
+    const p = availableProviders.find(p => p.id === providerId);
+    return p?.name || (providerId.charAt(0).toUpperCase() + providerId.slice(1));
   }
 
   function isProviderLinked(providerId: string) {
-    return providers.some((p) => p.providerId === providerId);
+    return providers.some(p => p.providerId === providerId);
   }
 
-  const enabledProviders = availableProviders.filter((p) => p.enabled);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-        Loading OAuth providers...
-      </div>
-    );
-  }
+  const enabledProviders = availableProviders.filter(p => p.enabled);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">
-          OAuth Providers
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Link your accounts for easier sign-in. You can set a primary login method.
-        </p>
-
-        {enabledProviders.length === 0 ? (
-          <Card className="p-6 bg-elevated border-border text-center">
-            <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground">
-              No OAuth providers are configured. Contact your administrator.
+    <>
+      <Section icon={Link2} label="OAuth Providers" accent="var(--color-primary)">
+        {loading ? (
+          <div className="space-y-2">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)', animationDelay: `${i * 60}ms` }} />
+            ))}
+          </div>
+        ) : enabledProviders.length === 0 ? (
+          <div className="flex items-center gap-3 px-3 py-4 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 20%, transparent)' }}>
+            <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: 'var(--color-warning)' }} />
+            <p className="text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              No OAuth providers configured. Contact your administrator.
             </p>
-          </Card>
+          </div>
         ) : (
           <div className="space-y-3">
-            {enabledProviders.map((availableProvider) => {
-              const isLinked = isProviderLinked(availableProvider.id);
-              const linkedProvider = providers.find(
-                (p) => p.providerId === availableProvider.id
-              );
-              const IconComponent = getProviderIcon(availableProvider.id);
-
-              return (
-                <Card
-                  key={availableProvider.id}
-                  className="p-4 bg-elevated border-border"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="w-10 h-10 rounded-lg bg-background border border-border flex items-center justify-center">
-                        <IconComponent className="w-5 h-5 text-foreground" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-foreground">
-                            {availableProvider.name}
-                          </span>
-                          {isLinked && (
-                            <Badge
-                              variant="secondary"
-                              className="bg-success text-white"
-                            >
-                              Linked
-                            </Badge>
-                          )}
-                          {linkedProvider?.isPrimary && (
-                            <Badge
-                              variant="secondary"
-                              className="bg-primary text-white"
-                            >
-                              Primary
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {availableProvider.description}
-                        </p>
-                        {isLinked && linkedProvider && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Linked on{' '}
-                            {new Date(linkedProvider.linkedAt).toLocaleDateString()}
-                          </p>
+            {/* Provider rows */}
+            <div className="divide-y rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)', '--tw-divide-opacity': 1 } as React.CSSProperties}>
+              {enabledProviders.map(ap => {
+                const isLinked = isProviderLinked(ap.id);
+                const linked = providers.find(p => p.providerId === ap.id);
+                return (
+                  <div key={ap.id} className="flex items-center gap-3 px-3 py-2.5" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+                      <Globe className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{ap.name}</span>
+                        {isLinked && (
+                          <Badge className="text-[10px] h-4 px-1.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 15%, transparent)', color: 'var(--color-success)', border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)' }}>
+                            Linked
+                          </Badge>
+                        )}
+                        {linked?.isPrimary && (
+                          <Badge className="text-[10px] h-4 px-1.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)', border: '1px solid color-mix(in oklch, var(--color-primary) 30%, transparent)' }}>
+                            Primary
+                          </Badge>
                         )}
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {isLinked ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setUnlinkProvider(availableProvider.id);
-                            setUnlinkDialogOpen(true);
-                          }}
-                          disabled={unlinking === availableProvider.id}
-                          className="border-error text-error hover:bg-error/10"
-                        >
-                          {unlinking === availableProvider.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              Unlinking...
-                            </>
-                          ) : (
-                            <>
-                              <Unlink className="w-4 h-4 mr-1" />
-                              Unlink
-                            </>
-                          )}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleLinkProvider(availableProvider.id)}
-                          disabled={linking === availableProvider.id}
-                          className="border-border"
-                        >
-                          {linking === availableProvider.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              Linking...
-                            </>
-                          ) : (
-                            <>
-                              <Link2 className="w-4 h-4 mr-1" />
-                              Link {availableProvider.name}
-                            </>
-                          )}
-                        </Button>
+                      {isLinked && linked && (
+                        <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
+                          Linked {new Date(linked.linkedAt).toLocaleDateString()}
+                        </p>
                       )}
                     </div>
+                    {isLinked ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setUnlinkProvider(ap.id); setUnlinkDialogOpen(true); }}
+                        disabled={unlinking === ap.id}
+                        className="h-7 text-[11px] shrink-0"
+                        style={{ color: 'var(--color-destructive)' }}
+                      >
+                        {unlinking === ap.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Unlink className="w-3.5 h-3.5 mr-1" />Unlink</>}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleLinkProvider(ap.id)}
+                        disabled={linking === ap.id}
+                        className="h-7 text-[11px] shrink-0"
+                      >
+                        {linking === ap.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Link2 className="w-3.5 h-3.5 mr-1" />Link</>}
+                      </Button>
+                    )}
                   </div>
-                </Card>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Primary method selector */}
+            {providers.length > 0 && (
+              <div className="pt-1 space-y-1.5">
+                <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Primary Login Method</p>
+                <Select value={primaryLoginMethod} onValueChange={handleSetPrimary}>
+                  <SelectTrigger className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Email / Password</SelectItem>
+                    {providers.map(p => (
+                      <SelectItem key={p.providerId} value={p.providerId}>{getProviderName(p.providerId)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
+                  Used as the default sign-in method.
+                </p>
+              </div>
+            )}
           </div>
         )}
+      </Section>
 
-        {/* Primary Login Method Selector */}
-        {providers.length > 0 && (
-          <div className="mt-6 space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Primary Login Method
-            </label>
-            <Select
-              value={primaryLoginMethod}
-              onValueChange={handleSetPrimary}
-            >
-              <SelectTrigger className="bg-background border-border text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="email" className="text-foreground hover:bg-elevated">
-                  Email / Password
-                </SelectItem>
-                {providers.map((provider) => (
-                  <SelectItem
-                    key={provider.providerId}
-                    value={provider.providerId}
-                    className="text-foreground hover:bg-elevated"
-                  >
-                    {getProviderName(provider.providerId)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Your primary login method will be used as the default when signing in.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Unlink Confirmation Dialog */}
+      {/* ── Unlink Confirmation ─────────────────────────────────────────── */}
       <Dialog open={unlinkDialogOpen} onOpenChange={setUnlinkDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Unlink Provider</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Are you sure you want to unlink {unlinkProvider ? getProviderName(unlinkProvider) : 'this provider'}? You&apos;ll need to link it again to use it for sign-in.
+            <DialogTitle style={{ color: 'var(--color-foreground)' }}>Unlink {unlinkProvider ? getProviderName(unlinkProvider) : 'Provider'}?</DialogTitle>
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
+              You&apos;ll no longer be able to sign in with this provider. You can re-link it at any time.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setUnlinkDialogOpen(false);
-                setUnlinkProvider(null);
-              }}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => unlinkProvider && handleUnlinkProvider(unlinkProvider)}
-              disabled={!unlinkProvider || unlinking === unlinkProvider}
-              className="bg-error hover:bg-error/90"
-            >
-              {unlinking === unlinkProvider ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Unlinking...
-                </>
-              ) : (
-                <>
-                  <Unlink className="w-4 h-4 mr-2" />
-                  Unlink
-                </>
-              )}
+            <Button variant="outline" size="sm" onClick={() => { setUnlinkDialogOpen(false); setUnlinkProvider(null); }} className="text-[12px]">Cancel</Button>
+            <Button size="sm" onClick={() => unlinkProvider && handleUnlinkProvider(unlinkProvider)} disabled={!unlinkProvider || unlinking === unlinkProvider} className="text-[12px]" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>
+              {unlinking === unlinkProvider ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5 mr-1.5" />}
+              Unlink
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
 
+// Suppress unused import hint
+const _unused = CheckCircle2;
+void _unused;

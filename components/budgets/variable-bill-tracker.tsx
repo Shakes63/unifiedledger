@@ -248,9 +248,9 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
 
   if (loading && bills.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-xl p-6">
+      <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">Loading variable bills...</div>
+          <div style={{ color: 'var(--color-muted-foreground)' }}>Loading variable bills...</div>
         </div>
       </div>
     );
@@ -258,12 +258,13 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
 
   if (error) {
     return (
-      <div className="bg-card border border-border rounded-xl p-6">
+      <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex flex-col items-center justify-center py-12 gap-4">
-          <div className="text-error">{error}</div>
+          <div style={{ color: 'var(--color-destructive)' }}>{error}</div>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90"
+            className="px-4 py-2 text-sm rounded-lg hover:opacity-90"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
           >
             Retry
           </button>
@@ -274,17 +275,18 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
 
   if (bills.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-xl p-6">
+      <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-          <FileText className="w-16 h-16 text-muted-foreground mb-2" />
-          <h3 className="text-lg font-semibold text-foreground">No variable bills yet</h3>
-          <p className="text-sm text-muted-foreground max-w-md">
+          <FileText className="w-16 h-16 mb-2" style={{ color: 'var(--color-muted-foreground)' }} />
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>No variable bills yet</h3>
+          <p className="text-sm max-w-md" style={{ color: 'var(--color-muted-foreground)' }}>
             Variable bills help you track costs that change month-to-month, like utilities or phone
             bills. Set up your first variable bill to start tracking.
           </p>
           <Link
             href="/dashboard/bills"
-            className="mt-4 px-6 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition-opacity"
+            className="mt-4 px-6 py-2 text-sm rounded-lg hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
           >
             Set up your first variable bill →
           </Link>
@@ -298,7 +300,7 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
       {/* Header with Month Navigation */}
       <div className="flex items-center justify-between">
         {!hideHeader && (
-          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
             <FileText className="w-5 h-5" />
             Variable Bills
           </h2>
@@ -306,25 +308,33 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
         <div className={`flex items-center gap-2 ${hideHeader ? 'ml-auto' : ''}`}>
           <button
             onClick={() => navigateMonth('prev')}
-            className="p-2 hover:bg-elevated rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--color-foreground)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
             aria-label="Previous month"
           >
-            <svg className="w-5 h-5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <button
             onClick={goToCurrentMonth}
-            className="px-4 py-2 text-sm font-medium text-foreground hover:bg-elevated rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            style={{ color: 'var(--color-foreground)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
           >
             {formatMonth(month)}
           </button>
           <button
             onClick={() => navigateMonth('next')}
-            className="p-2 hover:bg-elevated rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors"
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
             aria-label="Next month"
           >
-            <svg className="w-5 h-5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" style={{ color: 'var(--color-foreground)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -333,34 +343,35 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
 
       {/* Summary Card */}
       {summary && (
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+          <h3 className="text-sm font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
             <BarChart3 className="w-4 h-4" />
             Summary
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Total Expected</div>
-              <div className="text-lg font-semibold text-foreground">
+              <div className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total Expected</div>
+              <div className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                 ${summary.totalExpected.toFixed(2)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Total Actual</div>
-              <div className="text-lg font-semibold text-foreground">
+              <div className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total Actual</div>
+              <div className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                 ${summary.totalActual.toFixed(2)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Variance</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Variance</div>
               <div
-                className={`text-lg font-semibold ${
-                  summary.totalVariance < 0
-                    ? 'text-success'
+                className="text-lg font-semibold"
+                style={{
+                  color: summary.totalVariance < 0
+                    ? 'var(--color-success)'
                     : summary.totalVariance > 0
-                    ? 'text-error'
-                    : 'text-muted-foreground'
-                }`}
+                    ? 'var(--color-destructive)'
+                    : 'var(--color-muted-foreground)',
+                }}
               >
                 {summary.totalVariance < 0 ? '✓ ' : summary.totalVariance > 0 ? '' : ''}$
                 {Math.abs(summary.totalVariance).toFixed(2)}
@@ -368,9 +379,9 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Bills</div>
-              <div className="text-lg font-semibold text-foreground">{summary.billCount} total</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Bills</div>
+              <div className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>{summary.billCount} total</div>
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 {summary.paidCount} paid • {summary.pendingCount} pending
               </div>
             </div>
@@ -386,7 +397,8 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
           aria-label="Filter variable bills by status"
           value={filter}
           onChange={e => setFilter(e.target.value as FilterType)}
-          className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className="rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
+          style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
         >
           <option value="all">All Bills</option>
           <option value="under">Under Budget</option>
@@ -395,17 +407,23 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
         </select>
         <button
           onClick={expandAll}
-          className="px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-elevated rounded-lg transition-colors"
+          className="px-3 py-2 text-xs rounded-lg transition-colors"
+          style={{ color: 'var(--color-muted-foreground)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
         >
           Expand All
         </button>
         <button
           onClick={collapseAll}
-          className="px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-elevated rounded-lg transition-colors"
+          className="px-3 py-2 text-xs rounded-lg transition-colors"
+          style={{ color: 'var(--color-muted-foreground)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
         >
           Collapse All
         </button>
-        <div className="ml-auto text-xs text-muted-foreground">
+        <div className="ml-auto text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
           {filteredBills.length} {filteredBills.length === 1 ? 'bill' : 'bills'}
         </div>
       </div>
@@ -425,13 +443,13 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
 
       {/* Overall Insights */}
       {insight && summary && summary.paidCount > 0 && (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
           <div className="flex items-start gap-3">
-            <Lightbulb className="w-6 h-6 text-warning" />
+            <Lightbulb className="w-6 h-6" style={{ color: 'var(--color-warning)' }} />
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-foreground mb-1">Overall Insight</h3>
-              <p className="text-sm text-foreground mb-2">{insight.message}</p>
-              <p className="text-sm text-muted-foreground">{insight.suggestion}</p>
+              <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>Overall Insight</h3>
+              <p className="text-sm mb-2" style={{ color: 'var(--color-foreground)' }}>{insight.message}</p>
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>{insight.suggestion}</p>
             </div>
           </div>
         </div>

@@ -118,16 +118,16 @@ export function InlineAmountEdit({
           onBlur={handleSave}
           disabled={isUpdating}
           className={cn(
-            "h-6 text-sm font-semibold px-1 py-0.5 w-[80px] bg-elevated border-border rounded text-right",
-            "focus:ring-1 focus:ring-offset-0 focus:border-primary",
+            "h-6 text-sm font-semibold px-1 py-0.5 w-[80px] rounded text-right",
+            "focus:ring-1 focus:ring-offset-0",
             "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
             isUpdating && "opacity-60"
           )}
-          style={{ color }}
+          style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color }}
           onClick={(e) => e.stopPropagation()}
         />
         {isUpdating && (
-          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+          <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
         )}
       </div>
     );

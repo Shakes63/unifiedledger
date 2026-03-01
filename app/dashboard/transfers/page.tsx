@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, ArrowLeftRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TransferList } from '@/components/transfers/transfer-list';
 import { QuickTransferModal } from '@/components/transfers/quick-transfer-modal';
-import { Plus } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
@@ -36,15 +37,12 @@ interface Transfer {
 export default function TransfersPage() {
   const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
-  const {
-    accounts: householdAccounts,
-    loading: accountsLoading,
-  } = useHouseholdAccounts({
+  const { accounts: householdAccounts, loading: accountsLoading } = useHouseholdAccounts({
     enabled: initialized && !householdLoading && Boolean(selectedHouseholdId && householdId),
     fetchWithHousehold,
     emptySelectionMessage: 'No household selected',
   });
-  
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,14 +52,8 @@ export default function TransfersPage() {
     setAccounts(householdAccounts as Account[]);
   }, [householdAccounts]);
 
-  // Load accounts and transfers
   useEffect(() => {
-    // Don't fetch if household context isn't initialized yet
-    if (!initialized || householdLoading) {
-      return;
-    }
-
-    // Don't fetch if no household is selected
+    if (!initialized || householdLoading) return;
     if (!selectedHouseholdId || !householdId) {
       setIsLoading(false);
       return;
@@ -70,12 +62,10 @@ export default function TransfersPage() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-
-        // Load transfers
         const transfersRes = await fetchWithHousehold('/api/transfers?limit=50');
         if (transfersRes.ok) {
-          const transfersData = await transfersRes.json();
-          setTransfers(transfersData.transfers || []);
+          const data = await transfersRes.json();
+          setTransfers(data.transfers || []);
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -104,79 +94,116 @@ export default function TransfersPage() {
     loadTransfers();
   };
 
-  // Show loading state while household context initializes
-  if (!initialized || householdLoading) {
-    return <HouseholdLoadingState />;
-  }
+  if (!initialized || householdLoading) return <HouseholdLoadingState />;
+  if (!selectedHouseholdId || !householdId) return <NoHouseholdError />;
 
-  // Show error state if no household is selected
-  if (!selectedHouseholdId || !householdId) {
-    return <NoHouseholdError />;
-  }
-
-  // Show skeleton loading while fetching data
   if (isLoading || accountsLoading) {
     return (
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-elevated rounded-lg w-1/3"></div>
-            <div className="h-6 bg-elevated rounded-lg w-1/4"></div>
-            <div className="mt-6 space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-20 bg-elevated rounded-lg"></div>
-              ))}
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+        {/* Skeleton header */}
+        <div style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              <div className="w-24 h-5 rounded animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
             </div>
+            <div className="w-32 h-8 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
           </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', animationDelay: `${i * 60}ms` }} />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Transfers</h1>
-          <p className="text-muted-foreground mt-2">
-            Move money between your accounts
-          </p>
-        </div>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          disabled={accounts.length < 2}
-          className="bg-primary hover:opacity-90 text-primary-foreground"
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          New Transfer
-        </Button>
-      </div>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+                  Transfers
+                </h1>
+                {transfers.length > 0 && (
+                  <span
+                    className="text-[11px] font-mono tabular-nums px-1.5 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)',
+                      color: 'var(--color-muted-foreground)',
+                    }}
+                  >
+                    {transfers.length}
+                  </span>
+                )}
+              </div>
+            </div>
 
-      {accounts.length < 2 && (
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
-          <p className="text-warning">
-            You need at least 2 accounts to create transfers.
-          </p>
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              disabled={accounts.length < 2}
+              size="sm"
+              className="h-8 gap-1.5 px-3 text-xs font-medium"
+              style={{
+                backgroundColor: 'var(--color-primary)',
+                color: 'var(--color-primary-foreground)',
+              }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New Transfer
+            </Button>
+          </div>
         </div>
-      )}
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-primary) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
+        />
+      </header>
 
-      {/* Transfer List */}
-      <TransferList
-        transfers={transfers}
-        isLoading={isLoading}
-        onRefresh={loadTransfers}
-      />
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Needs-2-accounts warning */}
+        {accounts.length < 2 && (
+          <div
+            className="mb-4 px-4 py-3 rounded-xl flex items-center gap-3 text-sm"
+            style={{
+              backgroundColor: 'color-mix(in oklch, var(--color-warning) 8%, transparent)',
+              border: '1px solid color-mix(in oklch, var(--color-warning) 25%, transparent)',
+              color: 'var(--color-warning)',
+            }}
+          >
+            <ArrowLeftRight className="w-4 h-4 shrink-0" />
+            You need at least 2 accounts to create transfers.
+          </div>
+        )}
 
-      {/* Quick Transfer Modal */}
+        <TransferList
+          transfers={transfers}
+          isLoading={isLoading}
+          onRefresh={loadTransfers}
+        />
+      </main>
+
       <QuickTransferModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         accounts={accounts}
         onSuccess={handleTransferSuccess}
       />
-      </div>
     </div>
   );
 }

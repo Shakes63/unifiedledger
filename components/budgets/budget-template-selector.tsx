@@ -143,8 +143,8 @@ export function BudgetTemplateSelector({
 
   const buttonClassName =
     variant === 'page'
-      ? 'px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors flex items-center gap-1'
-      : 'px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors text-sm flex items-center gap-1';
+      ? 'px-4 py-2 bg-background border border-border text-foreground rounded-lg hover:bg-elevated transition-colors flex items-center gap-1'
+      : 'px-4 py-2 bg-background border border-border text-foreground rounded-lg hover:bg-elevated transition-colors text-sm flex items-center gap-1';
 
   return (
     <>
@@ -164,13 +164,13 @@ export function BudgetTemplateSelector({
 
           {loading ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">Loading templates...</span>
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
+              <span className="ml-2 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading templates...</span>
             </div>
           ) : templates.length === 0 ? (
             <div className="px-2 py-4 text-center">
-              <p className="text-sm text-muted-foreground">No templates available.</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No templates available.</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                 Create categories first to use budget templates.
               </p>
             </div>
@@ -182,11 +182,11 @@ export function BudgetTemplateSelector({
                 onSelect={() => handleTemplateSelect(template)}
               >
                 <div className="flex items-center gap-2 w-full">
-                  <span className="font-medium text-foreground">{template.name}</span>
+                  <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>{template.name}</span>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                        <Info className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs">
                         <p className="text-sm">{template.description}</p>
@@ -194,7 +194,7 @@ export function BudgetTemplateSelector({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <span className="text-xs text-muted-foreground line-clamp-2">
+                <span className="text-xs line-clamp-2" style={{ color: 'var(--color-muted-foreground)' }}>
                   {template.description}
                 </span>
               </DropdownMenuItem>
@@ -203,69 +203,46 @@ export function BudgetTemplateSelector({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Income Input Dialog */}
       <Dialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[400px]" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle>Apply {selectedTemplate?.name}</DialogTitle>
-            <DialogDescription>
-              Enter your total monthly income to calculate budget allocations based on this
-              template.
+            <DialogTitle className="text-[15px]" style={{ color: 'var(--color-foreground)' }}>Apply {selectedTemplate?.name}</DialogTitle>
+            <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              Enter your total monthly income to calculate budget allocations based on this template.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 mt-1">
             {selectedTemplate && (
-              <div className="bg-muted rounded-lg p-3">
-                <p className="text-sm text-muted-foreground">{selectedTemplate.description}</p>
+              <div className="px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>{selectedTemplate.description}</p>
               </div>
             )}
-
-            <div className="space-y-2">
-              <label htmlFor="monthly-income" className="text-sm font-medium text-foreground">
-                Monthly Income
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">$</span>
-                <input
-                  id="monthly-income"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={monthlyIncome}
-                  onChange={e => setMonthlyIncome(e.target.value)}
-                  className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  autoFocus
-                />
+            <div>
+              <label htmlFor="monthly-income" className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>Monthly Income</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
+                <input id="monthly-income" type="number" min="0" step="0.01" placeholder="0.00" value={monthlyIncome} onChange={e => setMonthlyIncome(e.target.value)}
+                  className="w-full rounded-lg pl-7 pr-3 h-9 text-[13px] tabular-nums outline-none"
+                  style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                  autoFocus />
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] mt-1.5" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
                 The template will distribute this amount across your expense and savings categories.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
-            <button
-              onClick={() => setIsIncomeDialogOpen(false)}
-              disabled={applying}
-              className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors disabled:opacity-50"
-            >
+          <div className="flex items-center justify-end gap-2 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <button onClick={() => setIsIncomeDialogOpen(false)} disabled={applying}
+              className="h-9 px-4 rounded-lg text-[13px] transition-colors disabled:opacity-50"
+              style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
               Cancel
             </button>
-            <button
-              onClick={handleApplyTemplate}
-              disabled={applying || !monthlyIncome}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-            >
-              {applying ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Applying...
-                </>
-              ) : (
-                'Apply Template'
-              )}
+            <button onClick={handleApplyTemplate} disabled={applying || !monthlyIncome}
+              className="h-9 px-4 rounded-lg text-[13px] flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {applying ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Applying…</> : 'Apply Template'}
             </button>
           </div>
         </DialogContent>

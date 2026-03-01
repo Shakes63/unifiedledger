@@ -51,26 +51,36 @@ function buildThemeBootstrapScript() {
 
   return `
     (() => {
+      const root = document.documentElement;
       try {
         const runtime = ${runtimeConfig};
         const fallbackId = ${defaultThemeId};
+        const params = new URLSearchParams(window.location.search);
+        const isFirstSetupSignUp =
+          window.location.pathname.startsWith('/sign-up') &&
+          params.get('firstSetup') === 'true';
+
+        if (isFirstSetupSignUp) {
+          localStorage.removeItem('unified-ledger:selected-household');
+        }
+
         const selectedHouseholdId = localStorage.getItem('unified-ledger:selected-household');
-        const householdThemeKey = selectedHouseholdId
-          ? 'unified-ledger:theme:' + selectedHouseholdId
-          : 'unified-ledger:theme';
-        const cachedTheme =
-          localStorage.getItem(householdThemeKey) || localStorage.getItem('unified-ledger:theme');
+        const cachedTheme = !isFirstSetupSignUp && selectedHouseholdId
+          ? localStorage.getItem('unified-ledger:theme:' + selectedHouseholdId)
+          : null;
         const normalizedCachedTheme = cachedTheme === 'dark-mode' ? 'dark-green' : cachedTheme;
-        if (normalizedCachedTheme && normalizedCachedTheme !== cachedTheme) {
-          localStorage.setItem(householdThemeKey, normalizedCachedTheme);
+        if (selectedHouseholdId && normalizedCachedTheme && normalizedCachedTheme !== cachedTheme) {
+          localStorage.setItem('unified-ledger:theme:' + selectedHouseholdId, normalizedCachedTheme);
         }
         const themeId = normalizedCachedTheme && runtime[normalizedCachedTheme]
           ? normalizedCachedTheme
           : fallbackId;
         const theme = runtime[themeId] || runtime[fallbackId];
-        if (!theme) return;
+        if (!theme) {
+          root.setAttribute('data-theme-ready', 'true');
+          return;
+        }
 
-        const root = document.documentElement;
         root.setAttribute('data-theme', themeId);
         const vars = theme.cssVars || {};
         for (const key in vars) {
@@ -83,7 +93,11 @@ function buildThemeBootstrapScript() {
         if (themeMeta) {
           themeMeta.setAttribute('content', scheme === 'light' ? '#ffffff' : '#0a0a0a');
         }
-      } catch {}
+      } catch {
+        // Always reveal UI even if theme bootstrap fails.
+      } finally {
+        root.setAttribute('data-theme-ready', 'true');
+      }
     })();
   `;
 }
@@ -102,6 +116,7 @@ export default function RootLayout({
           suppressHydrationWarning
           style={{ maxWidth: '100vw', width: '100%' }}
           data-theme={DEFAULT_THEME_ID}
+          data-theme-ready="false"
         >
           <head>
             <meta name="mobile-web-app-capable" content="yes" />
@@ -109,6 +124,7 @@ export default function RootLayout({
             <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
             <meta name="apple-mobile-web-app-title" content="Unified Ledger" />
             <meta name="theme-color" content="#0a0a0a" />
+            <style>{`html[data-theme-ready="false"] body { visibility: hidden; }`}</style>
             <script dangerouslySetInnerHTML={{ __html: buildThemeBootstrapScript() }} />
           </head>
           <body

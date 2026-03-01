@@ -75,7 +75,7 @@ export function UserMenu() {
 
   if (isPending || avatarLoading) {
     return (
-      <div className="w-8 h-8 rounded-full bg-elevated animate-pulse" />
+      <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
     );
   }
 
@@ -87,7 +87,7 @@ export function UserMenu() {
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full h-8 w-8 hover:bg-elevated p-0"
+          className="rounded-full h-8 w-8 hover:bg-[var(--color-elevated)] p-0"
         >
           <UserAvatar
             userId={session.user.id}
@@ -100,30 +100,33 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-56 bg-card border-border"
+        className="w-56 border"
+            style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
       >
-        <DropdownMenuLabel className="text-foreground">
+        <DropdownMenuLabel style={{ color: 'var(--color-foreground)' }}>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
               {session.user.name || 'User'}
             </p>
-            <p className="text-xs text-muted-foreground leading-none">
+            <p className="text-xs leading-none" style={{ color: 'var(--color-muted-foreground)' }}>
               {session.user.email}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-border" />
+        <DropdownMenuSeparator style={{ backgroundColor: 'var(--color-border)' }} />
         <DropdownMenuItem
           onClick={() => router.push('/dashboard/settings?tab=profile')}
-          className="text-foreground hover:bg-elevated cursor-pointer"
+          className="hover:bg-[var(--color-elevated)] cursor-pointer"
+            style={{ color: 'var(--color-foreground)' }}
         >
           <Settings className="w-4 h-4 mr-2" />
           Settings
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-border" />
+        <DropdownMenuSeparator style={{ backgroundColor: 'var(--color-border)' }} />
         <DropdownMenuItem
           onClick={handleSignOut}
-          className="text-error hover:bg-elevated cursor-pointer"
+          className="hover:bg-[var(--color-elevated)] cursor-pointer"
+            style={{ color: 'var(--color-destructive)' }}
         >
           <LogOut className="w-4 h-4 mr-2" />
           Sign Out

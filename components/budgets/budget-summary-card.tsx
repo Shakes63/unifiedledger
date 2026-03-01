@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Decimal from 'decimal.js';
-import { CreditCard } from 'lucide-react';
 
 export interface DebtBudgetData {
   totalRecommendedPayments: number;
@@ -29,316 +28,239 @@ interface BudgetSummaryCardProps {
   debtData?: DebtBudgetData | null;
 }
 
-export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCardProps) {
+function fmt(n: number) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
 
-  // Format month for display
-  const formatMonth = (monthStr: string) => {
-    const [year, monthNum] = monthStr.split('-');
-    const date = new Date(parseInt(year), parseInt(monthNum) - 1);
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
-
-  // Calculate percentages for progress bars
-  const incomePercentage =
-    summary.totalIncome > 0
-      ? new Decimal(summary.totalIncomeActual)
-          .div(summary.totalIncome)
-          .times(100)
-          .toNumber()
-      : 0;
-
-  // Calculate income variance
-  const incomeVariance = new Decimal(summary.totalIncomeActual)
-    .minus(summary.totalIncome)
-    .toNumber();
-
-  // Determine income status (reversed from expenses)
-  const incomeStatus =
-    incomePercentage >= 100
-      ? 'ahead' // Meeting or exceeding income target (green)
-      : incomePercentage >= 80
-      ? 'on_track' // Close to target (green)
-      : incomePercentage >= 50
-      ? 'warning' // Significant shortfall (amber)
-      : 'critical'; // Severe shortfall (red)
-
-  const expensePercentage =
-    summary.totalExpenseBudget > 0
-      ? new Decimal(summary.totalExpenseActual)
-          .div(summary.totalExpenseBudget)
-          .times(100)
-          .toNumber()
-      : 0;
-
-  const savingsPercentage =
-    summary.totalSavingsBudget > 0
-      ? new Decimal(summary.totalSavingsActual)
-          .div(summary.totalSavingsBudget)
-          .times(100)
-          .toNumber()
-      : 0;
-
-  // Determine expense status
-  const expenseVariance = new Decimal(summary.totalExpenseBudget)
-    .minus(summary.totalExpenseActual)
-    .toNumber();
-
-  const expenseStatus =
-    expensePercentage >= 100
-      ? 'exceeded'
-      : expensePercentage >= 80
-      ? 'warning'
-      : 'on_track';
-
-  // Determine savings status
-  const savingsVariance = new Decimal(summary.totalSavingsActual)
-    .minus(summary.totalSavingsBudget)
-    .toNumber();
-
-  const savingsStatus =
-    savingsPercentage >= 100 ? 'ahead' : savingsPercentage >= 80 ? 'on_track' : 'behind';
-
-  // Adherence score label
-  const adherenceLabel =
-    summary.adherenceScore >= 90
-      ? 'Excellent'
-      : summary.adherenceScore >= 70
-      ? 'Good'
-      : summary.adherenceScore >= 50
-      ? 'Fair'
-      : 'Needs Improvement';
+// ── A single stat column ─────────────────────────────────────────────────────
+function StatBlock({
+  label,
+  actual,
+  budget,
+  pct,
+  accentColor,
+  invertStatus, // true = more is better (income/savings), false = less is better (expenses)
+}: {
+  label: string;
+  actual: number;
+  budget: number;
+  pct: number;
+  accentColor: string;
+  invertStatus?: boolean;
+}) {
+  const capped = Math.min(100, pct);
+  const isGood = invertStatus ? pct >= 80 : pct <= 85;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-foreground">
-          Monthly Summary - {formatMonth(month)}
-        </h2>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-baseline justify-between gap-1 mb-1">
+        <span
+          className="text-[10px] font-semibold uppercase tracking-widest truncate"
+          style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          {label}
+        </span>
+        <span
+          className="text-[10px] font-mono tabular-nums shrink-0"
+          style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          {pct.toFixed(0)}%
+        </span>
+      </div>
+      <div className="flex items-baseline gap-1.5 mb-2">
+        <span
+          className="text-base font-semibold font-mono tabular-nums leading-none"
+          style={{ color: 'var(--color-foreground)' }}
+        >
+          ${fmt(actual)}
+        </span>
+        {budget > 0 && (
+          <span
+            className="text-[11px] font-mono tabular-nums"
+            style={{ color: 'var(--color-muted-foreground)' }}
+          >
+            / ${fmt(budget)}
+          </span>
+        )}
+      </div>
+      {/* Thin progress bar */}
+      <div
+        className="h-1 rounded-full overflow-hidden"
+        style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 80%, transparent)' }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${capped}%`,
+            backgroundColor: isGood ? accentColor : 'var(--color-error)',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Surplus block ─────────────────────────────────────────────────────────────
+function SurplusBlock({ actual, budgeted }: { actual: number; budgeted: number }) {
+  const isPositive = actual >= 0;
+  return (
+    <div className="flex-1 min-w-0">
+      <span
+        className="text-[10px] font-semibold uppercase tracking-widest block mb-1"
+        style={{ color: 'var(--color-muted-foreground)' }}
+      >
+        Surplus
+      </span>
+      <div className="flex items-baseline gap-1.5 mb-2">
+        <span
+          className="text-base font-semibold font-mono tabular-nums leading-none"
+          style={{ color: isPositive ? 'var(--color-success)' : 'var(--color-error)' }}
+        >
+          {isPositive ? '+' : '-'}${fmt(Math.abs(actual))}
+        </span>
+      </div>
+      <div
+        className="h-1 rounded-full overflow-hidden"
+        style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 80%, transparent)' }}
+      >
+        {budgeted > 0 && (
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${Math.min(100, (actual / budgeted) * 100)}%`,
+              backgroundColor: isPositive ? 'var(--color-success)' : 'var(--color-error)',
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function BudgetSummaryCard({ summary, debtData }: BudgetSummaryCardProps) {
+  const incomeActual  = summary.totalIncomeActual;
+  const incomeBudget  = summary.totalIncome;
+  const incomePct     = incomeBudget > 0 ? new Decimal(incomeActual).div(incomeBudget).times(100).toNumber() : 0;
+
+  const expenseActual = summary.totalExpenseActual;
+  const expenseBudget = summary.totalExpenseBudget;
+  const expensePct    = expenseBudget > 0 ? new Decimal(expenseActual).div(expenseBudget).times(100).toNumber() : 0;
+
+  const savingsActual = summary.totalSavingsActual;
+  const savingsBudget = summary.totalSavingsBudget;
+  const savingsPct    = savingsBudget > 0 ? new Decimal(savingsActual).div(savingsBudget).times(100).toNumber() : 0;
+
+  const debtActual     = debtData?.totalActualPaid ?? 0;
+  const debtRecommended = debtData?.totalRecommendedPayments ?? 0;
+  const debtPct        = debtRecommended > 0 ? (debtActual / debtRecommended) * 100 : 0;
+  const showDebt       = (debtData?.debts.length ?? 0) > 0;
+
+  const adherenceLabel =
+    summary.adherenceScore >= 90 ? 'Excellent'
+    : summary.adherenceScore >= 70 ? 'Good'
+    : summary.adherenceScore >= 50 ? 'Fair'
+    : 'Needs work';
+
+  const adherenceColor =
+    summary.adherenceScore >= 90 ? 'var(--color-success)'
+    : summary.adherenceScore >= 70 ? 'var(--color-income)'
+    : summary.adherenceScore >= 50 ? 'var(--color-warning)'
+    : 'var(--color-error)';
+
+  const daysProgress = summary.daysInMonth > 0
+    ? (summary.daysElapsed / summary.daysInMonth) * 100
+    : 0;
+
+  return (
+    <div
+      className="rounded-xl px-5 pt-4 pb-3.5"
+      style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+    >
+      {/* Stats row */}
+      <div className="flex items-start gap-4 sm:gap-6">
+        <StatBlock
+          label="Income"
+          actual={incomeActual}
+          budget={incomeBudget}
+          pct={incomePct}
+          accentColor="var(--color-income)"
+          invertStatus
+        />
+
+        {/* Divider */}
+        <div className="w-px self-stretch" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+
+        <StatBlock
+          label="Expenses"
+          actual={expenseActual}
+          budget={expenseBudget}
+          pct={expensePct}
+          accentColor="var(--color-expense)"
+        />
+
+        {savingsBudget > 0 && (
+          <>
+            <div className="w-px self-stretch" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+            <StatBlock
+              label="Savings"
+              actual={savingsActual}
+              budget={savingsBudget}
+              pct={savingsPct}
+              accentColor="var(--color-success)"
+              invertStatus
+            />
+          </>
+        )}
+
+        {showDebt && (
+          <>
+            <div className="w-px self-stretch" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+            <StatBlock
+              label="Debt Pmts"
+              actual={debtActual}
+              budget={debtRecommended}
+              pct={debtPct}
+              accentColor="var(--color-success)"
+              invertStatus
+            />
+          </>
+        )}
+
+        <div className="w-px self-stretch" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+
+        <SurplusBlock actual={summary.actualSurplus} budgeted={summary.budgetedSurplus} />
       </div>
 
-      <div className="space-y-6">
-        {/* Income */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Income</span>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                ${summary.totalIncome.toFixed(2)} budgeted
-              </span>
-              <span className="text-sm font-semibold text-income">
-                ${summary.totalIncomeActual.toFixed(2)} actual
-              </span>
-            </div>
-          </div>
-          <div className="w-full bg-muted rounded-lg h-3 overflow-hidden">
-            <div
-              className={`h-full transition-all duration-300 ${
-                incomeStatus === 'ahead'
-                  ? 'bg-success'
-                  : incomeStatus === 'on_track'
-                  ? 'bg-income'
-                  : incomeStatus === 'warning'
-                  ? 'bg-warning'
-                  : 'bg-error'
-              }`}
-              style={{ width: `${Math.min(100, incomePercentage)}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xs text-muted-foreground">
-              {incomePercentage.toFixed(1)}%
-            </span>
-            {incomeVariance > 0 ? (
-              <span className="text-xs text-success">
-                ✓ Exceeding expected by ${Math.abs(incomeVariance).toFixed(2)}
-              </span>
-            ) : incomeVariance < 0 ? (
-              <span
-                className={`text-xs ${
-                  incomeStatus === 'critical'
-                    ? 'text-error'
-                    : 'text-warning'
-                }`}
-              >
-                Below expected by ${Math.abs(incomeVariance).toFixed(2)}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">Meeting expected</span>
-            )}
-          </div>
+      {/* Footer: adherence + days remaining */}
+      <div
+        className="flex items-center justify-between mt-3 pt-2.5"
+        style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}
+      >
+        {/* Adherence */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-muted-foreground)' }}>
+            Adherence
+          </span>
+          <span className="text-[11px] font-semibold font-mono" style={{ color: adherenceColor }}>
+            {summary.adherenceScore}%
+          </span>
+          <span className="text-[10px]" style={{ color: adherenceColor }}>{adherenceLabel}</span>
         </div>
 
-        {/* Expenses */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Expenses</span>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                ${summary.totalExpenseBudget.toFixed(2)} budgeted
-              </span>
-              <span className="text-sm font-semibold text-expense">
-                ${summary.totalExpenseActual.toFixed(2)} actual
-              </span>
-            </div>
-          </div>
-          <div className="w-full bg-muted rounded-lg h-3 overflow-hidden">
+        {/* Month timeline */}
+        <div className="flex items-center gap-2">
+          <div
+            className="relative w-20 h-1 rounded-full overflow-hidden hidden sm:block"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 80%, transparent)' }}
+          >
             <div
-              className={`h-full transition-all duration-300 ${
-                expenseStatus === 'exceeded'
-                  ? 'bg-error'
-                  : expenseStatus === 'warning'
-                  ? 'bg-warning'
-                  : 'bg-success'
-              }`}
-              style={{ width: `${Math.min(100, expensePercentage)}%` }}
+              className="h-full rounded-full"
+              style={{ width: `${daysProgress}%`, backgroundColor: 'var(--color-muted-foreground)' }}
             />
           </div>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xs text-muted-foreground">
-              {expensePercentage.toFixed(1)}%
-            </span>
-            {expenseVariance > 0 ? (
-              <span className="text-xs text-success">
-                ✓ Under budget by ${Math.abs(expenseVariance).toFixed(2)}
-              </span>
-            ) : expenseVariance < 0 ? (
-              <span className="text-xs text-error">
-                Over budget by ${Math.abs(expenseVariance).toFixed(2)}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">On budget</span>
-            )}
-          </div>
-        </div>
-
-        {/* Savings */}
-        {summary.totalSavingsBudget > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">Savings</span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">
-                  ${summary.totalSavingsBudget.toFixed(2)} budgeted
-                </span>
-                <span className="text-sm font-semibold text-success">
-                  ${summary.totalSavingsActual.toFixed(2)} actual
-                </span>
-              </div>
-            </div>
-            <div className="w-full bg-muted rounded-lg h-3 overflow-hidden">
-              <div
-                className={`h-full transition-all duration-300 ${
-                  savingsStatus === 'ahead'
-                    ? 'bg-success'
-                    : savingsStatus === 'on_track'
-                    ? 'bg-income'
-                    : 'bg-warning'
-                }`}
-                style={{ width: `${Math.min(100, savingsPercentage)}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-muted-foreground">
-                {savingsPercentage.toFixed(1)}%
-              </span>
-              {savingsVariance > 0 ? (
-                <span className="text-xs text-success">
-                  ✓ Ahead by ${Math.abs(savingsVariance).toFixed(2)}
-                </span>
-              ) : savingsVariance < 0 ? (
-                <span className="text-xs text-warning">
-                  Behind by ${Math.abs(savingsVariance).toFixed(2)}
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground">On target</span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Debt Payments */}
-        {debtData && debtData.debts.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                <CreditCard className="w-4 h-4" />
-                Debt Payments
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">
-                  ${debtData.totalRecommendedPayments.toFixed(2)} recommended
-                </span>
-                <span className="text-sm font-semibold text-expense">
-                  ${debtData.totalActualPaid.toFixed(2)} paid
-                </span>
-              </div>
-            </div>
-            <div className="w-full bg-muted rounded-lg h-3 overflow-hidden">
-              <div
-                className={`h-full transition-all duration-300 ${
-                  debtData.totalActualPaid >= debtData.totalRecommendedPayments
-                    ? 'bg-success'
-                    : debtData.totalActualPaid >= debtData.totalRecommendedPayments * 0.8
-                    ? 'bg-warning'
-                    : 'bg-expense'
-                }`}
-                style={{
-                  width: `${Math.min(
-                    100,
-                    debtData.totalRecommendedPayments > 0
-                      ? (debtData.totalActualPaid / debtData.totalRecommendedPayments) * 100
-                      : 0
-                  )}%`,
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-muted-foreground">
-                {debtData.totalRecommendedPayments > 0
-                  ? ((debtData.totalActualPaid / debtData.totalRecommendedPayments) * 100).toFixed(1)
-                  : 0}
-                %
-              </span>
-              {debtData.totalActualPaid >= debtData.totalRecommendedPayments ? (
-                <span className="text-xs text-success">
-                  ✓ All payments made
-                </span>
-              ) : (
-                <span className="text-xs text-expense">
-                  ${(debtData.totalRecommendedPayments - debtData.totalActualPaid).toFixed(2)} remaining
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Budget Adherence & Days Remaining */}
-        <div className="flex items-center justify-between pt-4 border-t border-border">
-          <div>
-            <span className="text-sm text-muted-foreground">Budget Adherence: </span>
-            <span
-              className={`text-sm font-semibold ${
-                summary.adherenceScore >= 90
-                  ? 'text-success'
-                  : summary.adherenceScore >= 70
-                  ? 'text-income'
-                  : summary.adherenceScore >= 50
-                  ? 'text-warning'
-                  : 'text-error'
-              }`}
-            >
-              {summary.adherenceScore}% ({adherenceLabel})
-            </span>
-          </div>
-          <div>
-            <span className="text-sm text-muted-foreground">
-              {summary.daysRemaining > 0
-                ? `${summary.daysRemaining} ${
-                    summary.daysRemaining === 1 ? 'day' : 'days'
-                  } remaining`
-                : 'Month complete'}
-            </span>
-          </div>
+          <span className="text-[10px] font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+            {summary.daysRemaining > 0 ? `${summary.daysRemaining}d left` : 'Complete'}
+          </span>
         </div>
       </div>
     </div>

@@ -34,18 +34,18 @@ export function TransactionFormMobile({
   const [_isFormCollapsed, _setIsFormCollapsed] = useState(false);
 
   return (
-    <div className="flex flex-col bg-background">
+    <div className="flex flex-col" style={{ backgroundColor: 'var(--color-background)' }}>
       {/* Mobile Header - Sticky */}
       {showHeader && (
-        <div className="sticky top-0 z-40 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
+        <div className="sticky top-0 z-40 px-4 py-3 flex items-center gap-3" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-elevated rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors hover:bg-(--color-elevated)"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+            <ArrowLeft className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
           </button>
-          <h1 className="text-lg font-semibold text-foreground flex-1">
+          <h1 className="text-lg font-semibold flex-1" style={{ color: 'var(--color-foreground)' }}>
             {transactionId ? 'Edit Transaction' : 'New Transaction'}
           </h1>
         </div>
@@ -63,11 +63,12 @@ export function TransactionFormMobile({
       </div>
 
       {/* Mobile Footer - Fixed with larger buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex gap-3 md:hidden z-40">
+      <div className="fixed bottom-0 left-0 right-0 px-4 py-3 flex gap-3 md:hidden z-40" style={{ backgroundColor: 'var(--color-background)', borderTop: '1px solid var(--color-border)' }}>
         <Button
           variant="outline"
           onClick={() => router.back()}
-          className="h-12 px-6 text-base font-medium border-border text-muted-foreground hover:bg-elevated flex-1"
+          className="h-12 px-6 text-base font-medium flex-1 hover:bg-(--color-elevated)"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
         >
           Cancel
         </Button>

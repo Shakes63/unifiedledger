@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -13,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Calendar, Download } from 'lucide-react';
+import { Loader2, Database, Download, CalendarClock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -26,6 +25,35 @@ interface BackupSettings {
   emailBackups: boolean;
   lastBackupAt: string | null;
   nextBackupAt: string | null;
+}
+
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  footer,
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+      </div>
+      <div className="px-4 py-4 space-y-4">{children}</div>
+      {footer && (
+        <div className="px-4 py-3 flex items-center justify-end gap-2" style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 35%, transparent)' }}>
+          {footer}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function BackupSettingsForm() {
@@ -44,349 +72,142 @@ export function BackupSettingsForm() {
   });
 
   const fetchSettings = useCallback(async () => {
-    if (!selectedHouseholdId) {
-      setLoading(false);
-      return;
-    }
-
+    if (!selectedHouseholdId) { setLoading(false); return; }
     try {
       setLoading(true);
-      const response = await fetch('/api/user/backup-settings', {
-        headers: {
-          'x-household-id': selectedHouseholdId,
-        },
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data.settings);
-      } else {
-        const errorData = await response.json();
-        if (errorData.error?.includes('Household')) {
-          toast.error('Please select a household');
-        } else {
-          toast.error('Failed to load backup settings');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch backup settings:', error);
-      toast.error('Failed to load backup settings');
-    } finally {
-      setLoading(false);
-    }
+      const res = await fetch('/api/user/backup-settings', { headers: { 'x-household-id': selectedHouseholdId }, credentials: 'include' });
+      if (res.ok) { const d = await res.json(); setSettings(d.settings); }
+      else { const d = await res.json(); toast.error(d.error?.includes('Household') ? 'Please select a household' : 'Failed to load backup settings'); }
+    } catch (e) { console.error('Failed to fetch backup settings:', e); toast.error('Failed to load backup settings'); }
+    finally { setLoading(false); }
   }, [selectedHouseholdId]);
 
-  useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchSettings();
-    }
-  }, [selectedHouseholdId, fetchSettings]);
+  useEffect(() => { if (selectedHouseholdId) fetchSettings(); }, [selectedHouseholdId, fetchSettings]);
 
   async function saveSettings(updates: Partial<BackupSettings>) {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     try {
       setSaving(true);
-      const _updatedSettings = { ...settings, ...updates };
-      const response = await fetch('/api/user/backup-settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-household-id': selectedHouseholdId,
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          ...updates,
-          householdId: selectedHouseholdId,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data.settings);
-        toast.success('Backup settings saved');
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || 'Failed to save settings');
-      }
-    } catch (error) {
-      console.error('Failed to save backup settings:', error);
-      toast.error('Failed to save backup settings');
-    } finally {
-      setSaving(false);
-    }
+      const res = await fetch('/api/user/backup-settings', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-household-id': selectedHouseholdId }, credentials: 'include', body: JSON.stringify({ ...updates, householdId: selectedHouseholdId }) });
+      if (res.ok) { const d = await res.json(); setSettings(d.settings); toast.success('Backup settings saved'); }
+      else { const d = await res.json(); toast.error(d.error || 'Failed to save settings'); }
+    } catch (e) { console.error('Failed to save backup settings:', e); toast.error('Failed to save backup settings'); }
+    finally { setSaving(false); }
   }
 
   async function createManualBackup() {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     try {
       setCreatingBackup(true);
-      const response = await fetch('/api/user/backups/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-household-id': selectedHouseholdId,
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          householdId: selectedHouseholdId,
-        }),
-      });
-
-      if (response.ok) {
-        const _data = await response.json();
-        toast.success('Backup created successfully');
-        // Refresh settings to update lastBackupAt
-        fetchSettings();
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || 'Failed to create backup');
-      }
-    } catch (error) {
-      console.error('Failed to create backup:', error);
-      toast.error('Failed to create backup');
-    } finally {
-      setCreatingBackup(false);
-    }
+      const res = await fetch('/api/user/backups/create', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-household-id': selectedHouseholdId }, credentials: 'include', body: JSON.stringify({ householdId: selectedHouseholdId }) });
+      if (res.ok) { toast.success('Backup created'); fetchSettings(); }
+      else { const d = await res.json(); toast.error(d.error || 'Failed to create backup'); }
+    } catch (e) { console.error('Failed to create backup:', e); toast.error('Failed to create backup'); }
+    finally { setCreatingBackup(false); }
   }
 
-  function formatDate(dateString: string | null): string {
-    if (!dateString) return 'Not scheduled';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      });
-    } catch {
-      return 'Invalid date';
-    }
+  function formatDate(ds: string | null): string {
+    if (!ds) return 'Not scheduled';
+    try { return new Date(ds).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+    catch { return 'Invalid date'; }
   }
 
   if (!selectedHouseholdId) {
     return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <p>Please select a household to configure backup settings</p>
+      <div className="rounded-xl px-4 py-6 text-center text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }}>
+        Please select a household to configure backup settings.
       </div>
     );
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-        Loading backup settings...
-      </div>
-    );
+    return <div className="h-32 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }} />;
   }
 
+  const sel = (id: string) => ({ id, name: id, className: 'h-9 text-[13px]', style: { backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' } });
+
   return (
-    <div className="space-y-6">
-      {/* Enable/Disable Toggle */}
-      <div className="flex items-center justify-between p-4 bg-elevated border border-border rounded-lg">
-        <div className="flex-1">
-          <Label htmlFor="backup-enabled" className="text-foreground font-medium">
-            Enable Automatic Backups
+    <Section
+      icon={Database}
+      label="Backup Settings"
+      accent="var(--color-primary)"
+      footer={
+        <Button variant="outline" size="sm" onClick={createManualBackup} disabled={creatingBackup || saving} className="text-[12px] h-8">
+          {creatingBackup ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Download className="w-3.5 h-3.5 mr-1.5" />}
+          Create Backup Now
+        </Button>
+      }
+    >
+      {/* Enable toggle */}
+      <div className="flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+        <div>
+          <Label htmlFor="backup-enabled" className="text-[13px] font-medium cursor-pointer" style={{ color: 'var(--color-foreground)' }}>
+            Automatic Backups
           </Label>
-          <p className="text-sm text-muted-foreground mt-1">
-            Automatically create backups of your financial data on a schedule
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+            Automatically create backups of your financial data on a schedule.
           </p>
         </div>
-        <Switch
-          id="backup-enabled"
-          checked={settings.enabled}
-          onCheckedChange={(checked) => saveSettings({ enabled: checked })}
-          disabled={saving}
-        />
+        <Switch id="backup-enabled" checked={settings.enabled} onCheckedChange={checked => saveSettings({ enabled: checked })} disabled={saving} />
       </div>
 
       {settings.enabled && (
         <>
-          {/* Frequency Selector */}
-          <div className="space-y-2">
-            <Label htmlFor="backup-frequency" className="text-foreground">
-              Backup Frequency
-            </Label>
-            <Select
-              value={settings.frequency}
-              onValueChange={(value: 'daily' | 'weekly' | 'monthly') =>
-                saveSettings({ frequency: value })
-              }
-              disabled={saving}
-            >
-              <SelectTrigger
-                id="backup-frequency"
-                name="backup-frequency"
-                aria-label="Select backup frequency"
-                className="bg-card border-border"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="daily" className="text-foreground hover:bg-elevated">
-                  Daily
-                </SelectItem>
-                <SelectItem value="weekly" className="text-foreground hover:bg-elevated">
-                  Weekly
-                </SelectItem>
-                <SelectItem value="monthly" className="text-foreground hover:bg-elevated">
-                  Monthly
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              How often backups should be created automatically
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Frequency</p>
+              <Select value={settings.frequency} onValueChange={(v: 'daily' | 'weekly' | 'monthly') => saveSettings({ frequency: v })} disabled={saving}>
+                <SelectTrigger {...sel('backup-frequency')} aria-label="Select backup frequency"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Format</p>
+              <Select value={settings.format} onValueChange={(v: 'json' | 'csv') => saveSettings({ format: v })} disabled={saving}>
+                <SelectTrigger {...sel('backup-format')} aria-label="Select backup format"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="json">JSON (recommended)</SelectItem>
+                  <SelectItem value="csv" disabled>CSV (coming soon)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Format Selector */}
-          <div className="space-y-2">
-            <Label htmlFor="backup-format" className="text-foreground">
-              Backup Format
-            </Label>
-            <Select
-              value={settings.format}
-              onValueChange={(value: 'json' | 'csv') => saveSettings({ format: value })}
-              disabled={saving}
-            >
-              <SelectTrigger
-                id="backup-format"
-                name="backup-format"
-                aria-label="Select backup format"
-                className="bg-card border-border"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="json" className="text-foreground hover:bg-elevated">
-                  JSON
-                </SelectItem>
-                <SelectItem value="csv" className="text-foreground hover:bg-elevated" disabled>
-                  CSV (Coming soon)
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Format for backup files (JSON recommended)
-            </p>
-          </div>
-
-          {/* Retention Count */}
-          <div className="space-y-2">
-            <Label htmlFor="backup-retention" className="text-foreground">
-              Keep Last N Backups
-            </Label>
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Keep Last N Backups</p>
             <Input
-              id="backup-retention"
-              name="backup-retention"
-              type="number"
-              min="1"
-              max="100"
+              id="backup-retention" name="backup-retention" type="number" min="1" max="100"
               value={settings.retentionCount}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                if (!isNaN(value) && value >= 1 && value <= 100) {
-                  saveSettings({ retentionCount: value });
-                }
-              }}
+              onChange={e => { const v = parseInt(e.target.value, 10); if (!isNaN(v) && v >= 1 && v <= 100) saveSettings({ retentionCount: v }); }}
               disabled={saving}
-              className="bg-card border-border text-foreground"
+              className="h-9 text-[13px] w-32"
+              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
             />
-            <p className="text-xs text-muted-foreground">
-              Number of backups to keep. Older backups will be automatically deleted (1-100)
-            </p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>Older backups are automatically deleted (1–100).</p>
           </div>
 
-          {/* Next Backup Time */}
-          {settings.nextBackupAt && (
-            <Card className="p-4 bg-elevated border-border">
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-primary" />
-                <span className="text-muted-foreground">Next backup scheduled:</span>
-                <span className="font-medium text-foreground">
-                  {formatDate(settings.nextBackupAt)}
-                </span>
-              </div>
-            </Card>
-          )}
-
-          {/* Last Backup Time */}
-          {settings.lastBackupAt && (
-            <Card className="p-4 bg-elevated border-border">
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Last backup:</span>
-                <span className="font-medium text-foreground">
-                  {formatDate(settings.lastBackupAt)}
-                </span>
-              </div>
-            </Card>
-          )}
-
-          {/* Manual Backup Button */}
-          <div className="pt-2">
-            <Button
-              onClick={createManualBackup}
-              disabled={creatingBackup || saving}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {creatingBackup ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating Backup...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  Create Backup Now
-                </>
+          {(settings.nextBackupAt || settings.lastBackupAt) && (
+            <div className="space-y-1.5 pt-1">
+              {settings.nextBackupAt && (
+                <div className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                  <CalendarClock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
+                  <span>Next: <span style={{ color: 'var(--color-foreground)' }}>{formatDate(settings.nextBackupAt)}</span></span>
+                </div>
               )}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2">
-              Manually create a backup of your financial data right now
-            </p>
-          </div>
+              {settings.lastBackupAt && (
+                <div className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                  <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                  <span>Last: <span style={{ color: 'var(--color-foreground)' }}>{formatDate(settings.lastBackupAt)}</span></span>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
-
-      {/* Manual Backup Button (when backups disabled) */}
-      {!settings.enabled && (
-        <div className="pt-2">
-          <Button
-            onClick={createManualBackup}
-            disabled={creatingBackup || saving}
-            variant="outline"
-            className="border-border"
-          >
-            {creatingBackup ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating Backup...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Create Backup Now
-              </>
-            )}
-          </Button>
-          <p className="text-xs text-muted-foreground mt-2">
-            Create a manual backup even when automatic backups are disabled
-          </p>
-        </div>
-      )}
-    </div>
+    </Section>
   );
 }
-

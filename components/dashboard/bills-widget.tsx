@@ -147,28 +147,28 @@ export function BillsWidget() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'paid':
-        return <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
+        return <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-success)' }} />;
       case 'overdue':
-        return <AlertCircle className="w-4 h-4 text-red-400" />;
+        return <AlertCircle className="w-4 h-4" style={{ color: 'var(--color-destructive)' }} />;
       default:
-        return <Clock className="w-4 h-4 text-amber-400" />;
+        return <Clock className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'paid':
-        return 'bg-emerald-500/10 text-emerald-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)', color: 'var(--color-success)' };
       case 'overdue':
-        return 'bg-red-500/10 text-red-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)', color: 'var(--color-destructive)' };
       default:
-        return 'bg-amber-500/10 text-amber-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)', color: 'var(--color-warning)' };
     }
   };
 
   if (loading) {
     return (
-      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-background)' }}>
         <div className="animate-pulse space-y-4">
           <div className="h-6 rounded w-1/3" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
           <div className="space-y-3">
@@ -182,15 +182,15 @@ export function BillsWidget() {
   }
 
   return (
-    <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+    <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-background)' }}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-foreground">This Month&apos;s Bills</h3>
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>This Month&apos;s Bills</h3>
         <Link href="/dashboard/bills">
           <Button
             variant="ghost"
             size="sm"
-            className="hover:bg-elevated"
-            style={{ color: 'var(--color-income)' }}
+            className="hover:bg-[var(--color-elevated)]"
+            style={{ color: 'var(--color-primary)' }}
           >
             View All <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
@@ -202,15 +202,15 @@ export function BillsWidget() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <p className="text-muted-foreground text-xs mb-1">Total</p>
-              <p className="text-lg font-semibold text-foreground">${totalAmount.toFixed(2)}</p>
+              <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total</p>
+              <p className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>${totalAmount.toFixed(2)}</p>
             </div>
             <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <p className="text-muted-foreground text-xs mb-1">Paid</p>
+              <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Paid</p>
               <p className="text-lg font-semibold" style={{ color: 'var(--color-income)' }}>${paidAmount.toFixed(2)}</p>
             </div>
             <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <p className="text-muted-foreground text-xs mb-1">Pending</p>
+              <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Pending</p>
               <p className="text-lg font-semibold" style={{ color: 'var(--color-warning)' }}>{pendingCount}</p>
             </div>
           </div>
@@ -233,18 +233,17 @@ export function BillsWidget() {
                   <div className="flex items-center gap-3 flex-1">
                     {getStatusIcon(bill.status)}
                     <div>
-                      <p className="text-sm font-medium text-foreground">{bill.bill?.name}</p>
-                      <p className="text-xs text-muted-foreground">Due {formattedDate}</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{bill.bill?.name}</p>
+                      <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Due {formattedDate}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>
                       ${(bill.actualAmount || bill.expectedAmount).toFixed(2)}
                     </p>
                     <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                        bill.status
-                      )}`}
+                      className="px-2 py-1 rounded text-xs font-medium"
+                      style={getStatusStyle(bill.status)}
                     >
                       {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
                     </span>
@@ -256,8 +255,8 @@ export function BillsWidget() {
         </>
       ) : (
         <div className="text-center py-8">
-          <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-income)', opacity: 0.5 }} />
-          <p className="text-muted-foreground">No bills this month</p>
+          <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-success)', opacity: 0.5 }} />
+          <p style={{ color: 'var(--color-muted-foreground)' }}>No bills this month</p>
         </div>
       )}
     </Card>

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
 import { ChevronRight, HelpCircle } from 'lucide-react';
 import Decimal from 'decimal.js';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -107,22 +106,25 @@ export function BudgetSummaryWidget() {
   // Loading skeleton
   if (loading) {
     return (
-      <Card
-        className="p-6 border rounded-xl animate-pulse"
-        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}
+      <div
+        className="p-5 rounded-xl animate-pulse relative overflow-hidden"
+        style={{
+          border: '1px solid var(--color-border)',
+          background: 'radial-gradient(ellipse 120% 120% at 100% 0%, color-mix(in oklch, var(--color-foreground) 4%, transparent) 0%, transparent 70%), var(--color-background)',
+        }}
       >
         <div className="flex items-center justify-between mb-4">
-          <div className="h-4 w-32 bg-muted rounded"></div>
-          <div className="h-4 w-20 bg-muted rounded"></div>
+          <div className="h-4 w-32 rounded" style={{ backgroundColor: 'var(--color-muted)' }}></div>
+          <div className="h-4 w-20 rounded" style={{ backgroundColor: 'var(--color-muted)' }}></div>
         </div>
         <div className="flex items-center justify-center py-8">
-          <div className="w-24 h-24 bg-muted rounded-full"></div>
+          <div className="w-28 h-28 rounded-full" style={{ backgroundColor: 'var(--color-muted)' }}></div>
         </div>
         <div className="space-y-2 mt-4">
-          <div className="h-3 bg-muted rounded w-full"></div>
-          <div className="h-3 bg-muted rounded w-3/4"></div>
+          <div className="h-3 rounded w-full" style={{ backgroundColor: 'var(--color-muted)' }}></div>
+          <div className="h-3 rounded w-3/4" style={{ backgroundColor: 'var(--color-muted)' }}></div>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -136,25 +138,25 @@ export function BudgetSummaryWidget() {
       return {
         label: 'Excellent',
         color: 'var(--color-success)',
-        textColor: 'text-success',
+        textColor: 'var(--color-success)',
       };
     } else if (score >= 70) {
       return {
         label: 'Good',
         color: 'var(--color-income)',
-        textColor: 'text-income',
+        textColor: 'var(--color-income)',
       };
     } else if (score >= 50) {
       return {
         label: 'Fair',
         color: 'var(--color-warning)',
-        textColor: 'text-warning',
+        textColor: 'var(--color-warning)',
       };
     } else {
       return {
         label: 'Needs Work',
-        color: 'var(--color-error)',
-        textColor: 'text-error',
+        color: 'var(--color-destructive)',
+        textColor: 'var(--color-destructive)',
       };
     }
   };
@@ -164,52 +166,55 @@ export function BudgetSummaryWidget() {
   // Determine overall status color
   const getStatusColor = () => {
     if (summary.percentage >= 100) {
-      return 'bg-error';
+      return 'var(--color-destructive)';
     } else if (summary.percentage >= 80) {
-      return 'bg-warning';
+      return 'var(--color-warning)';
     } else {
-      return 'bg-success';
+      return 'var(--color-success)';
     }
   };
 
-  // Calculate circle stroke
-  const radius = 40;
+  // Calculate circle stroke (r=44 for w-28 h-28)
+  const radius = 44;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset =
     circumference - (summary.adherenceScore / 100) * circumference;
 
   return (
     <Link href="/dashboard/budgets">
-      <Card
-        className="p-6 border rounded-xl cursor-pointer hover:bg-elevated transition-colors"
-        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}
+      <div
+        className="p-5 rounded-xl cursor-pointer transition-opacity hover:opacity-90 relative overflow-hidden"
+        style={{
+          border: '1px solid var(--color-border)',
+          borderLeftWidth: '4px',
+          borderLeftColor: adherenceInfo.color,
+          background: 'radial-gradient(ellipse 120% 120% at 100% 0%, color-mix(in oklch, var(--color-foreground) 4%, transparent) 0%, transparent 70%), var(--color-background)',
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-sm font-medium text-foreground">Budget Status</h3>
-          <div className="flex items-center gap-1 text-xs text-primary hover:opacity-80">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Budget Status</h3>
+          <div className="flex items-center gap-0.5 text-[13px] hover:opacity-80" style={{ color: 'var(--color-primary)' }}>
             <span>View All</span>
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </div>
         </div>
 
         {/* Adherence Score Circle */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="relative w-24 h-24">
-            <svg className="w-24 h-24 transform -rotate-90">
-              {/* Background circle */}
+        <div className="flex flex-col items-center mb-5">
+          <div className="relative w-28 h-28">
+            <svg className="w-28 h-28 transform -rotate-90">
               <circle
-                cx="48"
-                cy="48"
+                cx="56"
+                cy="56"
                 r={radius}
                 stroke="var(--color-muted)"
                 strokeWidth="8"
                 fill="none"
               />
-              {/* Progress circle */}
               <circle
-                cx="48"
-                cy="48"
+                cx="56"
+                cy="56"
                 r={radius}
                 stroke={adherenceInfo.color}
                 strokeWidth="8"
@@ -221,21 +226,21 @@ export function BudgetSummaryWidget() {
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-bold text-foreground">
+              <span className="text-2xl font-bold" style={{ color: 'var(--color-foreground)', fontVariantNumeric: 'tabular-nums' }}>
                 {summary.adherenceScore}%
               </span>
             </div>
           </div>
           <div className="mt-2 text-center">
-            <span className={`text-sm font-semibold ${adherenceInfo.textColor}`}>
+            <span className="text-sm font-semibold" style={{ color: adherenceInfo.textColor, fontVariantNumeric: 'tabular-nums' }}>
               {adherenceInfo.label}
             </span>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center justify-center gap-1 mt-0.5 cursor-help">
-                    <p className="text-xs text-muted-foreground">Budget Adherence</p>
-                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                    <p className="text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--color-muted-foreground)' }}>Budget Adherence</p>
+                    <HelpCircle className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
@@ -254,50 +259,45 @@ export function BudgetSummaryWidget() {
 
         {/* Monthly Progress */}
         <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">This Month</span>
-            <span className="text-xs font-semibold text-foreground">
-              {summary.percentage.toFixed(0)}%
-            </span>
-          </div>
-          <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-lg font-bold text-foreground">
+          <span className="text-[10px] uppercase tracking-[0.08em] block mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Monthly Progress</span>
+          <div className="mb-2">
+            <div className="text-base font-bold" style={{ color: 'var(--color-foreground)', fontVariantNumeric: 'tabular-nums' }}>
               ${summary.totalSpent.toFixed(0)}
-            </span>
-            <span className="text-xs text-muted-foreground">
+            </div>
+            <div className="text-xs" style={{ color: 'var(--color-muted-foreground)', fontVariantNumeric: 'tabular-nums' }}>
               / ${summary.totalBudget.toFixed(0)}
-            </span>
+            </div>
           </div>
-          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-muted)' }}>
             <div
-              className={`h-full transition-all duration-300 ${getStatusColor()}`}
-              style={{ width: `${Math.min(100, summary.percentage)}%` }}
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, summary.percentage)}%`, backgroundColor: getStatusColor() }}
             />
           </div>
         </div>
 
         {/* Category Status */}
-        <div className="flex items-center justify-between text-xs pt-4 border-t border-border">
+        <div className="flex items-center justify-around text-[12px] pt-4 gap-2" style={{ borderTop: '1px solid var(--color-border)' }}>
           {summary.onTrack > 0 && (
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-success"></div>
-              <span className="text-muted-foreground">{summary.onTrack} On Track</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--color-success)' }}></div>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>{summary.onTrack} On Track</span>
             </div>
           )}
           {summary.warning > 0 && (
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-warning"></div>
-              <span className="text-muted-foreground">{summary.warning} Warning</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--color-warning)' }}></div>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>{summary.warning} Warning</span>
             </div>
           )}
           {summary.exceeded > 0 && (
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-error"></div>
-              <span className="text-muted-foreground">{summary.exceeded} Over</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--color-destructive)' }}></div>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>{summary.exceeded} Over</span>
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </Link>
   );
 }

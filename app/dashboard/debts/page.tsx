@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { DebtForm } from '@/components/debts/debt-form';
 import { DebtPayoffStrategy } from '@/components/debts/debt-payoff-strategy';
@@ -18,7 +19,23 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, ChevronDown, ChevronUp, Target, BarChart3, Lightbulb, AlertTriangle, CreditCard, Wallet, FileText, Layers, TrendingUp, Info, Loader2, Settings } from 'lucide-react';
+import {
+  Plus,
+  ArrowLeft,
+  Target,
+  BarChart3,
+  Lightbulb,
+  AlertTriangle,
+  CreditCard,
+  Wallet,
+  FileText,
+  Layers,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Settings,
+} from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import {
   Tooltip,
@@ -26,7 +43,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import Link from 'next/link';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { UtilizationTrendsChart, BalanceHistoryChart, InterestPaidChart } from '@/components/charts';
@@ -71,9 +87,68 @@ interface RolldownPayment {
 
 type StrategyData = Partial<Record<PayoffMethod, { rolldownPayments?: RolldownPayment[] }>>;
 
+function fmt(n: number) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// Compact analytics section row
+function AnalyticsRow({
+  icon: Icon,
+  label,
+  description,
+  accentColor,
+  open,
+  onToggle,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  description: string;
+  accentColor: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ border: '1px solid var(--color-border)', borderRadius: '0.75rem', overflow: 'hidden', backgroundColor: 'var(--color-background)' }}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
+        onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 60%, transparent)')}
+        onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
+      >
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `color-mix(in oklch, ${accentColor} 14%, transparent)` }}
+        >
+          <Icon className="w-3.5 h-3.5" style={{ color: accentColor }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{label}</span>
+          <span className="text-[11px] ml-2" style={{ color: 'var(--color-muted-foreground)' }}>{description}</span>
+        </div>
+        {open
+          ? <ChevronUp className="w-4 h-4 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />
+          : <ChevronDown className="w-4 h-4 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />}
+      </button>
+      {open && (
+        <div style={{ borderTop: '1px solid var(--color-border)' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DebtsPage() {
   const { selectedHouseholdId } = useHousehold();
-  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
+  const {
+    fetchWithHousehold,
+    postWithHousehold,
+    putWithHousehold,
+    deleteWithHousehold,
+  } = useHouseholdFetch();
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDebt, setSelectedDebt] = useState<(Partial<DebtFormData> & { id: string }) | null>(null);
   const [stats, setStats] = useState<DebtStats | null>(null);
@@ -84,48 +159,33 @@ export default function DebtsPage() {
   const [showCharts, setShowCharts] = useState(false);
   const [debtSettings, setDebtSettings] = useState<DebtSettings | null>(null);
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
-  // Refresh key forces child components to remount and re-fetch their data
   const [refreshKey, setRefreshKey] = useState(0);
-  // Track strategy toggle saving state
   const [savingStrategy, setSavingStrategy] = useState(false);
-  // Strategy data for payoff timelines on individual debt cards
   const [strategyData, setStrategyData] = useState<StrategyData | null>(null);
-  // Unified debts state
   const [unifiedDebts, setUnifiedDebts] = useState<UnifiedDebt[]>([]);
   const [unifiedSummary, setUnifiedSummary] = useState<UnifiedDebtSummary | null>(null);
   const [unifiedLoading, setUnifiedLoading] = useState(true);
   const [unifiedFilter, setUnifiedFilter] = useState<'all' | 'credit' | 'line_of_credit' | 'loans'>('all');
 
-  const triggerRefresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-  }, []);
+  const triggerRefresh = useCallback(() => setRefreshKey(p => p + 1), []);
 
-  // Load unified debts (credit accounts + debt bills)
   const loadUnifiedDebts = useCallback(async () => {
     if (!selectedHouseholdId) return;
     try {
       setUnifiedLoading(true);
-      // Build query params based on filter
       const params = new URLSearchParams();
-      if (unifiedFilter === 'credit') {
-        params.set('type', 'credit');
-      } else if (unifiedFilter === 'line_of_credit') {
-        params.set('type', 'line_of_credit');
-      } else if (unifiedFilter === 'loans') {
-        params.set('source', 'bill');
-      }
-      
-      const queryString = params.toString();
-      const url = `/api/debts/unified${queryString ? `?${queryString}` : ''}`;
-      const response = await fetchWithHousehold(url);
-      
-      if (response.ok) {
-        const data = await response.json();
+      if (unifiedFilter === 'credit') params.set('type', 'credit');
+      else if (unifiedFilter === 'line_of_credit') params.set('type', 'line_of_credit');
+      else if (unifiedFilter === 'loans') params.set('source', 'bill');
+      const url = `/api/debts/unified${params.toString() ? `?${params.toString()}` : ''}`;
+      const res = await fetchWithHousehold(url);
+      if (res.ok) {
+        const data = await res.json();
         setUnifiedDebts(data.debts);
         setUnifiedSummary(data.summary);
       }
-    } catch (error) {
-      console.error('Error loading unified debts:', error);
+    } catch (err) {
+      console.error('Error loading unified debts:', err);
     } finally {
       setUnifiedLoading(false);
     }
@@ -134,43 +194,34 @@ export default function DebtsPage() {
   const loadSettings = useCallback(async () => {
     if (!selectedHouseholdId) return;
     try {
-      const response = await fetchWithHousehold('/api/debts/settings');
-      if (response.ok) {
-        const data = (await response.json()) as DebtSettings;
-        setDebtSettings(data);
-      }
-    } catch (error) {
-      console.error('Error loading debt settings:', error);
+      const res = await fetchWithHousehold('/api/debts/settings');
+      if (res.ok) setDebtSettings((await res.json()) as DebtSettings);
+    } catch (err) {
+      console.error('Error loading debt settings:', err);
     }
   }, [selectedHouseholdId, fetchWithHousehold]);
 
   const loadStats = useCallback(async () => {
     if (!selectedHouseholdId) return;
     try {
-      const response = await fetchWithHousehold('/api/debts/stats');
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      const data = (await response.json()) as DebtStats;
-      setStats(data);
-    } catch (error) {
-      console.error('Error loading stats:', error);
+      const res = await fetchWithHousehold('/api/debts/stats');
+      if (res.ok) setStats((await res.json()) as DebtStats);
+    } catch (err) {
+      console.error('Error loading stats:', err);
     }
   }, [selectedHouseholdId, fetchWithHousehold]);
 
   const loadStrategyData = useCallback(async () => {
     if (!selectedHouseholdId || !debtSettings) return;
     try {
-      const extraPayment = debtSettings.extraMonthlyPayment || 0;
-      const response = await fetchWithHousehold(`/api/debts/payoff-strategy?compare=true&extraPayment=${extraPayment}`);
-      if (response.ok) {
-        const data = (await response.json()) as StrategyData;
-        setStrategyData(data);
-      }
-    } catch (error) {
-      console.error('Error loading strategy data:', error);
+      const extra = debtSettings.extraMonthlyPayment || 0;
+      const res = await fetchWithHousehold(`/api/debts/payoff-strategy?compare=true&extraPayment=${extra}`);
+      if (res.ok) setStrategyData((await res.json()) as StrategyData);
+    } catch (err) {
+      console.error('Error loading strategy data:', err);
     }
   }, [selectedHouseholdId, debtSettings, fetchWithHousehold]);
 
-  // Fetch debts and settings
   useEffect(() => {
     if (!selectedHouseholdId) return;
     loadStats();
@@ -178,612 +229,507 @@ export default function DebtsPage() {
     loadUnifiedDebts();
   }, [selectedHouseholdId, loadStats, loadSettings, loadUnifiedDebts]);
 
-  // Reload unified debts when filter changes
-  useEffect(() => {
-    loadUnifiedDebts();
-  }, [unifiedFilter, loadUnifiedDebts, refreshKey]);
-
-  // Load strategy data when settings are available
-  useEffect(() => {
-    if (debtSettings) {
-      loadStrategyData();
-    }
-  }, [debtSettings, loadStrategyData, refreshKey]);
+  useEffect(() => { loadUnifiedDebts(); }, [unifiedFilter, loadUnifiedDebts, refreshKey]);
+  useEffect(() => { if (debtSettings) loadStrategyData(); }, [debtSettings, loadStrategyData, refreshKey]);
 
   const loadDebtDetails = async (debtId: string) => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return null;
-    }
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return null; }
     try {
-      const response = await fetchWithHousehold(`/api/debts/${debtId}`);
-      if (!response.ok) throw new Error('Failed to fetch debt');
-      return await response.json();
-    } catch (_error) {
-      toast.error('Failed to load debt details');
-      return null;
-    }
+      const res = await fetchWithHousehold(`/api/debts/${debtId}`);
+      if (!res.ok) throw new Error();
+      return await res.json();
+    } catch { toast.error('Failed to load debt details'); return null; }
   };
 
   const handleCreateDebt = async (data: Record<string, unknown>, saveMode: 'save' | 'saveAndAdd' = 'save') => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     try {
-      const response = await postWithHousehold('/api/debts', data);
-
-      if (!response.ok) throw new Error('Failed to create debt');
-
-      // Show appropriate toast message
+      const res = await postWithHousehold('/api/debts', data);
+      if (!res.ok) throw new Error();
       if (saveMode === 'saveAndAdd') {
-        const debtName = typeof data.name === 'string' ? data.name : 'Debt';
-        toast.success(`Debt "${debtName}" saved successfully!`);
-        // Keep dialog open for adding another debt
+        toast.success(`"${typeof data.name === 'string' ? data.name : 'Debt'}" saved!`);
       } else {
-        toast.success('Debt added successfully!');
+        toast.success('Debt added!');
         setIsFormOpen(false);
         setSelectedDebt(null);
       }
-      loadStats();
-      loadUnifiedDebts();
-      triggerRefresh();
-    } catch (_error) {
-      toast.error('Failed to add debt');
-    }
+      loadStats(); loadUnifiedDebts(); triggerRefresh();
+    } catch { toast.error('Failed to add debt'); }
   };
 
   const handleUpdateDebt = async (data: Record<string, unknown>) => {
-    if (!selectedDebt) return;
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-
+    if (!selectedDebt || !selectedHouseholdId) { toast.error('Please select a household'); return; }
     try {
-      const response = await putWithHousehold(`/api/debts/${selectedDebt.id}`, data);
-
-      if (!response.ok) throw new Error('Failed to update debt');
-
-      toast.success('Debt updated successfully!');
-      setIsFormOpen(false);
-      setSelectedDebt(null);
-      loadStats();
-      loadUnifiedDebts();
-      triggerRefresh();
-    } catch (_error) {
-      toast.error('Failed to update debt');
-    }
+      const res = await putWithHousehold(`/api/debts/${selectedDebt.id}`, data);
+      if (!res.ok) throw new Error();
+      toast.success('Debt updated!');
+      setIsFormOpen(false); setSelectedDebt(null);
+      loadStats(); loadUnifiedDebts(); triggerRefresh();
+    } catch { toast.error('Failed to update debt'); }
   };
 
   const handleDeleteDebt = async (debtId: string) => {
-    if (!confirm('Are you sure you want to delete this debt?')) return;
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-
+    if (!confirm('Delete this debt? This cannot be undone.')) return;
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     try {
-      const response = await deleteWithHousehold(`/api/debts/${debtId}`);
-
-      if (!response.ok) throw new Error('Failed to delete debt');
-
-      toast.success('Debt deleted successfully!');
-      loadStats();
-      loadUnifiedDebts();
-      triggerRefresh();
-    } catch (_error) {
-      toast.error('Failed to delete debt');
-    }
+      const res = await deleteWithHousehold(`/api/debts/${debtId}`);
+      if (!res.ok) throw new Error();
+      toast.success('Debt deleted.');
+      loadStats(); loadUnifiedDebts(); triggerRefresh();
+    } catch { toast.error('Failed to delete debt'); }
   };
 
   const handleEditDebt = async (debt: { id: string }) => {
     const details = await loadDebtDetails(debt.id);
-    if (details) {
-      setSelectedDebt(details as Partial<DebtFormData> & { id: string });
-      setIsFormOpen(true);
-    }
+    if (details) { setSelectedDebt(details as Partial<DebtFormData> & { id: string }); setIsFormOpen(true); }
   };
 
-  const handlePayment = () => {
-    loadStats();
-    loadUnifiedDebts();
-    triggerRefresh();
-  };
+  const handlePayment = () => { loadStats(); loadUnifiedDebts(); triggerRefresh(); };
 
   const handleToggleStrategy = async (enabled: boolean) => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-    
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     setSavingStrategy(true);
     try {
-      const response = await putWithHousehold('/api/debts/settings', {
-        ...(debtSettings ?? {}),
-        debtStrategyEnabled: enabled,
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update strategy');
-      }
-      
-      // Update local state
-      setDebtSettings((prev) => ({
-        ...(prev ?? {}),
-        debtStrategyEnabled: enabled,
-      }));
-      
-      toast.success(enabled 
-        ? 'Debt payoff strategy enabled' 
-        : 'Debt payoff strategy disabled'
-      );
-      
-      // Refresh related components
-      triggerRefresh();
-      loadUnifiedDebts();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update strategy');
-    } finally {
-      setSavingStrategy(false);
-    }
+      const res = await putWithHousehold('/api/debts/settings', { ...(debtSettings ?? {}), debtStrategyEnabled: enabled });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
+      setDebtSettings(p => ({ ...(p ?? {}), debtStrategyEnabled: enabled }));
+      toast.success(enabled ? 'Strategy enabled' : 'Strategy disabled');
+      triggerRefresh(); loadUnifiedDebts();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update strategy');
+    } finally { setSavingStrategy(false); }
   };
 
+  const hasDebts = (stats?.activeDebtCount ?? 0) > 0;
+
+  // ── Loading skeleton ──────────────────────────────────────────────────────
   if (unifiedLoading && !stats) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Loading debts...</p>
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              <div className="w-28 h-5 rounded animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            </div>
+            <div className="w-24 h-8 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+          <div className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)' }} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-40 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', animationDelay: `${i * 60}ms` }} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6">
-      <div className="max-w-7xl mx-auto space-y-4">
-        {/* Header - Compact */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Debt Management</h1>
-            <p className="text-muted-foreground text-sm">Track and pay off your debts</p>
-          </div>
-          <Button
-            onClick={() => {
-              setSelectedDebt(null);
-              setIsFormOpen(true);
-            }}
-            size="sm"
-            className="bg-accent hover:bg-accent/90 text-accent-foreground"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Debt
-          </Button>
-        </div>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
 
-        {/* Strategy Toggle - Compact Inline */}
-        {stats && stats.activeDebtCount > 0 && debtSettings && (
-          <div className="flex items-center justify-between gap-3 bg-card border border-border rounded-lg px-3 py-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Target className={`w-4 h-4 shrink-0 ${debtSettings.debtStrategyEnabled ? 'text-income' : 'text-muted-foreground'}`} />
-              <span className="text-sm font-medium text-foreground truncate">
-                {debtSettings.debtStrategyEnabled
-                  ? `${debtSettings.preferredMethod === 'avalanche' ? 'Avalanche' : 'Snowball'} Strategy`
-                  : 'Strategy Disabled'}
+      {/* ── Sticky header ─────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
+        >
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center gap-3">
+            {/* Back */}
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shrink-0">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+
+            {/* Title */}
+            <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+              Debt Payoff
+            </h1>
+
+            {/* Total balance pill */}
+            {unifiedSummary && unifiedSummary.totalBalance > 0 && (
+              <span
+                className="text-[12px] font-bold font-mono tabular-nums px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: 'color-mix(in oklch, var(--color-error) 12%, transparent)',
+                  color: 'var(--color-error)',
+                }}
+              >
+                −${fmt(unifiedSummary.totalBalance)}
               </span>
+            )}
+
+            <div className="flex-1" />
+
+            {/* Strategy toggle (if debts exist) */}
+            {hasDebts && debtSettings && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
-                      <Info className="w-3.5 h-3.5" />
-                    </button>
+                    <div
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-default"
+                      style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+                    >
+                      <Target
+                        className="w-3.5 h-3.5 shrink-0"
+                        style={{ color: debtSettings.debtStrategyEnabled ? 'var(--color-success)' : 'var(--color-muted-foreground)' }}
+                      />
+                      <span className="text-[11px] font-medium hidden sm:block" style={{ color: 'var(--color-foreground)' }}>
+                        {debtSettings.debtStrategyEnabled
+                          ? (debtSettings.preferredMethod === 'avalanche' ? 'Avalanche' : 'Snowball')
+                          : 'No Strategy'}
+                      </span>
+                      <Link href="/dashboard/settings?tab=household-financial">
+                        <Settings className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />
+                      </Link>
+                      {savingStrategy
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
+                        : <Switch
+                            checked={debtSettings.debtStrategyEnabled ?? false}
+                            onCheckedChange={handleToggleStrategy}
+                            aria-label="Toggle debt payoff strategy"
+                          />
+                      }
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p>
-                      When enabled, debts are prioritized based on your chosen method (Avalanche = highest rate first, Snowball = smallest balance first).
-                    </p>
+                    <p>Avalanche = highest rate first · Snowball = smallest balance first</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Link
-                href="/dashboard/settings?tab=household-financial"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                title="Settings"
-              >
-                <Settings className="w-4 h-4" />
-              </Link>
-              {savingStrategy ? (
-                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              ) : (
-                <Switch
-                  checked={debtSettings.debtStrategyEnabled ?? false}
-                  onCheckedChange={handleToggleStrategy}
-                  aria-label="Toggle debt payoff strategy"
-                />
-              )}
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Summary Stats - Compact with inline layout on larger screens */}
+            {/* Add Debt */}
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 px-3 text-xs font-medium shrink-0"
+              onClick={() => { setSelectedDebt(null); setIsFormOpen(true); }}
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Debt
+            </Button>
+          </div>
+        </div>
+        {/* Accent line — error red */}
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-error) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
+        />
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+        {/* ── Stats strip ───────────────────────────────────────────────── */}
         {unifiedSummary && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <div className="bg-card border border-border rounded-lg px-3 py-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                <span className="text-muted-foreground text-xs">Total Debt</span>
-                <span className="text-lg md:text-base font-bold font-mono text-error">
-                  ${unifiedSummary.totalBalance.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                </span>
+          <div
+            className="rounded-xl px-4 py-3 flex items-center"
+            style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+          >
+            <div className="flex-1 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-error)' }}>Total Debt</div>
+              <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-error)' }}>${fmt(unifiedSummary.totalBalance)}</div>
+            </div>
+            <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+            <div className="flex-1 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Min/mo</div>
+              <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-foreground)' }}>${fmt(unifiedSummary.totalMinimumPayment)}</div>
+            </div>
+            <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+            <div className="flex-1 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Strategy</div>
+              <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-foreground)' }}>
+                <span style={{ color: 'var(--color-success)' }}>{unifiedSummary.inStrategyCount}</span>
+                <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>/{unifiedSummary.totalCount}</span>
               </div>
             </div>
-            <div className="bg-card border border-border rounded-lg px-3 py-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                <span className="text-muted-foreground text-xs">Min Payments</span>
-                <span className="text-lg md:text-base font-bold font-mono text-foreground">
-                  ${unifiedSummary.totalMinimumPayment.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-            </div>
-            <div className="bg-card border border-border rounded-lg px-3 py-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                <span className="text-muted-foreground text-xs">In Strategy</span>
-                <span className="text-lg md:text-base font-bold font-mono text-success">
-                  {unifiedSummary.inStrategyCount}/{unifiedSummary.totalCount}
-                </span>
-              </div>
-            </div>
-            <div className="bg-card border border-border rounded-lg px-3 py-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                <span className="text-muted-foreground text-xs">Sources</span>
-                <div className="flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium">{unifiedSummary.creditAccountCount}</span>
-                  <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium">{unifiedSummary.debtBillCount}</span>
-                </div>
+            <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+            <div className="flex-1 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Sources</div>
+              <div className="flex items-center justify-center gap-2 leading-none">
+                {unifiedSummary.creditAccountCount > 0 && (
+                  <span className="flex items-center gap-0.5 text-sm font-mono" style={{ color: 'var(--color-foreground)' }}>
+                    <CreditCard className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />
+                    {unifiedSummary.creditAccountCount}
+                  </span>
+                )}
+                {(unifiedSummary.debtBillCount + unifiedSummary.standaloneDebtCount) > 0 && (
+                  <span className="flex items-center gap-0.5 text-sm font-mono" style={{ color: 'var(--color-foreground)' }}>
+                    <FileText className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />
+                    {unifiedSummary.debtBillCount + unifiedSummary.standaloneDebtCount}
+                  </span>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Debt-Free Countdown */}
-        {stats && stats.activeDebtCount > 0 && (
-          <DebtFreeCountdown 
+        {/* ── Debt-Free Countdown ───────────────────────────────────────── */}
+        {hasDebts && (
+          <DebtFreeCountdown
             key={`countdown-${refreshKey}`}
             strategyEnabled={debtSettings?.debtStrategyEnabled ?? false}
             payoffMethod={debtSettings?.preferredMethod ?? 'avalanche'}
           />
         )}
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {[
-          { key: 'all', label: 'All', icon: Layers },
-          { key: 'credit', label: 'Credit Cards', icon: CreditCard },
-          { key: 'line_of_credit', label: 'Lines of Credit', icon: Wallet },
-          { key: 'loans', label: 'Loans', icon: FileText },
-        ].map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setUnifiedFilter(key as typeof unifiedFilter)}
-            className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-              unifiedFilter === key
-                ? 'bg-accent text-accent-foreground'
-                : 'bg-card text-muted-foreground border border-border hover:bg-elevated'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Debts List */}
-      {unifiedLoading ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading debts...</p>
-        </div>
-      ) : unifiedDebts.length === 0 ? (
-        <div className="text-center py-12 bg-card border border-border rounded-lg">
-          <p className="text-muted-foreground">
-            {unifiedFilter === 'all'
-              ? "No debts yet. You're debt-free!"
-              : `No ${unifiedFilter === 'credit' ? 'credit cards' : unifiedFilter === 'line_of_credit' ? 'lines of credit' : 'loans'} found.`}
-          </p>
-          {unifiedFilter === 'all' && (
-            <Button
-              onClick={() => setIsFormOpen(true)}
-              className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
+        {/* ── Type filter ───────────────────────────────────────────────── */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {([
+            { key: 'all',            label: 'All',               icon: Layers },
+            { key: 'credit',         label: 'Credit Cards',       icon: CreditCard },
+            { key: 'line_of_credit', label: 'Lines of Credit',    icon: Wallet },
+            { key: 'loans',          label: 'Loans',              icon: FileText },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setUnifiedFilter(key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors"
+              style={{
+                backgroundColor: unifiedFilter === key ? 'var(--color-primary)' : 'var(--color-elevated)',
+                color: unifiedFilter === key ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                border: `1px solid ${unifiedFilter === key ? 'var(--color-primary)' : 'var(--color-border)'}`,
+              }}
             >
-              Add a Debt to Track
-            </Button>
-          )}
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
         </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Expand/Collapse All Controls */}
-          {unifiedDebts.length > 1 && (
-            <div className="flex gap-2 items-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAllExpanded(true)}
-                className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
-              >
-                <ChevronDown className="w-4 h-4 mr-1" />
-                Expand All
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAllExpanded(false)}
-                className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
-              >
-                <ChevronUp className="w-4 h-4 mr-1" />
-                Collapse All
-              </Button>
-              <span className="text-xs text-muted-foreground ml-2">
-                {unifiedDebts.length} {unifiedDebts.length === 1 ? 'debt' : 'debts'}
-              </span>
-            </div>
-          )}
 
-          {/* Debts Grid */}
+        {/* ── Debts list ────────────────────────────────────────────────── */}
+        {unifiedLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {unifiedDebts.map((debt) => {
-              // Get payoff timeline from strategy data for this debt
-              const currentMethod = debtSettings?.preferredMethod || 'avalanche';
-              const rolldownPayment = strategyData?.[currentMethod]?.rolldownPayments?.find(
-                (r: { debtId: string }) => r.debtId === debt.id
-              );
-              const payoffTimeline = rolldownPayment ? {
-                strategyMonths: rolldownPayment.payoffMonth ?? 0,
-                strategyDate: rolldownPayment.payoffDate ?? '',
-                minimumOnlyMonths: rolldownPayment.minimumOnlyMonths ?? 0,
-                order: rolldownPayment.order ?? 0,
-                method: currentMethod,
-              } : undefined;
-
-              return (
-                <UnifiedDebtCard
-                  key={`${debt.source}-${debt.id}`}
-                  debt={debt}
-                  defaultExpanded={false}
-                  expandState={allExpanded}
-                  payoffTimeline={payoffTimeline}
-                  onEdit={debt.source === 'debt' ? (d) => handleEditDebt({ id: d.id }) : undefined}
-                  onDelete={debt.source === 'debt' ? (debtId) => handleDeleteDebt(debtId) : undefined}
-                  onPayment={debt.source === 'debt' ? () => handlePayment() : undefined}
-                  onToggleStrategy={debt.source === 'debt' ? undefined : async (debtId, include) => {
-                    try {
-                      const response = await postWithHousehold('/api/debts/strategy-toggle', {
-                        source: debt.source,
-                        id: debtId,
-                        include,
-                      });
-
-                      if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.error || 'Failed to update');
-                      }
-
-                      // Update local state optimistically
-                      setUnifiedDebts(prev =>
-                        prev.map(d =>
-                          d.id === debtId
-                            ? { ...d, includeInPayoffStrategy: include }
-                            : d
-                        )
-                      );
-
-                      // Update summary counts
-                      if (unifiedSummary) {
-                        setUnifiedSummary({
-                          ...unifiedSummary,
-                          inStrategyCount: include
-                            ? unifiedSummary.inStrategyCount + 1
-                            : unifiedSummary.inStrategyCount - 1,
-                        });
-                      }
-
-                      toast.success(include
-                        ? `${debt.name} added to payoff strategy`
-                        : `${debt.name} excluded from payoff strategy`
-                      );
-
-                      // Refresh strategy data
-                      triggerRefresh();
-                    } catch (error) {
-                      toast.error(error instanceof Error ? error.message : 'Failed to update strategy');
-                    }
-                  }}
-                />
-              );
-            })}
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', animationDelay: `${i * 60}ms` }} />
+            ))}
           </div>
-        </div>
-      )}
-
-      {/* Payoff Strategy Section */}
-      {stats && stats.activeDebtCount > 0 && debtSettings && (
-        <div className="space-y-4">
-          <button
-            onClick={() => setShowStrategy(!showStrategy)}
-            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Target className="w-6 h-6 text-primary" />
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">Debt Payoff Strategy</h3>
-                <p className="text-sm text-muted-foreground">
-                  Compare Snowball vs Avalanche methods and see your payoff timeline
-                </p>
-              </div>
-            </div>
-            {showStrategy ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+        ) : unifiedDebts.length === 0 ? (
+          <div className="rounded-xl py-14 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+            <p className="text-sm mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
+              {unifiedFilter === 'all'
+                ? "No debts tracked — you're debt-free!"
+                : `No ${unifiedFilter === 'credit' ? 'credit cards' : unifiedFilter === 'line_of_credit' ? 'lines of credit' : 'loans'} found.`}
+            </p>
+            {unifiedFilter === 'all' && (
+              <Button
+                size="sm"
+                onClick={() => setIsFormOpen(true)}
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+              >
+                Add a Debt to Track
+              </Button>
             )}
-          </button>
-
-          {showStrategy && <DebtPayoffStrategy key={`strategy-${refreshKey}`} />}
-        </div>
-      )}
-
-      {/* Payment Tracking Section */}
-      {stats && stats.activeDebtCount > 0 && (
-        <div className="space-y-4">
-          <button
-            onClick={() => setShowPaymentTracking(!showPaymentTracking)}
-            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <BarChart3 className="w-6 h-6 text-primary" />
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">Payment Tracking</h3>
-                <p className="text-sm text-muted-foreground">
-                  Monitor payment adherence and track your payment streak
-                </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Expand/Collapse All */}
+            {unifiedDebts.length > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAllExpanded(true)}
+                  className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)', backgroundColor: 'var(--color-background)' }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)')}
+                  onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)')}
+                >
+                  <ChevronDown className="w-3.5 h-3.5" /> Expand All
+                </button>
+                <button
+                  onClick={() => setAllExpanded(false)}
+                  className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)', backgroundColor: 'var(--color-background)' }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)')}
+                  onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)')}
+                >
+                  <ChevronUp className="w-3.5 h-3.5" /> Collapse All
+                </button>
+                <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {unifiedDebts.length} {unifiedDebts.length === 1 ? 'debt' : 'debts'}
+                </span>
               </div>
-            </div>
-            {showPaymentTracking ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
-          </button>
 
-          {showPaymentTracking && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <PaymentAdherenceCard key={`adherence-${refreshKey}`} />
-              <PaymentStreakWidget key={`streak-${refreshKey}`} />
-            </div>
-          )}
-        </div>
-      )}
+              {unifiedDebts.map(debt => {
+                const currentMethod = debtSettings?.preferredMethod || 'avalanche';
+                const rolldown = strategyData?.[currentMethod]?.rolldownPayments?.find(
+                  (r: { debtId: string }) => r.debtId === debt.id,
+                );
+                const payoffTimeline = rolldown ? {
+                  strategyMonths: rolldown.payoffMonth ?? 0,
+                  strategyDate: rolldown.payoffDate ?? '',
+                  minimumOnlyMonths: rolldown.minimumOnlyMonths ?? 0,
+                  order: rolldown.order ?? 0,
+                  method: currentMethod,
+                } : undefined;
 
-      {/* Credit Utilization & Balance Charts Section */}
-      {unifiedSummary && unifiedSummary.creditAccountCount > 0 && (
-        <div className="space-y-4">
-          <button
-            onClick={() => setShowCharts(!showCharts)}
-            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-6 h-6 text-primary" />
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">Utilization & Balance Trends</h3>
-                <p className="text-sm text-muted-foreground">
-                  Track how your credit utilization and balances change over time
-                </p>
-              </div>
+                return (
+                  <UnifiedDebtCard
+                    key={`${debt.source}-${debt.id}`}
+                    debt={debt}
+                    defaultExpanded={false}
+                    expandState={allExpanded}
+                    payoffTimeline={payoffTimeline}
+                    onEdit={debt.source === 'debt' ? d => handleEditDebt({ id: d.id }) : undefined}
+                    onDelete={debt.source === 'debt' ? debtId => handleDeleteDebt(debtId) : undefined}
+                    onPayment={debt.source === 'debt' ? () => handlePayment() : undefined}
+                    onToggleStrategy={debt.source !== 'debt'
+                      ? async (debtId, include) => {
+                          try {
+                            const res = await postWithHousehold('/api/debts/strategy-toggle', {
+                              source: debt.source, id: debtId, include,
+                            });
+                            if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed'); }
+                            setUnifiedDebts(prev => prev.map(d => d.id === debtId ? { ...d, includeInPayoffStrategy: include } : d));
+                            if (unifiedSummary) {
+                              setUnifiedSummary({ ...unifiedSummary, inStrategyCount: unifiedSummary.inStrategyCount + (include ? 1 : -1) });
+                            }
+                            toast.success(include ? `${debt.name} added to strategy` : `${debt.name} excluded`);
+                            triggerRefresh();
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : 'Failed to update strategy');
+                          }
+                        }
+                      : undefined
+                    }
+                  />
+                );
+              })}
             </div>
-            {showCharts ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          </div>
+        )}
+
+        {/* ── Analytics sections ────────────────────────────────────────── */}
+        {hasDebts && (
+          <div className="space-y-2">
+            {/* Payoff Strategy */}
+            {debtSettings && (
+              <AnalyticsRow
+                icon={Target}
+                label="Payoff Strategy"
+                description="Snowball vs Avalanche · payoff timeline"
+                accentColor="var(--color-primary)"
+                open={showStrategy}
+                onToggle={() => setShowStrategy(v => !v)}
+              >
+                <div className="p-4">
+                  <DebtPayoffStrategy key={`strategy-${refreshKey}`} />
+                </div>
+              </AnalyticsRow>
             )}
-          </button>
 
-          {showCharts && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <UtilizationTrendsChart key={`utilization-${refreshKey}`} />
-                <BalanceHistoryChart key={`balance-${refreshKey}`} />
+            {/* Payment Tracking */}
+            <AnalyticsRow
+              icon={BarChart3}
+              label="Payment Tracking"
+              description="Adherence · streaks"
+              accentColor="var(--color-income)"
+              open={showPaymentTracking}
+              onToggle={() => setShowPaymentTracking(v => !v)}
+            >
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <PaymentAdherenceCard key={`adherence-${refreshKey}`} />
+                <PaymentStreakWidget key={`streak-${refreshKey}`} />
               </div>
-              <InterestPaidChart key={`interest-${refreshKey}`} />
-            </div>
-          )}
-        </div>
-      )}
+            </AnalyticsRow>
 
-      {/* What-If Calculator Section */}
-      {stats && stats.activeDebtCount > 0 && debtSettings && (
-        <div className="space-y-4">
-          <button
-            onClick={() => setShowWhatIf(!showWhatIf)}
-            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Lightbulb className="w-6 h-6 text-primary" />
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">What-If Scenario Calculator</h3>
-                <p className="text-sm text-muted-foreground">
-                  Test different payment strategies and see how lump sums affect your timeline
-                </p>
-              </div>
-            </div>
-            {showWhatIf ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            {/* Charts (credit only) */}
+            {unifiedSummary && unifiedSummary.creditAccountCount > 0 && (
+              <AnalyticsRow
+                icon={TrendingUp}
+                label="Utilization & Balance Trends"
+                description="Track credit usage over time"
+                accentColor="var(--color-primary)"
+                open={showCharts}
+                onToggle={() => setShowCharts(v => !v)}
+              >
+                <div className="p-4 space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <UtilizationTrendsChart key={`utilization-${refreshKey}`} />
+                    <BalanceHistoryChart key={`balance-${refreshKey}`} />
+                  </div>
+                  <InterestPaidChart key={`interest-${refreshKey}`} />
+                </div>
+              </AnalyticsRow>
             )}
-          </button>
 
-          {showWhatIf && (
-            <WhatIfCalculator
-              key={`whatif-${refreshKey}`}
-              currentExtraPayment={debtSettings.extraMonthlyPayment || 0}
-              currentMethod={debtSettings.preferredMethod || 'avalanche'}
-              currentFrequency={debtSettings.paymentFrequency || 'monthly'}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Minimum Payment Warning Section */}
-      {stats && stats.activeDebtCount > 0 && debtSettings && (
-        <div className="space-y-4">
-          <button
-            onClick={() => setShowMinWarning(!showMinWarning)}
-            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-6 h-6 text-warning" />
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">Minimum Payment Warning</h3>
-                <p className="text-sm text-muted-foreground">
-                  See the true cost of paying only minimum payments
-                </p>
-              </div>
-            </div>
-            {showMinWarning ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            {/* What-If Calculator */}
+            {debtSettings && (
+              <AnalyticsRow
+                icon={Lightbulb}
+                label="What-If Calculator"
+                description="Test extra payments · lump sums"
+                accentColor="var(--color-warning)"
+                open={showWhatIf}
+                onToggle={() => setShowWhatIf(v => !v)}
+              >
+                <div className="p-4">
+                  <WhatIfCalculator
+                    key={`whatif-${refreshKey}`}
+                    currentExtraPayment={debtSettings.extraMonthlyPayment || 0}
+                    currentMethod={debtSettings.preferredMethod || 'avalanche'}
+                    currentFrequency={debtSettings.paymentFrequency || 'monthly'}
+                  />
+                </div>
+              </AnalyticsRow>
             )}
-          </button>
 
-          {showMinWarning && <MinimumPaymentWarning key={`minwarning-${refreshKey}`} />}
-        </div>
-      )}
+            {/* Minimum Payment Warning */}
+            {debtSettings && (
+              <AnalyticsRow
+                icon={AlertTriangle}
+                label="Minimum Payment Warning"
+                description="True cost of paying minimums only"
+                accentColor="var(--color-error)"
+                open={showMinWarning}
+                onToggle={() => setShowMinWarning(v => !v)}
+              >
+                <div className="p-4">
+                  <MinimumPaymentWarning key={`minwarning-${refreshKey}`} />
+                </div>
+              </AnalyticsRow>
+            )}
+          </div>
+        )}
+      </main>
 
-      {/* Form Dialog */}
+      {/* ── Debt form dialog ──────────────────────────────────────────────── */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-card border-border text-foreground max-w-md max-h-[90vh] flex flex-col">
+        <DialogContent
+          className="flex flex-col"
+          style={{
+            color: 'var(--color-foreground)',
+            backgroundColor: 'var(--color-background)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '1rem',
+            maxWidth: '28rem',
+            maxHeight: '90vh',
+            boxShadow: '0 24px 64px -12px color-mix(in oklch, var(--color-foreground) 18%, transparent)',
+          }}
+        >
           <DialogHeader className="shrink-0">
-            <DialogTitle>{selectedDebt ? 'Edit Debt' : 'Add New Debt'}</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              {selectedDebt
-                ? 'Update your debt information'
-                : 'Add a new debt to track and manage'}
+            <DialogTitle className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>
+              {selectedDebt ? 'Edit Debt' : 'Add New Debt'}
+            </DialogTitle>
+            <DialogDescription className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+              {selectedDebt ? 'Update your debt information.' : 'Add a new debt to track and manage.'}
             </DialogDescription>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 -mx-6 px-6">
             <DebtForm
               debt={selectedDebt}
               onSubmit={selectedDebt ? handleUpdateDebt : handleCreateDebt}
-              onCancel={() => {
-                setIsFormOpen(false);
-                setSelectedDebt(null);
-              }}
+              onCancel={() => { setIsFormOpen(false); setSelectedDebt(null); }}
             />
           </div>
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   );
 }

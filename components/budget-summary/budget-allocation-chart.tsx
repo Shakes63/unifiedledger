@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import Decimal from 'decimal.js';
 
 interface AllocationChartData {
@@ -14,188 +13,129 @@ interface AllocationChartData {
 
 interface BudgetAllocationChartProps {
   data: AllocationChartData;
-  showActual?: boolean; // Toggle between budgeted and actual view
+  showActual?: boolean;
 }
 
-// Format currency helper
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
-// Custom tooltip component - defined outside to avoid recreation
-interface TooltipPayload {
-  payload: { name: string; value: number; color: string };
+function fmt(n: number) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-function AllocationTooltip({ active, payload, total }: { active?: boolean; payload?: readonly TooltipPayload[]; total: number }) {
-  if (active && payload && payload.length) {
-    const item = payload[0].payload;
-    const percentage = total > 0 
-      ? new Decimal(item.value).div(total).times(100).toNumber() 
-      : 0;
-    
-    return (
-      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-        <p className="font-semibold text-foreground">{item.name}</p>
-        <p className="text-sm font-mono" style={{ color: item.color }}>
-          {formatCurrency(item.value)}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {percentage.toFixed(1)}% of total
-        </p>
-      </div>
-    );
-  }
-  return null;
-}
-
-// Custom legend component - defined outside to avoid recreation
-interface LegendEntry {
+interface Segment {
+  key: string;
+  label: string;
+  value: number;
   color: string;
-  value: string;
+  pct: number;
 }
 
-function AllocationLegend({ payload }: { payload?: LegendEntry[] }) {
-  return (
-    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
-      {payload?.map((entry: LegendEntry, index: number) => (
-        <div key={index} className="flex items-center gap-1.5">
-          <div 
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: entry.color }}
-          />
-          <span className="text-xs text-muted-foreground">
-            {entry.value}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+export function BudgetAllocationChart({ data }: BudgetAllocationChartProps) {
+  const total = data.totalIncome || 1;
 
-export function BudgetAllocationChart({ 
-  data,
-  showActual = false,
-}: BudgetAllocationChartProps) {
-  // Build chart data - only include segments with positive values
-  const chartData = useMemo(() => [
-    {
-      name: 'Expenses',
-      value: Math.max(0, data.expenses),
-      color: 'var(--color-expense)',
-      colorValue: '#ef4444', // Fallback for Recharts
-    },
-    {
-      name: 'Savings',
-      value: Math.max(0, data.savings),
-      color: 'var(--color-success)',
-      colorValue: '#22c55e',
-    },
-    {
-      name: 'Debt Payments',
-      value: Math.max(0, data.debtPayments),
-      color: 'var(--color-error)',
-      colorValue: '#dc2626',
-    },
-    {
-      name: 'Surplus',
-      value: Math.max(0, data.surplus),
-      color: 'var(--color-income)',
-      colorValue: '#10b981',
-    },
-  ].filter(item => item.value > 0), [data]);
+  const segments: Segment[] = useMemo(() => {
+    const raw = [
+      { key: 'expenses',     label: 'Expenses', value: data.expenses,     color: 'var(--color-expense)' },
+      { key: 'savings',      label: 'Savings',  value: data.savings,      color: 'var(--color-success)' },
+      { key: 'debtPayments', label: 'Debt',     value: data.debtPayments, color: 'var(--color-error)' },
+      { key: 'surplus',      label: 'Surplus',  value: data.surplus,      color: 'var(--color-income)' },
+    ];
+    return raw
+      .filter(s => s.value > 0)
+      .map(s => ({
+        ...s,
+        pct: new Decimal(s.value).div(total).times(100).toNumber(),
+      }));
+  }, [data, total]);
 
-  // Calculate total for percentage
-  const total = useMemo(() => chartData.reduce((sum, item) => 
-    new Decimal(sum).plus(item.value).toNumber(), 0
-  ), [chartData]);
-
-  // Memoize tooltip component with total
-  const tooltipContent = useMemo(() => 
-    function AllocationTooltipWrapper(props: { active?: boolean; payload?: readonly TooltipPayload[] }) {
-      return <AllocationTooltip {...props} total={total} />;
-    }, [total]);
-
-  // If no data, show empty state
-  if (chartData.length === 0 || total === 0) {
+  if (segments.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="font-semibold text-foreground mb-4">Budget Allocation</h3>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-muted-foreground">No budget data available</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Set up your budget to see allocation breakdown
-            </p>
-          </div>
-        </div>
+      <div
+        className="rounded-xl p-5 flex items-center justify-center h-full min-h-[120px]"
+        style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+      >
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No budget data available</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
-      <h3 className="font-semibold text-foreground mb-4">
-        Budget Allocation {showActual ? '(Actual)' : '(Budgeted)'}
-      </h3>
-      
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={280}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              innerRadius={70}
-              outerRadius={100}
-              paddingAngle={2}
-              dataKey="value"
-            >
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={entry.colorValue}
-                  stroke="transparent"
-                />
-              ))}
-            </Pie>
-            <Tooltip content={tooltipContent} />
-            <Legend content={<AllocationLegend />} />
-          </PieChart>
-        </ResponsiveContainer>
-        
-        {/* Center label */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center" style={{ transform: 'translateY(-20px)' }}>
-            <p className="text-xs text-muted-foreground">Total Income</p>
-            <p className="text-xl font-bold font-mono text-foreground">
-              {formatCurrency(data.totalIncome)}
-            </p>
-          </div>
-        </div>
+    <div
+      className="rounded-xl p-5 h-full"
+      style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+    >
+      {/* Header */}
+      <div className="flex items-baseline justify-between mb-4">
+        <span
+          className="text-[11px] font-semibold uppercase tracking-widest"
+          style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          Income Allocation
+        </span>
+        <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+          ${fmt(data.totalIncome)} total
+        </span>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
-        <div>
-          <p className="text-xs text-muted-foreground">Total Expenses</p>
-          <p className="font-mono font-semibold text-expense">
-            {formatCurrency(data.expenses)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Available</p>
-          <p className="font-mono font-semibold text-success">
-            {formatCurrency(data.surplus)}
-          </p>
-        </div>
+      {/* Stacked horizontal bar */}
+      <div className="flex h-7 rounded-lg overflow-hidden gap-px mb-5">
+        {segments.map(seg => (
+          <div
+            key={seg.key}
+            className="h-full transition-all duration-500 relative group"
+            style={{ width: `${seg.pct}%`, backgroundColor: seg.color, flexShrink: 0 }}
+            title={`${seg.label}: $${fmt(seg.value)} (${seg.pct.toFixed(1)}%)`}
+          >
+            {/* Hover tooltip */}
+            <div
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              style={{
+                backgroundColor: 'var(--color-foreground)',
+                color: 'var(--color-background)',
+              }}
+            >
+              {seg.label} · ${fmt(seg.value)} · {seg.pct.toFixed(1)}%
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* Segment labels */}
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${segments.length}, 1fr)` }}>
+        {segments.map(seg => (
+          <div key={seg.key}>
+            {/* Colored indicator */}
+            <div className="flex items-center gap-1.5 mb-1">
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
+              <span className="text-[10px] font-semibold uppercase tracking-widest truncate" style={{ color: 'var(--color-muted-foreground)' }}>
+                {seg.label}
+              </span>
+            </div>
+            <div className="font-mono tabular-nums text-sm font-semibold leading-none mb-0.5" style={{ color: seg.color }}>
+              ${fmt(seg.value)}
+            </div>
+            <div className="text-[10px] font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+              {seg.pct.toFixed(1)}%
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom line: unaccounted */}
+      {(() => {
+        const accounted = segments.reduce((s, seg) => s + seg.value, 0);
+        const unaccounted = data.totalIncome - accounted;
+        if (Math.abs(unaccounted) < 1) return null;
+        return (
+          <div
+            className="mt-4 pt-3 flex items-center justify-between text-[11px]"
+            style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}
+          >
+            <span style={{ color: 'var(--color-muted-foreground)' }}>Unallocated</span>
+            <span className="font-mono tabular-nums" style={{ color: unaccounted > 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
+              {unaccounted > 0 ? '+' : ''}${fmt(unaccounted)}
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }
-

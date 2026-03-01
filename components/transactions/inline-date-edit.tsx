@@ -139,7 +139,7 @@ export function InlineDateEdit({
           className
         )}
         style={{
-          backgroundColor: 'var(--color-card)',
+          backgroundColor: 'var(--color-background)',
           boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
           border: '1px solid var(--color-border)',
         }}
@@ -175,7 +175,7 @@ export function InlineDateEdit({
           onMouseDown={(e) => e.stopPropagation()}
         />
         {isUpdating && (
-          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+          <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
         )}
       </div>
     );
@@ -185,12 +185,14 @@ export function InlineDateEdit({
   return (
     <span
       className={cn(
-        "text-xs text-muted-foreground cursor-pointer",
-        "hover:text-foreground hover:underline",
+        "text-xs cursor-pointer hover:underline",
         "transition-colors duration-150",
         disabled && "cursor-not-allowed opacity-60",
         className
       )}
+      style={{ color: 'var(--color-muted-foreground)' }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.color = 'var(--color-foreground)'; }}
+      onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
       onClick={handleClick}
       title={`${format(parseISO(value), 'MMMM d, yyyy')} (click to edit)`}
     >

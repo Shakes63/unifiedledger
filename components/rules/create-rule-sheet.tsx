@@ -265,7 +265,7 @@ export function CreateRuleSheet({
       >
         <SheetHeader className="mb-6">
           <SheetTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary" />
+            <Zap className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
             Create Rule from Transaction
           </SheetTitle>
           <SheetDescription>
@@ -275,19 +275,19 @@ export function CreateRuleSheet({
 
         <div className="space-y-6">
           {/* Rule Name & Priority */}
-          <div className="space-y-4 bg-card border border-border rounded-xl p-4">
+          <div className="space-y-4 rounded-xl p-4" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Rule Name</Label>
+              <Label className="text-sm mb-2 block" style={{ color: 'var(--color-muted-foreground)' }}>Rule Name</Label>
               <Input
                 value={ruleName}
                 onChange={(e) => setRuleName(e.target.value)}
                 placeholder="e.g., Amazon Purchases"
-                className="bg-elevated border-border text-foreground"
+                style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               />
             </div>
 
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">
+              <Label className="text-sm mb-2 block" style={{ color: 'var(--color-muted-foreground)' }}>
                 Priority (lower = higher priority)
               </Label>
               <Input
@@ -295,18 +295,25 @@ export function CreateRuleSheet({
                 min="1"
                 value={priority}
                 onChange={(e) => setPriority(parseInt(e.target.value) || 1)}
-                className="bg-elevated border-border text-foreground w-24"
+                className="w-24"
+                style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               />
             </div>
           </div>
 
           {/* Prefilled Description Preview */}
           {prefillDescription && (
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
-              <p className="text-sm text-muted-foreground">
+            <div
+              className="rounded-lg p-3"
+              style={{
+                backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)',
+                border: '1px solid color-mix(in oklch, var(--color-primary) 25%, transparent)',
+              }}
+            >
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 Pre-filled from transaction:
               </p>
-              <p className="text-sm font-medium text-foreground mt-1 truncate">
+              <p className="text-sm font-medium mt-1 truncate" style={{ color: 'var(--color-foreground)' }}>
                 &ldquo;{prefillDescription}&rdquo;
               </p>
             </div>
@@ -322,13 +329,14 @@ export function CreateRuleSheet({
           />
 
           {/* Actions */}
-          <div className="space-y-3 pt-4 border-t border-border sticky bottom-0 bg-background pb-4">
+          <div className="space-y-3 pt-4 sticky bottom-0 pb-4" style={{ borderTop: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
             <div className="flex gap-2">
               <Button
                 onClick={() => handleSave('save')}
                 disabled={saving}
                 variant="outline"
-                className="flex-1 bg-elevated border-border text-foreground hover:bg-card"
+                className="flex-1 hover:opacity-90"
+                style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               >
                 {saving && saveMode === 'save' ? (
                   <>
@@ -342,7 +350,8 @@ export function CreateRuleSheet({
               <Button
                 onClick={() => onOpenChange(false)}
                 variant="ghost"
-                className="text-muted-foreground hover:text-foreground"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                className="hover:opacity-90"
               >
                 Cancel
               </Button>
@@ -351,7 +360,8 @@ export function CreateRuleSheet({
               <Button
                 onClick={() => handleSave('apply-one')}
                 disabled={saving}
-                className="w-full bg-primary text-primary-foreground hover:opacity-90"
+                className="w-full hover:opacity-90"
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
               >
                 {saving && saveMode === 'apply-one' ? (
                   <>

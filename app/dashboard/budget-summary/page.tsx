@@ -2,14 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import {
-  DollarSign,
-  ShoppingCart,
-  PiggyBank,
-  CreditCard,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, DollarSign, ShoppingCart, PiggyBank, CreditCard, BarChart3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { BudgetAllocationCard } from '@/components/budget-summary/budget-allocation-card';
 import { MonthlySurplusCard } from '@/components/budget-summary/monthly-surplus-card';
@@ -39,21 +33,9 @@ interface DebtDetail {
 interface AllocationSummary {
   month: string;
   allocations: {
-    income: {
-      budgeted: number;
-      actual: number;
-      categories: CategoryDetail[];
-    };
-    expenses: {
-      budgeted: number;
-      actual: number;
-      categories: CategoryDetail[];
-    };
-    savings: {
-      budgeted: number;
-      actual: number;
-      categories: CategoryDetail[];
-    };
+    income: { budgeted: number; actual: number; categories: CategoryDetail[] };
+    expenses: { budgeted: number; actual: number; categories: CategoryDetail[] };
+    savings: { budgeted: number; actual: number; categories: CategoryDetail[] };
     debtPayments: {
       minimumPayments: number;
       extraPayments: number;
@@ -87,6 +69,14 @@ interface AllocationSummary {
   };
 }
 
+function fmtMonth(monthStr: string) {
+  const [year, month] = monthStr.split('-');
+  return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 export default function BudgetSummaryPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
@@ -95,42 +85,27 @@ export default function BudgetSummaryPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
 
-  // Initialize selected month to current month
   useEffect(() => {
     const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(currentMonth);
+    setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
   }, []);
 
-  // Fetch data when month changes
   useEffect(() => {
-    if (!selectedMonth || !selectedHouseholdId) {
-      setLoading(false);
-      return;
-    }
+    if (!selectedMonth || !selectedHouseholdId) { setLoading(false); return; }
 
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        const response = await fetchWithHousehold(
+        const res = await fetchWithHousehold(
           `/api/budgets/allocation-summary?month=${selectedMonth}&trends=true`
         );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch budget allocation data');
-        }
-
-        const result = await response.json();
-        setData(result);
+        if (!res.ok) throw new Error('Failed to fetch budget allocation data');
+        setData(await res.json());
       } catch (err) {
-        console.error('Error fetching budget allocation:', err);
-        if (err instanceof Error && err.message === 'No household selected') {
-          setLoading(false);
-          return;
-        }
-        setError('Failed to load budget data. Please try again.');
+        console.error(err);
+        if (err instanceof Error && err.message === 'No household selected') { setLoading(false); return; }
+        setError('Failed to load budget data.');
         toast.error('Failed to load budget data');
       } finally {
         setLoading(false);
@@ -140,47 +115,31 @@ export default function BudgetSummaryPage() {
     fetchData();
   }, [selectedMonth, selectedHouseholdId, fetchWithHousehold]);
 
-  // Navigate to previous month
-  const handlePreviousMonth = () => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const prevDate = new Date(year, month - 2, 1);
-    const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(prevMonth);
+  const navigate = (dir: 1 | -1) => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + dir, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   };
 
-  // Navigate to next month
-  const handleNextMonth = () => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const nextDate = new Date(year, month, 1);
-    const nextMonth = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(nextMonth);
-  };
-
-  // Format month for display
-  const formatMonth = (monthStr: string) => {
-    const [year, month] = monthStr.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
-
-  // Loading skeleton
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="p-6 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header skeleton */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="h-8 w-48 bg-elevated rounded animate-pulse" />
-            <div className="h-10 w-48 bg-elevated rounded animate-pulse" />
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              <div className="w-36 h-5 rounded animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            </div>
+            <div className="w-32 h-7 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
           </div>
-          
-          {/* Chart skeleton */}
-          <div className="h-80 bg-elevated rounded-xl animate-pulse mb-6" />
-          
-          {/* Cards grid skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 bg-elevated rounded-xl animate-pulse" />
+        </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+          <div className="h-36 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)' }} />
+          <div className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)' }} />
+          <div className="grid grid-cols-2 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-40 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', animationDelay: `${i * 60}ms` }} />
             ))}
           </div>
         </div>
@@ -188,28 +147,18 @@ export default function BudgetSummaryPage() {
     );
   }
 
-  // Error state
+  // ── Error ─────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="p-6 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="text-error mb-2">{error}</div>
-              <button
-                onClick={() => window.location.reload()}
-                className="text-sm text-primary hover:opacity-80"
-              >
-                Try again
-              </button>
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div className="text-center">
+          <p className="text-sm mb-2" style={{ color: 'var(--color-error)' }}>{error}</p>
+          <button onClick={() => window.location.reload()} className="text-sm" style={{ color: 'var(--color-primary)' }}>Try again</button>
         </div>
       </div>
     );
   }
 
-  // Check if we have any budget data
   const hasBudgets = data && (
     data.summary.totalIncomeBudgeted > 0 ||
     data.summary.totalExpensesBudgeted > 0 ||
@@ -217,60 +166,81 @@ export default function BudgetSummaryPage() {
     data.summary.totalDebtPaymentsBudgeted > 0
   );
 
-  // Empty state
-  if (!hasBudgets) {
-    return (
-      <div className="p-6 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Budget Summary</h1>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePreviousMonth}
-                className="p-2 hover:bg-elevated rounded-lg transition-colors"
-                aria-label="Previous month"
-              >
-                <ChevronLeft className="w-5 h-5 text-foreground" />
-              </button>
-              <div className="text-base font-medium text-foreground min-w-[150px] text-center">
-                {selectedMonth && formatMonth(selectedMonth)}
-              </div>
-              <button
-                onClick={handleNextMonth}
-                className="p-2 hover:bg-elevated rounded-lg transition-colors"
-                aria-label="Next month"
-              >
-                <ChevronRight className="w-5 h-5 text-foreground" />
-              </button>
-            </div>
+  // ── Sticky header (shared across all states) ──────────────────────────────
+  const Header = () => (
+    <header className="sticky top-0 z-50">
+      <div
+        className="backdrop-blur-xl"
+        style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
+      >
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+              Budget Insights
+            </h1>
           </div>
 
-          {/* Empty state */}
-          <div className="bg-card border border-border rounded-xl p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-elevated flex items-center justify-center">
-              <DollarSign className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">
-              No Budget Set Up
-            </h2>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Set up your monthly budget to see a complete breakdown of your income, 
-              expenses, savings, and debt payments.
-            </p>
-            <Link
-              href="/dashboard/budgets"
-              className="inline-flex items-center justify-center px-6 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
-            >
-              Set Up Budget
-            </Link>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigate(-1)}>
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </Button>
+            <span className="text-sm font-semibold tabular-nums min-w-[120px] text-center" style={{ color: 'var(--color-foreground)' }}>
+              {selectedMonth ? fmtMonth(selectedMonth) : '…'}
+            </span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigate(1)}>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
           </div>
+
+          <Link href="/dashboard/budgets">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 px-3 text-xs font-medium">
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Budget Planner</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
+      <div
+        className="h-px"
+        style={{
+          background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-primary) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+        }}
+      />
+    </header>
+  );
+
+  // ── Empty state ───────────────────────────────────────────────────────────
+  if (!hasBudgets) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+        <Header />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <div
+            className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}
+          >
+            <BarChart3 className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+          </div>
+          <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No budget set up yet</p>
+          <p className="text-sm mb-6" style={{ color: 'var(--color-muted-foreground)' }}>
+            Set up your monthly budget to see a complete breakdown of your income, expenses, savings, and debt.
+          </p>
+          <Link href="/dashboard/budgets">
+            <Button size="sm" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              Set Up Budget
+            </Button>
+          </Link>
         </div>
       </div>
     );
   }
 
-  // Build chart data
+  // ── Build derived data ────────────────────────────────────────────────────
   const chartData = {
     expenses: data.allocations.expenses.budgeted,
     savings: data.allocations.savings.budgeted,
@@ -279,7 +249,6 @@ export default function BudgetSummaryPage() {
     totalIncome: data.summary.totalIncomeBudgeted,
   };
 
-  // Build debt categories for the allocation card
   const debtCategories: CategoryDetail[] = data.allocations.debtPayments.debts.map(debt => ({
     id: debt.id,
     name: debt.name,
@@ -291,86 +260,61 @@ export default function BudgetSummaryPage() {
   }));
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header with Month Navigation */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Budget Summary</h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePreviousMonth}
-              className="p-2 hover:bg-elevated rounded-lg transition-colors"
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="w-5 h-5 text-foreground" />
-            </button>
-            <div className="text-base font-medium text-foreground min-w-[150px] text-center">
-              {formatMonth(selectedMonth)}
-            </div>
-            <button
-              onClick={handleNextMonth}
-              className="p-2 hover:bg-elevated rounded-lg transition-colors"
-              aria-label="Next month"
-            >
-              <ChevronRight className="w-5 h-5 text-foreground" />
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+      <Header />
 
-        {/* Top Row: Chart + Surplus */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        {/* ── Hero: Surplus + Allocation bar ────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          {/* Surplus hero card */}
           <div className="lg:col-span-2">
-            <BudgetAllocationChart data={chartData} />
-          </div>
-          <div>
-            <MonthlySurplusCard 
+            <MonthlySurplusCard
               budgetedSurplus={data.summary.budgetedSurplus}
               actualSurplus={data.summary.actualSurplus}
               totalIncome={data.summary.totalIncomeActual}
             />
           </div>
+
+          {/* Allocation donut / bar */}
+          <div className="lg:col-span-3">
+            <BudgetAllocationChart data={chartData} />
+          </div>
         </div>
 
-        {/* Allocation Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Income */}
+        {/* ── Allocation cards ──────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <BudgetAllocationCard
             title="Income"
-            icon={<DollarSign className="w-5 h-5" />}
+            icon={<DollarSign className="w-4 h-4" />}
             budgeted={data.allocations.income.budgeted}
             actual={data.allocations.income.actual}
             color="var(--color-income)"
             type="income"
             categories={data.allocations.income.categories}
           />
-
-          {/* Expenses */}
           <BudgetAllocationCard
             title="Expenses"
-            icon={<ShoppingCart className="w-5 h-5" />}
+            icon={<ShoppingCart className="w-4 h-4" />}
             budgeted={data.allocations.expenses.budgeted}
             actual={data.allocations.expenses.actual}
             color="var(--color-expense)"
             type="expense"
             categories={data.allocations.expenses.categories}
           />
-
-          {/* Savings */}
           <BudgetAllocationCard
             title="Savings"
-            icon={<PiggyBank className="w-5 h-5" />}
+            icon={<PiggyBank className="w-4 h-4" />}
             budgeted={data.allocations.savings.budgeted}
             actual={data.allocations.savings.actual}
             color="var(--color-success)"
             type="savings"
             categories={data.allocations.savings.categories}
           />
-
-          {/* Debt Payments */}
           {data.summary.totalDebtPaymentsBudgeted > 0 && (
             <BudgetAllocationCard
               title="Debt Payments"
-              icon={<CreditCard className="w-5 h-5" />}
+              icon={<CreditCard className="w-4 h-4" />}
               budgeted={data.summary.totalDebtPaymentsBudgeted}
               actual={data.summary.totalDebtPaymentsActual}
               color="var(--color-error)"
@@ -380,37 +324,9 @@ export default function BudgetSummaryPage() {
           )}
         </div>
 
-        {/* Allocation Percentages Summary */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-foreground mb-4">Budget Allocation</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Expenses</p>
-              <p className="text-lg font-bold text-expense">
-                {data.summary.allocationPercentages.expenses}%
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Savings</p>
-              <p className="text-lg font-bold text-success">
-                {data.summary.allocationPercentages.savings}%
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Debt Payments</p>
-              <p className="text-lg font-bold text-error">
-                {data.summary.allocationPercentages.debtPayments}%
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Trends Chart */}
-        {data.trends && (
-          <AllocationTrendsChart data={data.trends} />
-        )}
-      </div>
+        {/* ── Trends chart ──────────────────────────────────────────────── */}
+        {data.trends && <AllocationTrendsChart data={data.trends} />}
+      </main>
     </div>
   );
 }
-

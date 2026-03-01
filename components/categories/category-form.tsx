@@ -136,7 +136,7 @@ export function CategoryForm({
       {/* Name and Type */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.name ? 'text-error' : 'text-muted-foreground'}`}>
+          <Label className="text-sm mb-2 block" style={{ color: errors.name ? 'var(--color-destructive)' : 'var(--color-muted-foreground)' }}>
             Category Name
           </Label>
           <Input
@@ -147,16 +147,19 @@ export function CategoryForm({
               if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
             }}
             placeholder="e.g., Groceries"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.name ? 'border-error' : 'border-border'
-            }`}
+            className="placeholder:italic"
+            style={{
+              backgroundColor: 'var(--color-elevated)',
+              color: 'var(--color-foreground)',
+              border: errors.name ? '1px solid var(--color-destructive)' : '1px solid var(--color-border)',
+            }}
           />
           {errors.name && (
-            <p className="text-error text-xs mt-1">{errors.name}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-destructive)' }}>{errors.name}</p>
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-2 block ${errors.type ? 'text-error' : 'text-muted-foreground'}`}>
+          <Label className="text-sm mb-2 block" style={{ color: errors.type ? 'var(--color-destructive)' : 'var(--color-muted-foreground)' }}>
             Category Type
           </Label>
           <Select 
@@ -170,9 +173,13 @@ export function CategoryForm({
               if (errors.type) setErrors(prev => ({ ...prev, type: '' }));
             }}
           >
-            <SelectTrigger className={`bg-elevated text-foreground ${
-              errors.type ? 'border-error' : 'border-border'
-            }`}>
+            <SelectTrigger
+              className=""
+              style={{
+                backgroundColor: 'var(--color-elevated)',
+                color: 'var(--color-foreground)',
+                border: errors.type ? '1px solid var(--color-destructive)' : '1px solid var(--color-border)',
+              }}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -184,7 +191,7 @@ export function CategoryForm({
             </SelectContent>
           </Select>
           {errors.type && (
-            <p className="text-error text-xs mt-1">{errors.type}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-destructive)' }}>{errors.type}</p>
           )}
         </div>
       </div>
@@ -192,12 +199,12 @@ export function CategoryForm({
       {/* Parent Category Selector (for regular categories) */}
       {!isParentCategory && availableParents.length > 0 && (
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Parent Category (Optional)</Label>
+          <Label className="text-sm mb-2 block" style={{ color: 'var(--color-muted-foreground)' }}>Parent Category (Optional)</Label>
           <Select
             value={formData.parentId}
             onValueChange={(value) => handleSelectChange('parentId', value)}
           >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
+            <SelectTrigger className="" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
               <SelectValue placeholder="Select parent category (optional)" />
             </SelectTrigger>
             <SelectContent>
@@ -209,7 +216,7 @@ export function CategoryForm({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             Optionally group this category under a parent for 50/30/20 or similar budgeting
           </p>
         </div>
@@ -218,7 +225,7 @@ export function CategoryForm({
       {/* Target Allocation (for parent categories) */}
       {isParentCategory && (
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Target Allocation % (Optional)</Label>
+          <Label className="text-sm mb-2 block" style={{ color: 'var(--color-muted-foreground)' }}>Target Allocation % (Optional)</Label>
           <Input
             name="targetAllocation"
             type="number"
@@ -228,9 +235,10 @@ export function CategoryForm({
             step="1"
             min="0"
             max="100"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
+            className="placeholder:italic"
+            style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
           />
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             What percentage of income should go to this category group? (e.g., 50% for Needs in 50/30/20)
           </p>
         </div>
@@ -239,7 +247,7 @@ export function CategoryForm({
       {/* Monthly Budget (for regular categories only) */}
       {!isParentCategory && (
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Monthly Budget (Optional)</Label>
+          <Label className="text-sm mb-2 block" style={{ color: 'var(--color-muted-foreground)' }}>Monthly Budget (Optional)</Label>
           <Input
             name="monthlyBudget"
             type="number"
@@ -248,21 +256,22 @@ export function CategoryForm({
             placeholder="Enter budget"
             step="0.01"
             min="0"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
+            className="placeholder:italic"
+            style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
           />
-          <p className="text-xs text-muted-foreground mt-1">Set to 0 for no budget limit</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Set to 0 for no budget limit</p>
         </div>
       )}
 
       {/* Income Frequency (for income categories) */}
       {!isParentCategory && formData.type === 'income' && (
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Income Frequency</Label>
+          <Label className="text-sm mb-2 block" style={{ color: 'var(--color-muted-foreground)' }}>Income Frequency</Label>
           <Select
             value={formData.incomeFrequency}
             onValueChange={(value) => handleSelectChange('incomeFrequency', value)}
           >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
+            <SelectTrigger className="" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
               <SelectValue placeholder="Select frequency" />
             </SelectTrigger>
             <SelectContent>
@@ -272,79 +281,80 @@ export function CategoryForm({
               <SelectItem value="variable">Variable (use daily average)</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             How often do you receive this income? This helps budget tracking provide accurate projections.
           </p>
         </div>
       )}
 
       {/* Toggles */}
-      <div className="p-4 bg-card rounded-lg border border-border space-y-3">
+      <div className="p-4 rounded-lg border space-y-3" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <div className="flex items-center justify-between">
           <div>
-            <Label className="text-muted-foreground text-sm block font-medium">Active</Label>
-            <p className="text-xs text-muted-foreground mt-1">Enable or disable this category</p>
+            <Label className="text-sm block font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Active</Label>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Enable or disable this category</p>
           </div>
           <button
             type="button"
             onClick={() => handleCheckboxChange('isActive')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isActive ? 'bg-income' : 'bg-border'
-            }`}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            style={{ backgroundColor: formData.isActive ? 'var(--color-income)' : 'var(--color-border)' }}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full transition-transform ${
                 formData.isActive ? 'translate-x-6' : 'translate-x-1'
               }`}
+              style={{ backgroundColor: 'var(--color-background)' }}
             />
           </button>
         </div>
-        <div className="flex items-center justify-between pt-2 border-t border-border">
+        <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
           <div>
-            <Label className="text-muted-foreground text-sm block font-medium">Tax Deductible</Label>
-            <p className="text-xs text-muted-foreground mt-1">Mark this category as tax deductible for tracking deductible expenses</p>
+            <Label className="text-sm block font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Tax Deductible</Label>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Mark this category as tax deductible for tracking deductible expenses</p>
           </div>
           <button
             type="button"
             onClick={() => handleCheckboxChange('isTaxDeductible')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isTaxDeductible ? 'bg-income' : 'bg-border'
-            }`}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            style={{ backgroundColor: formData.isTaxDeductible ? 'var(--color-income)' : 'var(--color-border)' }}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full transition-transform ${
                 formData.isTaxDeductible ? 'translate-x-6' : 'translate-x-1'
               }`}
+              style={{ backgroundColor: 'var(--color-background)' }}
             />
           </button>
         </div>
-        <div className="flex items-center justify-between pt-2 border-t border-border">
+        <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
           <div>
-            <Label className="text-muted-foreground text-sm block font-medium">Business Category</Label>
-            <p className="text-xs text-muted-foreground mt-1">Mark as a business category to group it separately in transaction forms</p>
+            <Label className="text-sm block font-medium" style={{ color: 'var(--color-muted-foreground)' }}>Business Category</Label>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Mark as a business category to group it separately in transaction forms</p>
           </div>
           <button
             type="button"
             onClick={() => handleCheckboxChange('isBusinessCategory')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isBusinessCategory ? 'bg-income' : 'bg-border'
-            }`}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            style={{ backgroundColor: formData.isBusinessCategory ? 'var(--color-income)' : 'var(--color-border)' }}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full transition-transform ${
                 formData.isBusinessCategory ? 'translate-x-6' : 'translate-x-1'
               }`}
+              style={{ backgroundColor: 'var(--color-background)' }}
             />
           </button>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-border">
+      <div className="flex gap-3 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
         <Button
           type="submit"
           disabled={isLoading}
-          className="flex-1 bg-primary text-primary-foreground hover:opacity-90 font-medium"
+          className="flex-1 font-medium"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
         >
           {isLoading ? 'Saving...' : category ? 'Update Category' : 'Create Category'}
         </Button>
@@ -353,7 +363,8 @@ export function CategoryForm({
             type="button"
             onClick={onCancel}
             variant="outline"
-            className="flex-1 bg-elevated border-border text-foreground hover:bg-border"
+            className="flex-1"
+            style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
           >
             Cancel
           </Button>

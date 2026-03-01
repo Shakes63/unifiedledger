@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, AlertCircle, Refresh
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
-import { parseISO, format } from 'date-fns';
+import { parseISO, format, isToday, isYesterday } from 'date-fns';
 
 interface Transaction {
   id: string;
@@ -45,6 +44,23 @@ interface Category {
   name: string;
 }
 
+function formatDateLabel(dateStr: string): string {
+  const date = parseISO(dateStr);
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  return format(date, 'EEE, MMM d');
+}
+
+function groupByDate(txs: Transaction[]): [string, Transaction[]][] {
+  const map = new Map<string, Transaction[]>();
+  for (const tx of txs) {
+    const key = tx.date.slice(0, 10);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(tx);
+  }
+  return Array.from(map.entries());
+}
+
 export function RecentTransactions() {
   const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const { initialized, loading: householdLoading, error: householdError, retry: retryHousehold } = useHousehold();
@@ -58,64 +74,36 @@ export function RecentTransactions() {
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
 
   useEffect(() => {
-    // Don't fetch if household context isn't initialized yet
-    if (!initialized) {
-      return;
-    }
-
-    // Don't fetch if there's a household error
-    if (householdError) {
-      setDataLoading(false);
-      return;
-    }
-
-    // Don't fetch if no household is selected
-    if (!selectedHouseholdId) {
-      setDataLoading(false);
-      return;
-    }
+    if (!initialized) return;
+    if (householdError) { setDataLoading(false); return; }
+    if (!selectedHouseholdId) { setDataLoading(false); return; }
 
     const fetchData = async () => {
       try {
         setDataLoading(true);
         setDataError(null);
 
-        // Fetch transactions (50 for scrollable list)
-        const txResponse = await fetchWithHousehold('/api/transactions?limit=50');
-        if (txResponse.ok) {
-          const data = await txResponse.json();
-          setTransactions(data);
-        }
+        const [txRes, merRes, accRes, catRes] = await Promise.all([
+          fetchWithHousehold('/api/transactions?limit=50'),
+          fetchWithHousehold('/api/merchants?limit=1000'),
+          fetchWithHousehold('/api/accounts'),
+          fetchWithHousehold('/api/categories'),
+        ]);
 
-        // Fetch merchants
-        const merResponse = await fetchWithHousehold('/api/merchants?limit=1000');
-        if (merResponse.ok) {
-          const merData = await merResponse.json();
-          setMerchants(Array.isArray(merData) ? merData : (merData.data || []));
+        if (txRes.ok) {
+          const d = await txRes.json();
+          setTransactions(Array.isArray(d) ? d : (d.data || []));
         }
-
-        // Fetch accounts
-        const accResponse = await fetchWithHousehold('/api/accounts');
-        if (accResponse.ok) {
-          const accData = await accResponse.json();
-          setAccounts(accData);
+        if (merRes.ok) {
+          const d = await merRes.json();
+          setMerchants(Array.isArray(d) ? d : (d.data || []));
         }
-
-        // Fetch categories
-        const catResponse = await fetchWithHousehold('/api/categories');
-        if (catResponse.ok) {
-          const catData = await catResponse.json();
-          setCategories(catData);
-        }
+        if (accRes.ok) setAccounts(await accRes.json());
+        if (catRes.ok) setCategories(await catRes.json());
       } catch (error) {
-        console.error('Failed to fetch data:', error);
         const err = error instanceof Error ? error : new Error('Failed to load transactions');
         setDataError(err);
-
-        // Show toast notification for errors
-        toast.error('Failed to load transactions', {
-          description: 'Please try again or check your connection',
-        });
+        toast.error('Failed to load transactions', { description: 'Please try again or check your connection' });
       } finally {
         setDataLoading(false);
       }
@@ -127,11 +115,7 @@ export function RecentTransactions() {
   const handleRepeatTransaction = async (transaction: Transaction) => {
     try {
       setRepeatingTxId(transaction.id);
-
-      // Use toLocaleDateString with 'en-CA' locale to get YYYY-MM-DD format in local timezone
-      // This avoids the UTC timezone issue where toISOString() could return yesterday's date
       const today = new Date().toLocaleDateString('en-CA');
-
       const response = await postWithHousehold('/api/transactions', {
         accountId: transaction.accountId,
         categoryId: transaction.categoryId,
@@ -144,269 +128,209 @@ export function RecentTransactions() {
       });
 
       if (response.ok) {
-        const result = await response.json();
-        // Construct the full transaction object from the response and original data
-        const _newTransaction: Transaction = {
-          id: result.id,
-          description: transaction.description,
-          amount: typeof transaction.amount === 'number' ? transaction.amount : parseFloat(String(transaction.amount)) || 0,
-          type: transaction.type,
-          date: today,
-          accountId: transaction.accountId,
-          categoryId: result.appliedCategoryId || transaction.categoryId,
-          merchantId: transaction.merchantId,
-          transferId: transaction.transferId,
-          notes: transaction.notes,
-          isSplit: false, // New transactions aren't split by default
-        };
-        // Refetch the transactions to get the accurate list instead of manually manipulating state
-        const refreshResponse = await fetchWithHousehold('/api/transactions?limit=5');
-        if (refreshResponse.ok) {
-          const refreshedData = await refreshResponse.json();
-          setTransactions(refreshedData);
+        const refreshRes = await fetchWithHousehold('/api/transactions?limit=50');
+        if (refreshRes.ok) {
+          const d = await refreshRes.json();
+          setTransactions(Array.isArray(d) ? d : (d.data || []));
         }
         toast.success(`Transaction repeated: ${transaction.description}`);
       } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to repeat transaction');
+        const err = await response.json();
+        toast.error(err.error || 'Failed to repeat transaction');
       }
-    } catch (error) {
-      console.error('Error repeating transaction:', error);
+    } catch {
       toast.error('Failed to repeat transaction');
     } finally {
       setRepeatingTxId(null);
     }
   };
 
-  const getMerchantName = (merchantId?: string): string | null => {
-    if (!merchantId) return null;
-    const merchant = merchants.find((m) => m.id === merchantId);
-    return merchant?.name || null;
-  };
+  const getMerchantName = (merchantId?: string) =>
+    merchants.find((m) => m.id === merchantId)?.name || null;
 
-  const getAccountName = (accountId?: string): string => {
-    if (!accountId) return 'Unknown';
-    const account = accounts.find((a) => a.id === accountId);
-    return account?.name || 'Unknown';
-  };
+  const getAccountName = (accountId?: string) =>
+    accounts.find((a) => a.id === accountId)?.name || 'Unknown';
 
-  const getCategoryName = (categoryId?: string): string | null => {
-    if (!categoryId) return null;
-    const category = categories.find((c) => c.id === categoryId);
-    return category?.name || null;
-  };
+  const getCategoryName = (categoryId?: string) =>
+    categories.find((c) => c.id === categoryId)?.name || null;
 
-  const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
-    const getTransferEndpoints = (tx: Transaction) => {
-      const sourceAccountId = tx.transferSourceAccountId
-        || (tx.type === 'transfer_out' ? tx.accountId : undefined);
-      let destinationAccountId = tx.transferDestinationAccountId
-        || (tx.type === 'transfer_in' ? tx.accountId : undefined);
-
-      if (!destinationAccountId && tx.type === 'transfer_out' && tx.transferId) {
-        destinationAccountId = tx.transferId;
-      }
-
-      if (!sourceAccountId && tx.type === 'transfer_in') {
-        const pairedTx = transactions.find((candidate) =>
-          (tx.pairedTransactionId && candidate.id === tx.pairedTransactionId)
-          || (tx.transferGroupId && candidate.transferGroupId === tx.transferGroupId && candidate.id !== tx.id)
-          || (tx.transferId && candidate.id === tx.transferId)
+  const getTransactionDisplay = (transaction: Transaction): { label: string; sub: string } => {
+    const getEndpoints = (tx: Transaction) => {
+      const src = tx.transferSourceAccountId || (tx.type === 'transfer_out' ? tx.accountId : undefined);
+      let dst = tx.transferDestinationAccountId || (tx.type === 'transfer_in' ? tx.accountId : undefined);
+      if (!dst && tx.type === 'transfer_out' && tx.transferId) dst = tx.transferId;
+      if (!src && tx.type === 'transfer_in') {
+        const paired = transactions.find((c) =>
+          (tx.pairedTransactionId && c.id === tx.pairedTransactionId)
+          || (tx.transferGroupId && c.transferGroupId === tx.transferGroupId && c.id !== tx.id)
+          || (tx.transferId && c.id === tx.transferId)
         );
-        return {
-          sourceAccountId: pairedTx?.transferSourceAccountId || pairedTx?.accountId,
-          destinationAccountId: destinationAccountId || tx.accountId,
-        };
+        return { src: paired?.transferSourceAccountId || paired?.accountId, dst: dst || tx.accountId };
       }
-
-      return {
-        sourceAccountId,
-        destinationAccountId,
-      };
+      return { src, dst };
     };
 
-    if (transaction.type === 'transfer_out') {
-      const { sourceAccountId, destinationAccountId } = getTransferEndpoints(transaction);
-      return {
-        merchant: `${getAccountName(sourceAccountId)} → ${getAccountName(destinationAccountId)}`,
-        description: transaction.description,
-      };
+    if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
+      const { src, dst } = getEndpoints(transaction);
+      return { label: `${getAccountName(src)} → ${getAccountName(dst)}`, sub: transaction.description };
     }
-    if (transaction.type === 'transfer_in') {
-      const { sourceAccountId, destinationAccountId } = getTransferEndpoints(transaction);
-      return {
-        merchant: `${getAccountName(sourceAccountId)} → ${getAccountName(destinationAccountId)}`,
-        description: transaction.description,
-      };
-    }
+
     const merchant = getMerchantName(transaction.merchantId);
-    return {
-      merchant,
-      description: transaction.description,
-    };
+    return { label: merchant || transaction.description, sub: merchant ? transaction.description : '' };
   };
 
-  const getTransactionIcon = (type: string) => {
+  const getTypeAccent = (type: string) => {
     switch (type) {
-      case 'income':
-        return <ArrowDownLeft className="w-4 h-4" style={{ color: 'var(--color-income)' }} />;
-      case 'expense':
-        return <ArrowUpRight className="w-4 h-4" style={{ color: 'var(--color-expense)' }} />;
-      case 'transfer':
+      case 'income': return 'var(--color-income)';
+      case 'expense': return 'var(--color-expense)';
       case 'transfer_in':
       case 'transfer_out':
-        return <ArrowRightLeft className="w-4 h-4" style={{ color: 'var(--color-transfer)' }} />;
-      default:
-        return null;
+      case 'transfer': return 'var(--color-transfer)';
+      default: return 'var(--color-muted-foreground)';
     }
   };
 
-  const _getTypeColor = (type: string) => {
-    switch (type) {
-      case 'income':
-        return { backgroundColor: 'color-mix(in oklch, var(--color-income) 20%, transparent)', color: 'var(--color-income)' };
-      case 'expense':
-        return { backgroundColor: 'color-mix(in oklch, var(--color-expense) 20%, transparent)', color: 'var(--color-expense)' };
-      case 'transfer_in':
-      case 'transfer_out':
-        return { backgroundColor: 'color-mix(in oklch, var(--color-transfer) 20%, transparent)', color: 'var(--color-transfer)' };
-      default:
-        return { backgroundColor: 'color-mix(in oklch, var(--color-muted-foreground) 20%, transparent)', color: 'var(--color-muted-foreground)' };
-    }
+  const getAmountDisplay = (transaction: Transaction) => {
+    const isTransfer = ['transfer', 'transfer_in', 'transfer_out'].includes(transaction.type);
+    const sign = isTransfer ? '' : transaction.type === 'income' ? '+' : '−';
+    const amount = `$${Math.abs(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${sign}${amount}`;
   };
 
-  // Filter transactions by selected account
+  const getTypeIcon = (type: string) => {
+    const size = 'w-3.5 h-3.5';
+    if (type === 'income') return <ArrowDownLeft className={size} />;
+    if (type === 'expense') return <ArrowUpRight className={size} />;
+    return <ArrowRightLeft className={size} />;
+  };
+
   const filteredTransactions = selectedAccountId === 'all'
     ? transactions
     : transactions.filter(tx => {
-        const sourceAccountId = tx.transferSourceAccountId || (tx.type === 'transfer_out' ? tx.accountId : undefined);
-        const destinationAccountId = tx.transferDestinationAccountId || (tx.type === 'transfer_in' ? tx.accountId : undefined);
-
-        // For regular transactions (income/expense)
-        if (tx.type !== 'transfer_out' && tx.type !== 'transfer_in') {
-          return tx.accountId === selectedAccountId;
-        }
-
-        return sourceAccountId === selectedAccountId
-          || destinationAccountId === selectedAccountId
-          || tx.accountId === selectedAccountId;
+        if (tx.type !== 'transfer_out' && tx.type !== 'transfer_in') return tx.accountId === selectedAccountId;
+        const src = tx.transferSourceAccountId || (tx.type === 'transfer_out' ? tx.accountId : undefined);
+        const dst = tx.transferDestinationAccountId || (tx.type === 'transfer_in' ? tx.accountId : undefined);
+        return src === selectedAccountId || dst === selectedAccountId || tx.accountId === selectedAccountId;
       });
 
-  // 1. Household context is still initializing
+  // ── Loading states ──────────────────────────────────────────────────────────
+
   if (!initialized && householdLoading) {
     return (
-      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-        <p className="text-muted-foreground">Loading...</p>
-      </Card>
+      <div className="py-8 text-center">
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading…</p>
+      </div>
     );
   }
 
-  // 2. Household failed to load
   if (householdError) {
     return (
-      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="p-3 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-error) 20%, transparent)' }}>
-            <AlertCircle className="w-6 h-6" style={{ color: 'var(--color-error)' }} />
-          </div>
-          <div>
-            <p className="font-medium text-foreground mb-1">Failed to load households</p>
-            <p className="text-sm text-muted-foreground">Unable to connect to the server</p>
-          </div>
-          <Button
-            onClick={retryHousehold}
-            variant="outline"
-            size="sm"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Retry
-          </Button>
+      <div className="py-10 flex flex-col items-center gap-3">
+        <div className="p-2.5 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 15%, transparent)' }}>
+          <AlertCircle className="w-5 h-5" style={{ color: 'var(--color-destructive)' }} />
         </div>
-      </Card>
+        <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Failed to load households</p>
+        <Button onClick={retryHousehold} variant="outline" size="sm" style={{ borderColor: 'var(--color-border)' }}>
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+        </Button>
+      </div>
     );
   }
 
-  // 3. No household selected or available
   if (!selectedHouseholdId) {
     return (
-      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-        <p className="text-muted-foreground mb-4">No household selected</p>
-        <p className="text-sm text-muted-foreground">Create or join a household to get started</p>
-      </Card>
+      <div className="py-10 text-center">
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No household selected</p>
+      </div>
     );
   }
 
-  // 4. Data is loading
   if (dataLoading) {
     return (
-      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-        <p className="text-muted-foreground">Loading transactions...</p>
-      </Card>
+      <div>
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-3 py-3 animate-pulse"
+            style={{
+              borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)',
+              animationDelay: `${i * 60}ms`,
+            }}
+          >
+            <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            <div className="flex-1 min-w-0">
+              <div className="h-3.5 rounded w-2/5 mb-1.5" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              <div className="h-2.5 rounded w-1/4" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            </div>
+            <div className="h-3.5 rounded w-16 shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          </div>
+        ))}
+      </div>
     );
   }
 
-  // 5. Data failed to load
   if (dataError) {
     return (
-      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="p-3 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-error) 20%, transparent)' }}>
-            <AlertCircle className="w-6 h-6" style={{ color: 'var(--color-error)' }} />
-          </div>
-          <div>
-            <p className="font-medium text-foreground mb-1">Failed to load transactions</p>
-            <p className="text-sm text-muted-foreground">{dataError.message}</p>
-          </div>
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
-            size="sm"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Try Again
-          </Button>
+      <div className="py-10 flex flex-col items-center gap-3">
+        <div className="p-2.5 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 15%, transparent)' }}>
+          <AlertCircle className="w-5 h-5" style={{ color: 'var(--color-destructive)' }} />
         </div>
-      </Card>
+        <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Failed to load transactions</p>
+        <Button onClick={() => window.location.reload()} variant="outline" size="sm" style={{ borderColor: 'var(--color-border)' }}>
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Try Again
+        </Button>
+      </div>
     );
   }
 
-  // 6. No transactions yet
   if (transactions.length === 0) {
     return (
-      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-        <p className="text-muted-foreground mb-4">No transactions yet.</p>
+      <div className="py-10 text-center">
+        <p className="text-sm mb-3" style={{ color: 'var(--color-muted-foreground)' }}>No transactions yet.</p>
         <Link href="/dashboard/transactions/new">
-          <Button className="font-medium" style={{ backgroundColor: 'var(--color-income)', color: 'var(--color-background)' }}>Add Your First Transaction</Button>
+          <Button size="sm" style={{ backgroundColor: 'var(--color-income)', color: 'var(--color-background)' }}>
+            Add Your First Transaction
+          </Button>
         </Link>
-      </Card>
+      </div>
     );
   }
+
+  // ── Main render ─────────────────────────────────────────────────────────────
+
+  const groups = groupByDate(filteredTransactions);
 
   return (
     <div>
-      {/* Account Filter */}
+      {/* Account filter */}
       {accounts.length > 1 && (
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-sm text-muted-foreground">Filter:</span>
+        <div className="flex items-center gap-2 mb-4">
+          <span
+            className="text-[10px] uppercase tracking-[0.08em] font-medium shrink-0"
+            style={{ color: 'var(--color-muted-foreground)' }}
+          >
+            Account
+          </span>
           <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
             <SelectTrigger
-              className="w-[220px]"
-              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
+              className="h-7 text-xs border rounded-md px-2"
+              style={{
+                backgroundColor: 'var(--color-elevated)',
+                borderColor: 'var(--color-border)',
+                color: 'var(--color-foreground)',
+                width: 'auto',
+                minWidth: '140px',
+              }}
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Accounts</SelectItem>
-              {accounts.map(account => (
-                <SelectItem key={account.id} value={account.id}>
+              {accounts.map(acc => (
+                <SelectItem key={acc.id} value={acc.id}>
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: account.color || '#3b82f6' }}
-                    />
-                    <span>{account.name}</span>
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: acc.color || 'var(--color-primary)' }} />
+                    <span>{acc.name}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -415,98 +339,162 @@ export function RecentTransactions() {
         </div>
       )}
 
-      {/* Scrollable Transaction List */}
-      {filteredTransactions.length > 0 ? (
+      {filteredTransactions.length === 0 ? (
+        <div className="py-8 text-center">
+          <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No transactions for this account.</p>
+        </div>
+      ) : (
         <>
-          <div className="space-y-2 max-h-[600px] overflow-y-auto scroll-smooth custom-scrollbar">
-            {filteredTransactions.map((transaction) => {
-        const display = getTransactionDisplay(transaction);
-        const accountName = getAccountName(transaction.accountId);
-        const categoryName = getCategoryName(transaction.categoryId);
-
-        return (
-          <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
-            <Card className="p-2 border rounded-lg cursor-pointer transition-colors hover:bg-elevated" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="p-1.5 rounded shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }}>
-                    {getTransactionIcon(transaction.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {/* Merchant name on top (bold) */}
-                    {display.merchant && (
-                      <p className="font-semibold text-foreground text-sm truncate">
-                        {display.merchant}
-                      </p>
-                    )}
-                    {/* Description below merchant (or standalone if no merchant) */}
-                    <p className={`text-xs truncate ${display.merchant ? 'text-muted-foreground' : 'font-medium text-foreground text-sm'}`}>
-                      {display.description}
-                    </p>
-                    {/* Date, category, and split indicator */}
-                    <p className="text-xs text-muted-foreground">
-                      {format(parseISO(transaction.date), 'MMM d')}
-                      {categoryName && ` • ${categoryName}`}
-                      {transaction.isSplit && ' • Split'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <div className="text-right">
-                    {/* Amount */}
-                    <p
-                      className="font-semibold text-sm"
-                      style={{
-                        color: transaction.type === 'income'
-                          ? 'var(--color-income)'
-                          : transaction.type === 'transfer_out' || transaction.type === 'transfer_in' || transaction.type === 'transfer'
-                          ? 'var(--color-transfer)'
-                          : 'var(--color-expense)'
-                      }}
-                    >
-                      {transaction.type === 'transfer' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'
-                        ? ''
-                        : transaction.type === 'income' ? '+' : '-'}$
-                      {Math.abs(transaction.amount).toFixed(2)}
-                    </p>
-                    {/* Account name below amount */}
-                    <p className="text-xs text-muted-foreground truncate max-w-[100px]">
-                      {accountName}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleRepeatTransaction(transaction);
-                    }}
-                    disabled={repeatingTxId === transaction.id}
-                    className="h-7 w-7 shrink-0"
+          <div className="max-h-[560px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--color-border) transparent' }}>
+            {groups.map(([dateKey, dayTxs], groupIdx) => (
+              <div key={dateKey}>
+                {/* Date group header */}
+                <div
+                  className="flex items-center gap-2 py-2 sticky top-0 z-10"
+                  style={{ backgroundColor: 'var(--color-background)' }}
+                >
+                  <span
+                    className="text-[10px] uppercase tracking-widest font-semibold shrink-0"
                     style={{ color: 'var(--color-muted-foreground)' }}
-                    title="Repeat this transaction with today's date"
                   >
-                    <Copy className="w-3 h-3" />
-                  </Button>
+                    {formatDateLabel(dateKey)}
+                  </span>
+                  <div
+                    className="flex-1 h-px"
+                    style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }}
+                  />
                 </div>
+
+                {/* Transactions in this group */}
+                {dayTxs.map((tx, txIdx) => {
+                  const display = getTransactionDisplay(tx);
+                  const accountName = getAccountName(tx.accountId);
+                  const categoryName = getCategoryName(tx.categoryId);
+                  const accent = getTypeAccent(tx.type);
+                  const amountDisplay = getAmountDisplay(tx);
+                  const isLast = txIdx === dayTxs.length - 1;
+                  const globalIdx = groupIdx * 10 + txIdx;
+
+                  return (
+                    <Link key={tx.id} href={`/dashboard/transactions/${tx.id}`}>
+                      <div
+                        className="group flex items-stretch gap-0 transition-colors duration-150 cursor-pointer"
+                        style={{
+                          borderBottom: isLast ? 'none' : '1px solid color-mix(in oklch, var(--color-border) 40%, transparent)',
+                          animationName: 'dashboard-fade-in',
+                          animationDuration: '0.4s',
+                          animationFillMode: 'both',
+                          animationDelay: `${globalIdx * 30}ms`,
+                        }}
+                      >
+                        {/* Left type accent strip */}
+                        <div
+                          className="w-[3px] shrink-0 rounded-full my-2 mr-3 transition-opacity duration-150 opacity-60 group-hover:opacity-100"
+                          style={{ backgroundColor: accent }}
+                        />
+
+                        {/* Main content */}
+                        <div className="flex items-center justify-between gap-2 flex-1 min-w-0 py-2.5">
+                          {/* Left: type icon + text */}
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div
+                              className="shrink-0 opacity-60 group-hover:opacity-90 transition-opacity"
+                              style={{ color: accent }}
+                            >
+                              {getTypeIcon(tx.type)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className="text-[13px] font-medium leading-tight truncate"
+                                style={{ color: 'var(--color-foreground)', fontVariantNumeric: 'tabular-nums' }}
+                              >
+                                {display.label}
+                              </p>
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                {display.sub && (
+                                  <span className="text-[11px] truncate" style={{ color: 'var(--color-muted-foreground)' }}>
+                                    {display.sub}
+                                  </span>
+                                )}
+                                {categoryName && (
+                                  <span
+                                    className="text-[10px] uppercase tracking-[0.06em] font-medium px-1.5 py-px rounded-sm shrink-0"
+                                    style={{
+                                      backgroundColor: `color-mix(in oklch, ${accent} 12%, transparent)`,
+                                      color: accent,
+                                    }}
+                                  >
+                                    {categoryName}
+                                  </span>
+                                )}
+                                {tx.isSplit && (
+                                  <span
+                                    className="text-[10px] uppercase tracking-[0.06em] font-medium px-1.5 py-px rounded-sm shrink-0"
+                                    style={{
+                                      backgroundColor: 'color-mix(in oklch, var(--color-muted-foreground) 12%, transparent)',
+                                      color: 'var(--color-muted-foreground)',
+                                    }}
+                                  >
+                                    Split
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right: amount + account + repeat */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <div className="text-right">
+                              <p
+                                className="text-[13px] font-semibold leading-tight"
+                                style={{ color: accent, fontVariantNumeric: 'tabular-nums' }}
+                              >
+                                {amountDisplay}
+                              </p>
+                              <p
+                                className="text-[10px] truncate max-w-[80px]"
+                                style={{ color: 'var(--color-muted-foreground)' }}
+                              >
+                                {accountName}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleRepeatTransaction(tx);
+                              }}
+                              disabled={repeatingTxId === tx.id}
+                              title="Repeat transaction today"
+                              className="w-6 h-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:opacity-100! transition-opacity duration-150 disabled:cursor-not-allowed"
+                              style={{ color: 'var(--color-muted-foreground)' }}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
-            </Card>
-          </Link>
-        );
-            })}
+            ))}
           </div>
 
-          {/* View All Button - Outside scroll container */}
-          <Link href="/dashboard/transactions">
-            <Button variant="outline" className="w-full rounded-lg mt-4" style={{ borderColor: 'var(--color-border)' }}>
-              View All Transactions
-            </Button>
-          </Link>
+          {/* View all link */}
+          <div
+            className="flex items-center justify-center pt-3 mt-1"
+            style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}
+          >
+            <Link
+              href="/dashboard/transactions"
+              className="flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-70"
+              style={{ color: 'var(--color-muted-foreground)' }}
+            >
+              View all transactions
+              <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          </div>
         </>
-      ) : (
-        <Card className="p-6 border text-center py-8 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-          <p className="text-muted-foreground">No transactions found for this account.</p>
-        </Card>
       )}
     </div>
   );

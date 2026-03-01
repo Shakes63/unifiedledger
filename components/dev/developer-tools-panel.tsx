@@ -62,12 +62,12 @@ export function DeveloperToolsPanel() {
   return (
     <div className="fixed bottom-4 right-4 z-[9999]">
       {isExpanded ? (
-        <Card className="w-96 max-h-[600px] overflow-hidden bg-card border-border shadow-lg">
+        <Card className="w-96 max-h-[600px] overflow-hidden shadow-lg border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-border bg-elevated">
+          <div className="flex items-center justify-between p-3 border-b" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
             <div className="flex items-center gap-2">
-              <Code className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-sm text-foreground">Developer Tools</span>
+              <Code className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+              <span className="font-semibold text-sm" style={{ color: 'var(--color-foreground)' }}>Developer Tools</span>
             </div>
             <Button
               variant="ghost"
@@ -83,17 +83,17 @@ export function DeveloperToolsPanel() {
           <div className="p-4 overflow-y-auto max-h-[500px] space-y-4">
             {/* User Info */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">User Info</h4>
+              <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--color-muted-foreground)' }}>User Info</h4>
               <div className="space-y-1 text-xs font-mono">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">ID:</span>
-                  <span className="text-foreground truncate max-w-[200px]" title={user?.id}>
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>ID:</span>
+                  <span className="truncate max-w-[200px]" style={{ color: 'var(--color-foreground)' }} title={user?.id}>
                     {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'N/A'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Email:</span>
-                  <span className="text-foreground truncate max-w-[200px]" title={user?.email}>
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Email:</span>
+                  <span className="truncate max-w-[200px]" style={{ color: 'var(--color-foreground)' }} title={user?.email}>
                     {user?.email || 'N/A'}
                   </span>
                 </div>
@@ -102,17 +102,17 @@ export function DeveloperToolsPanel() {
 
             {/* Household Info */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Household Info</h4>
+              <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Household Info</h4>
               <div className="space-y-1 text-xs font-mono">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">ID:</span>
-                  <span className="text-foreground truncate max-w-[200px]" title={selectedHousehold?.id}>
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>ID:</span>
+                  <span className="truncate max-w-[200px]" style={{ color: 'var(--color-foreground)' }} title={selectedHousehold?.id}>
                     {selectedHousehold?.id ? `${selectedHousehold.id.slice(0, 8)}...${selectedHousehold.id.slice(-4)}` : 'N/A'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Name:</span>
-                  <span className="text-foreground truncate max-w-[200px]" title={selectedHousehold?.name}>
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Name:</span>
+                  <span className="truncate max-w-[200px]" style={{ color: 'var(--color-foreground)' }} title={selectedHousehold?.name}>
                     {selectedHousehold?.name || 'N/A'}
                   </span>
                 </div>
@@ -121,8 +121,8 @@ export function DeveloperToolsPanel() {
 
             {/* Navigation */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Navigation</h4>
-              <div className="text-xs font-mono text-foreground break-all bg-elevated p-2 rounded border border-border">
+              <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Navigation</h4>
+              <div className="text-xs font-mono break-all p-2 rounded border" style={{ color: 'var(--color-foreground)', backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
                 {pathname}
               </div>
             </div>
@@ -142,7 +142,8 @@ export function DeveloperToolsPanel() {
                 variant="outline"
                 size="sm"
                 onClick={handleClearCache}
-                className="w-full justify-start text-xs text-error hover:text-error"
+                className="w-full justify-start text-xs"
+                style={{ color: 'var(--color-destructive)' }}
               >
                 <Trash2 className="w-3 h-3 mr-2" />
                 Clear Cache
@@ -155,9 +156,10 @@ export function DeveloperToolsPanel() {
           variant="outline"
           size="sm"
           onClick={() => setIsExpanded(true)}
-          className="h-9 px-3 bg-card border-border shadow-lg hover:bg-elevated"
+          className="h-9 px-3 shadow-lg border"
+          style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
         >
-          <Code className="w-4 h-4 mr-2 text-primary" />
+          <Code className="w-4 h-4 mr-2" style={{ color: 'var(--color-primary)' }} />
           <span className="text-xs font-semibold">Dev Tools</span>
           <ChevronUp className="w-3 h-3 ml-2" />
         </Button>

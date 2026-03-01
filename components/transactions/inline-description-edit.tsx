@@ -104,15 +104,15 @@ export function InlineDescriptionEdit({
           disabled={isUpdating}
           rows={2}
           className={cn(
-            "text-xs px-2 py-1 min-w-[200px] max-w-[300px] min-h-[40px] max-h-[80px]",
-            "bg-elevated border-border rounded resize-none",
-            "focus:ring-1 focus:ring-offset-0 focus:border-primary",
+            "text-xs px-2 py-1 min-w-[200px] max-w-[300px] min-h-[40px] max-h-[80px] rounded resize-none",
+            "focus:ring-1 focus:ring-offset-0",
             isUpdating && "opacity-60"
           )}
+          style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
           onClick={(e) => e.stopPropagation()}
         />
         {isUpdating && (
-          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground mt-1" />
+          <Loader2 className="w-3 h-3 animate-spin mt-1" style={{ color: 'var(--color-muted-foreground)' }} />
         )}
       </div>
     );

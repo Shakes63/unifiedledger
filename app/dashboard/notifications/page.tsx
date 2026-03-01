@@ -1,348 +1,524 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
-import { Trash2, Archive, CheckCircle2, Calendar, DollarSign, BarChart3, TrendingDown, PartyPopper, Bell, Info } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import {
+  Trash2,
+  Archive,
+  CheckCircle2,
+  Calendar,
+  DollarSign,
+  BarChart3,
+  TrendingDown,
+  PartyPopper,
+  Bell,
+  Info,
+  AlertTriangle,
+  XCircle,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Notification {
   id: string;
-  userId: string;
-  householdId?: string;
   type: string;
   priority: string;
   title: string;
   message: string;
   actionUrl?: string;
-  entityType?: string;
-  entityId?: string;
   isRead: boolean;
   isDismissed: boolean;
   isActionable: boolean;
   actionLabel?: string;
-  scheduledFor?: string;
-  sentAt?: string;
-  readAt?: string;
-  dismissedAt?: string;
-  expiresAt?: string;
-  metadata?: string;
   createdAt: string;
 }
 
+// ── Type + priority helpers ───────────────────────────────────────────────────
+const PRIORITY_COLORS: Record<string, string> = {
+  urgent: 'var(--color-error)',
+  high:   'var(--color-warning)',
+  normal: 'var(--color-primary)',
+  low:    'var(--color-muted-foreground)',
+};
+
+interface TypeMeta {
+  Icon: React.ComponentType<{ className?: string }>;
+  color: string;
+}
+
+function getTypeMeta(type: string): TypeMeta {
+  switch (type) {
+    case 'bill_due':          return { Icon: Calendar,      color: 'var(--color-warning)' };
+    case 'bill_overdue':      return { Icon: AlertTriangle,  color: 'var(--color-error)' };
+    case 'budget_warning':    return { Icon: DollarSign,     color: 'var(--color-warning)' };
+    case 'budget_exceeded':   return { Icon: XCircle,        color: 'var(--color-error)' };
+    case 'budget_review':     return { Icon: BarChart3,      color: 'var(--color-primary)' };
+    case 'low_balance':       return { Icon: TrendingDown,   color: 'var(--color-error)' };
+    case 'savings_milestone':
+    case 'debt_milestone':    return { Icon: PartyPopper,    color: 'var(--color-income)' };
+    case 'spending_summary':  return { Icon: BarChart3,      color: 'var(--color-primary)' };
+    case 'reminder':          return { Icon: Bell,           color: 'var(--color-primary)' };
+    default:                  return { Icon: Info,           color: 'var(--color-muted-foreground)' };
+  }
+}
+
+function formatRelativeDate(dateStr: string): string {
+  try {
+    const d = parseISO(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins  = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays  = Math.floor(diffHours / 24);
+    if (diffMins < 1)   return 'just now';
+    if (diffMins < 60)  return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7)   return `${diffDays}d ago`;
+    return format(d, 'MMM d');
+  } catch { return '—'; }
+}
+
+// ── Skeleton row ──────────────────────────────────────────────────────────────
+function SkeletonRow({ delay = 0 }: { delay?: number }) {
+  return (
+    <div
+      className="rounded-xl overflow-hidden animate-pulse"
+      style={{ border: '1px solid var(--color-border)', borderLeft: '3px solid var(--color-border)', backgroundColor: 'var(--color-background)', animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-start gap-3 px-4 py-3">
+        <div className="w-4 h-4 shrink-0 mt-1" />
+        <div className="w-7 h-7 rounded-lg shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }} />
+        <div className="flex-1 space-y-2">
+          <div className="flex justify-between items-baseline gap-2">
+            <div className="h-3.5 rounded w-2/5" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            <div className="h-2.5 rounded w-10" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          </div>
+          <div className="h-2.5 rounded w-4/5" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          <div className="h-2.5 rounded w-3/5" style={{ backgroundColor: 'var(--color-elevated)' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Notification item ─────────────────────────────────────────────────────────
+function NotificationItem({
+  notification,
+  onMarkRead,
+  onDismiss,
+  onDelete,
+}: {
+  notification: Notification;
+  onMarkRead: (id: string) => void;
+  onDismiss: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { Icon, color } = getTypeMeta(notification.type);
+  const priorityColor = PRIORITY_COLORS[notification.priority] || PRIORITY_COLORS.low;
+  const isUnread = !notification.isRead;
+
+  return (
+    <div
+      className="group overflow-hidden transition-shadow duration-150"
+      style={{
+        borderRadius: '0.75rem',
+        border: '1px solid var(--color-border)',
+        borderLeft: `3px solid ${priorityColor}`,
+        backgroundColor: isUnread
+          ? `color-mix(in oklch, ${priorityColor} 3%, var(--color-card))`
+          : 'var(--color-card)',
+        boxShadow: 'none',
+      }}
+      onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.boxShadow = `0 2px 12px color-mix(in oklch, ${priorityColor} 8%, transparent)`)}
+      onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.boxShadow = 'none')}
+    >
+      <div className="flex items-start gap-3 px-4 py-3">
+        {/* Unread dot */}
+        <div className="w-4 shrink-0 flex items-center justify-center mt-1.5">
+          {isUnread && (
+            <div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: priorityColor }}
+            />
+          )}
+        </div>
+
+        {/* Type icon badge */}
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+          style={{ backgroundColor: `color-mix(in oklch, ${color} 12%, transparent)` }}
+        >
+          <Icon className="w-3.5 h-3.5" style={{ color }} />
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Title + date */}
+          <div className="flex items-baseline gap-2 mb-0.5">
+            <span
+              className="text-[13px] truncate flex-1"
+              style={{
+                color: 'var(--color-foreground)',
+                fontWeight: isUnread ? 600 : 500,
+              }}
+            >
+              {notification.title}
+            </span>
+            <span
+              className="text-[10px] font-mono tabular-nums shrink-0"
+              style={{ color: 'var(--color-muted-foreground)' }}
+            >
+              {formatRelativeDate(notification.createdAt)}
+            </span>
+          </div>
+
+          {/* Message */}
+          <p
+            className="text-[12px] leading-relaxed line-clamp-2"
+            style={{ color: 'var(--color-muted-foreground)' }}
+          >
+            {notification.message}
+          </p>
+
+          {/* Footer row */}
+          <div className="flex items-center mt-2 gap-2">
+            {/* Priority pill (urgent / high only) */}
+            {(notification.priority === 'urgent' || notification.priority === 'high') && (
+              <span
+                className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-px rounded shrink-0"
+                style={{
+                  backgroundColor: `color-mix(in oklch, ${priorityColor} 14%, transparent)`,
+                  color: priorityColor,
+                }}
+              >
+                {notification.priority}
+              </span>
+            )}
+
+            {/* Action link */}
+            {notification.isActionable && notification.actionUrl && (
+              <Link
+                href={notification.actionUrl}
+                onClick={() => onMarkRead(notification.id)}
+                className="text-[11px] font-medium transition-opacity hover:opacity-70 shrink-0"
+                style={{ color: priorityColor }}
+              >
+                {notification.actionLabel || 'View'} →
+              </Link>
+            )}
+
+            {/* Actions — hover revealed */}
+            <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {isUnread && (
+                <button
+                  onClick={() => onMarkRead(notification.id)}
+                  className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                  style={{ color: 'var(--color-muted-foreground)' }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-income) 10%, transparent)';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-income)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)';
+                  }}
+                  title="Mark as read"
+                >
+                  <CheckCircle2 className="w-3 h-3" />
+                </button>
+              )}
+              <button
+                onClick={() => onDismiss(notification.id)}
+                className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-elevated)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)';
+                }}
+                title="Dismiss"
+              >
+                <Archive className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => onDelete(notification.id)}
+                className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-error) 10%, transparent)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-error)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)';
+                }}
+                title="Delete"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const limit = 20;
 
   useEffect(() => {
     let cancelled = false;
-    const run = async () => {
+    const load = async () => {
       try {
         setLoading(true);
         const url = new URL('/api/notifications', window.location.origin);
         url.searchParams.append('limit', String(limit));
         url.searchParams.append('offset', String(page * limit));
-        if (filter === 'unread') {
-          url.searchParams.append('unreadOnly', 'true');
-        }
-
-        const response = await fetch(url.toString());
-        if (!response.ok) throw new Error('Failed to fetch notifications');
-
-        const data = await response.json();
+        if (filter === 'unread') url.searchParams.append('unreadOnly', 'true');
+        const res = await fetch(url.toString());
+        if (!res.ok) throw new Error('Failed to fetch notifications');
+        const data = await res.json();
         if (cancelled) return;
         setNotifications(data.data || []);
         setTotal(data.total || 0);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
+        setUnreadCount(data.unreadCount || 0);
+      } catch {
         toast.error('Failed to load notifications');
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-    void run();
-    return () => {
-      cancelled = true;
-    };
+    void load();
+    return () => { cancelled = true; };
   }, [filter, page]);
 
-  const handleMarkAsRead = async (notificationId: string) => {
+  const handleMarkAsRead = async (id: string) => {
     try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
+      const res = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isRead: true }),
       });
-
-      if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === notificationId ? { ...n, isRead: true } : n
-          )
-        );
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+        setUnreadCount(c => Math.max(0, c - 1));
       }
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      toast.error('Failed to update notification');
-    }
+    } catch { toast.error('Failed to update notification'); }
   };
 
-  const handleDismiss = async (notificationId: string) => {
+  const handleDismiss = async (id: string) => {
     try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
+      const res = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isDismissed: true }),
       });
-
-      if (response.ok) {
-        setNotifications((prev) =>
-          prev.filter((n) => n.id !== notificationId)
-        );
-        setTotal(Math.max(0, total - 1));
+      if (res.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        setTotal(t => Math.max(0, t - 1));
+        setUnreadCount(c => Math.max(0, c - 1));
       }
-    } catch (error) {
-      console.error('Error dismissing notification:', error);
-      toast.error('Failed to dismiss notification');
-    }
+    } catch { toast.error('Failed to dismiss notification'); }
   };
 
-  const handleDelete = async (notificationId: string) => {
+  const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/notifications/${notificationId}`, { credentials: 'include', method: 'DELETE', });
-
-      if (response.ok) {
-        setNotifications((prev) =>
-          prev.filter((n) => n.id !== notificationId)
-        );
-        setTotal(Math.max(0, total - 1));
+      const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (res.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        setTotal(t => Math.max(0, t - 1));
         toast.success('Notification deleted');
       }
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      toast.error('Failed to delete notification');
-    }
-  };
-
-  const getPriorityBadgeColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'bg-error/20 text-error border-error/30';
-      case 'high':
-        return 'bg-warning/20 text-warning border-warning/30';
-      case 'normal':
-        return 'bg-primary/20 text-primary border-primary/30';
-      default:
-        return 'bg-muted/20 text-muted-foreground border-border';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    const iconClass = "w-6 h-6";
-    switch (type) {
-      case 'bill_due':
-      case 'bill_overdue':
-        return <Calendar className={`${iconClass} text-warning`} />;
-      case 'budget_warning':
-      case 'budget_exceeded':
-        return <DollarSign className={`${iconClass} text-error`} />;
-      case 'budget_review':
-        return <BarChart3 className={`${iconClass} text-primary`} />;
-      case 'low_balance':
-        return <TrendingDown className={`${iconClass} text-error`} />;
-      case 'savings_milestone':
-      case 'debt_milestone':
-        return <PartyPopper className={`${iconClass} text-success`} />;
-      case 'spending_summary':
-        return <BarChart3 className={`${iconClass} text-primary`} />;
-      case 'reminder':
-        return <Bell className={`${iconClass} text-primary`} />;
-      default:
-        return <Info className={`${iconClass} text-muted-foreground`} />;
-    }
+    } catch { toast.error('Failed to delete notification'); }
   };
 
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
-        <p className="text-muted-foreground mt-2">All your notifications in one place</p>
-      </div>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          onClick={() => {
-            setFilter('all');
-            setPage(0);
-          }}
-          className={filter === 'all' ? 'bg-primary text-primary-foreground' : 'border-border text-muted-foreground hover:text-foreground'}
+      {/* ── Sticky header ─────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
         >
-          All
-        </Button>
-        <Button
-          variant={filter === 'unread' ? 'default' : 'outline'}
-          onClick={() => {
-            setFilter('unread');
-            setPage(0);
-          }}
-          className={filter === 'unread' ? 'bg-primary text-primary-foreground' : 'border-border text-muted-foreground hover:text-foreground'}
-        >
-          Unread
-        </Button>
-      </div>
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+            <Link href="/dashboard">
+              <button
+                className="h-8 w-8 rounded-full flex items-center justify-center transition-colors shrink-0"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-elevated)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            </Link>
 
-      {/* Notifications List */}
-      <div className="space-y-3">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin">
-              <div className="h-8 w-8 border-4 border-border border-t-primary rounded-full" />
+            <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+              Notifications
+            </h1>
+
+            {unreadCount > 0 && (
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                style={{ backgroundColor: 'var(--color-error)', color: 'white' }}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+
+            <div className="flex-1" />
+
+            {/* Filter toggle */}
+            <div
+              className="flex rounded-lg overflow-hidden shrink-0"
+              style={{ border: '1px solid var(--color-border)' }}
+            >
+              {(['all', 'unread'] as const).map((f, i) => (
+                <button
+                  key={f}
+                  onClick={() => { setFilter(f); setPage(0); }}
+                  className="px-3 py-1 text-[11px] font-medium capitalize transition-colors"
+                  style={{
+                    backgroundColor: filter === f ? 'var(--color-primary)' : 'transparent',
+                    color: filter === f ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                    borderLeft: i > 0 ? '1px solid var(--color-border)' : 'none',
+                  }}
+                >
+                  {f === 'all' ? 'All' : 'Unread'}
+                </button>
+              ))}
             </div>
-          </div>
-        ) : notifications.length === 0 ? (
-          <Card className="bg-background border-border">
-            <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground py-8">No notifications yet</p>
-            </CardContent>
-          </Card>
-        ) : (
-          notifications.map((notification) => (
-            <Card
-              key={notification.id}
-              className={`bg-background border-border hover:border-border transition-colors ${
-                !notification.isRead ? 'border-l-4 border-l-primary' : ''
-              }`}
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className="shrink-0 mt-1">{getTypeIcon(notification.type)}</div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-foreground">
-                            {notification.title}
-                          </h3>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full border ${getPriorityBadgeColor(
-                              notification.priority
-                            )}`}
-                          >
-                            {notification.priority}
-                          </span>
-                          {!notification.isRead && (
-                            <span className="text-xs text-primary">New</span>
-                          )}
-                        </div>
-
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {notification.message}
-                        </p>
-
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">
-                            {format(
-                              parseISO(notification.createdAt),
-                              'MMM d, yyyy h:mm a'
-                            )}
-                          </p>
-
-                          {notification.isActionable && notification.actionUrl && (
-                            <a
-                              href={notification.actionUrl}
-                              onClick={() => handleMarkAsRead(notification.id)}
-                              className="text-xs text-primary hover:text-primary/80"
-                            >
-                              {notification.actionLabel || 'View'}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-1 shrink-0">
-                        {!notification.isRead && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleMarkAsRead(notification.id)}
-                            className="text-muted-foreground hover:text-foreground"
-                            title="Mark as read"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDismiss(notification.id)}
-                          className="text-muted-foreground hover:text-foreground"
-                          title="Dismiss"
-                        >
-                          <Archive className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(notification.id)}
-                            className="text-muted-foreground hover:text-error"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-            Page {page + 1} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(Math.max(0, page - 1))}
-              disabled={page === 0}
-              className="border-border text-muted-foreground hover:text-foreground disabled:opacity-50"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-              disabled={page >= totalPages - 1}
-              className="border-border text-muted-foreground hover:text-foreground disabled:opacity-50"
-            >
-              Next
-            </Button>
+            {/* Total count */}
+            {total > 0 && (
+              <span
+                className="text-[11px] font-mono tabular-nums shrink-0 hidden sm:block"
+                style={{ color: 'var(--color-muted-foreground)' }}
+              >
+                {total} total
+              </span>
+            )}
           </div>
         </div>
-      )}
-      </div>
+        {/* Accent line */}
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-primary) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
+        />
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-2">
+
+        {/* ── Loading skeleton ─────────────────────────────────────────────── */}
+        {loading && (
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <SkeletonRow key={i} delay={i * 60} />
+            ))}
+          </div>
+        )}
+
+        {/* ── Empty state ───────────────────────────────────────────────────── */}
+        {!loading && notifications.length === 0 && (
+          <div
+            className="rounded-xl py-16 text-center"
+            style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+          >
+            <div
+              className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
+              style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}
+            >
+              <Bell className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+            </div>
+            <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>
+              {filter === 'unread' ? 'All caught up' : 'No notifications yet'}
+            </p>
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+              {filter === 'unread'
+                ? 'You have no unread notifications.'
+                : 'Notifications about bills, budgets, and milestones will appear here.'}
+            </p>
+            {filter === 'unread' && (
+              <button
+                onClick={() => setFilter('all')}
+                className="mt-4 text-[12px] underline"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                View all notifications
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Notification list ─────────────────────────────────────────────── */}
+        {!loading && notifications.length > 0 && (
+          <>
+            <div className="space-y-2">
+              {notifications.map(n => (
+                <NotificationItem
+                  key={n.id}
+                  notification={n}
+                  onMarkRead={handleMarkAsRead}
+                  onDismiss={handleDismiss}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div
+                className="flex items-center justify-between px-4 py-3 rounded-xl mt-2"
+                style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+              >
+                <span className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+                  Page {page + 1} of {totalPages}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    className="flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-30"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)', backgroundColor: 'transparent' }}
+                    onMouseEnter={e => { if (!e.currentTarget.disabled) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-elevated)'; }}
+                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
+                  >
+                    <ChevronLeft className="w-3 h-3" /> Prev
+                  </button>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                    className="flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors disabled:opacity-30"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)', backgroundColor: 'transparent' }}
+                    onMouseEnter={e => { if (!e.currentTarget.disabled) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-elevated)'; }}
+                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
+                  >
+                    Next <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </main>
     </div>
   );
 }

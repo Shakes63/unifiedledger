@@ -1,11 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import {
-  MoreVertical,
   Edit2,
   Trash2,
   CreditCard,
@@ -24,6 +20,7 @@ import {
   Zap,
   History,
   BarChart3,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { CreditUtilizationBadge } from './credit-utilization-badge';
 import { PaymentHistoryList } from './payment-history-list';
@@ -101,31 +99,33 @@ interface UnifiedDebtCardProps {
   milestones?: Milestone[];
 }
 
-// Map debt types to icons
 const DEBT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  credit: CreditCard,
-  credit_card: CreditCard,
+  credit:        CreditCard,
+  credit_card:   CreditCard,
   line_of_credit: Wallet,
-  mortgage: Home,
-  auto_loan: Car,
-  student_loan: GraduationCap,
-  medical: HeartPulse,
+  mortgage:      Home,
+  auto_loan:     Car,
+  student_loan:  GraduationCap,
+  medical:       HeartPulse,
   personal_loan: Wallet,
-  other: TrendingDown,
+  other:         TrendingDown,
 };
 
-// Map debt types to labels
 const DEBT_TYPE_LABELS: Record<string, string> = {
-  credit: 'Credit Card',
-  credit_card: 'Credit Card',
+  credit:         'Credit Card',
+  credit_card:    'Credit Card',
   line_of_credit: 'Line of Credit',
-  mortgage: 'Mortgage',
-  auto_loan: 'Auto Loan',
-  student_loan: 'Student Loan',
-  medical: 'Medical Debt',
-  personal_loan: 'Personal Loan',
-  other: 'Other Debt',
+  mortgage:       'Mortgage',
+  auto_loan:      'Auto Loan',
+  student_loan:   'Student Loan',
+  medical:        'Medical Debt',
+  personal_loan:  'Personal Loan',
+  other:          'Other Debt',
 };
+
+function fmt(n: number, decimals = 0) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
 
 export function UnifiedDebtCard({
   debt,
@@ -140,26 +140,23 @@ export function UnifiedDebtCard({
 }: UnifiedDebtCardProps) {
   const { selectedHouseholdId } = useHousehold();
   const { postWithHousehold } = useHouseholdFetch();
+
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [showUtilization, setShowUtilization] = useState(false);
   const [showMilestones, setShowMilestones] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showAmortization, setShowAmortization] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [submittingPayment, setSubmittingPayment] = useState(false);
 
   useEffect(() => {
     if (expandState === null || expandState === undefined) return;
     setIsExpanded(expandState);
   }, [expandState]);
-  const [paymentAmount, setPaymentAmount] = useState('');
 
-  const IconComponent = useMemo(() => {
-    return DEBT_TYPE_ICONS[debt.sourceType] || DEBT_TYPE_ICONS.other;
-  }, [debt.sourceType]);
-
+  const IconComponent = useMemo(() => DEBT_TYPE_ICONS[debt.sourceType] || DEBT_TYPE_ICONS.other, [debt.sourceType]);
   const typeLabel = DEBT_TYPE_LABELS[debt.sourceType] || 'Debt';
 
-  // Credit utilization calculations (for credit cards only)
   const isCreditCard = debt.sourceType === 'credit_card' || debt.sourceType === 'credit';
   const hasLimit = isCreditCard && debt.creditLimit && debt.creditLimit > 0;
   const utilization = hasLimit ? calculateUtilization(debt.balance, debt.creditLimit!) : 0;
@@ -168,68 +165,50 @@ export function UnifiedDebtCard({
   const recommendation = hasLimit ? getUtilizationRecommendation(utilization) : '';
   const isOverTarget = utilization > 30;
 
-  // Progress calculation for loans and standalone debts
   const payoffProgress = useMemo(() => {
     if ((debt.source === 'bill' || debt.source === 'debt') && debt.originalBalance && debt.originalBalance > 0) {
-      const paid = debt.originalBalance - debt.balance;
-      return Math.min(100, Math.max(0, (paid / debt.originalBalance) * 100));
+      return Math.min(100, Math.max(0, ((debt.originalBalance - debt.balance) / debt.originalBalance) * 100));
     }
     return null;
   }, [debt.source, debt.originalBalance, debt.balance]);
 
-  // Draw period status for lines of credit
   const drawPeriodStatus = useMemo(() => {
     if (debt.sourceType !== 'line_of_credit' || !debt.drawPeriodEndDate) return null;
-
-    const endDate = new Date(debt.drawPeriodEndDate);
-    const today = new Date();
-    const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysRemaining < 0) {
-      return { status: 'ended', label: 'Draw period ended', color: 'var(--color-warning)' };
-    } else if (daysRemaining <= 90) {
-      return { status: 'ending', label: `Draw period ends in ${daysRemaining} days`, color: 'var(--color-warning)' };
-    } else {
-      return { status: 'active', label: 'Draw period active', color: 'var(--color-success)' };
-    }
+    const daysLeft = Math.ceil((new Date(debt.drawPeriodEndDate).getTime() - Date.now()) / 86_400_000);
+    if (daysLeft < 0) return { label: 'Draw period ended', color: 'var(--color-warning)' };
+    if (daysLeft <= 90) return { label: `Draw ends in ${daysLeft}d`, color: 'var(--color-warning)' };
+    return { label: 'Draw period active', color: 'var(--color-success)' };
   }, [debt.sourceType, debt.drawPeriodEndDate]);
 
   const cardColor = debt.color || 'var(--color-error)';
   const isPaidOff = debt.status === 'paid_off';
-  const paidOff = (debt.originalBalance || debt.balance) - debt.balance;
+  const paidOff = Math.max(0, (debt.originalBalance || debt.balance) - debt.balance);
+
+  // Utilization bar color
+  const utilizationColor =
+    utilization >= 100 ? 'var(--color-error)'
+    : utilization >= 80 ? 'var(--color-warning)'
+    : utilization >= 30 ? 'var(--color-primary)'
+    : 'var(--color-success)';
 
   const handlePayment = async () => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     const amount = parseFloat(paymentAmount);
-    if (!amount || amount <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-
+    if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
     try {
-      const response = await postWithHousehold('/api/debts/payments', {
-        source: debt.source,
-        id: debt.id,
-        amount,
+      setSubmittingPayment(true);
+      const res = await postWithHousehold('/api/debts/payments', {
+        source: debt.source, id: debt.id, amount,
         paymentDate: new Date().toISOString(),
       });
-
-      if (!response.ok) throw new Error('Failed to record payment');
-
+      if (!res.ok) throw new Error();
       onPayment?.(debt.id, amount);
       setPaymentAmount('');
-      setShowPayment(false);
-      toast.success(`Payment of $${amount.toFixed(2)} recorded!`);
-    } catch (_error) {
-      toast.error('Failed to record payment');
-    }
+      toast.success(`Payment of $${fmt(amount, 2)} recorded!`);
+    } catch { toast.error('Failed to record payment'); }
+    finally { setSubmittingPayment(false); }
   };
 
-  // For DebtAmortizationSection compatibility
   const debtForAmortization = {
     id: debt.id,
     name: debt.name,
@@ -243,298 +222,287 @@ export function UnifiedDebtCard({
   };
 
   return (
-    <Card
-      className={`border bg-card rounded-xl transition-all ${
-        debt.includeInPayoffStrategy ? 'border-border' : 'border-border opacity-60'
-      }`}
+    <div
+      className="rounded-xl overflow-hidden transition-shadow duration-200"
+      style={{
+        border: '1px solid var(--color-border)',
+        borderLeft: `3px solid ${cardColor}`,
+        backgroundColor: 'var(--color-background)',
+        opacity: debt.includeInPayoffStrategy ? 1 : 0.62,
+        boxShadow: '0 1px 3px color-mix(in oklch, var(--color-foreground) 4%, transparent)',
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.boxShadow = `0 4px 16px color-mix(in oklch, ${cardColor} 14%, transparent)`}
+      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 3px color-mix(in oklch, var(--color-foreground) 4%, transparent)'}
     >
-      {/* Header */}
+      {/* ── Clickable header ─────────────────────────────────────────────── */}
       <div
-        className="p-4 flex items-start justify-between cursor-pointer hover:bg-elevated/50 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
+        className="px-4 pt-3.5 pb-2.5 cursor-pointer"
+        onClick={() => setIsExpanded(e => !e)}
+        onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 45%, transparent)')}
+        onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent')}
       >
-        <div className="flex items-center gap-3">
+        {/* Top row: icon + name + badges + balance + actions */}
+        <div className="flex items-start gap-2.5">
+          {/* Type icon */}
           <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{
-              backgroundColor: `${cardColor}20`,
-              borderColor: cardColor,
-              borderWidth: '2px',
-            }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+            style={{ backgroundColor: `color-mix(in oklch, ${cardColor} 14%, transparent)` }}
           >
-            <span style={{ color: cardColor }}><IconComponent className="w-5 h-5" /></span>
+            <IconComponent className="w-4 h-4" style={{ color: cardColor }} />
           </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-foreground font-semibold">{debt.name}</h3>
+
+          {/* Name + meta */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--color-foreground)' }}>
+                {debt.name}
+              </span>
               <EntityIdBadge id={debt.id} label={debt.source === 'account' ? 'Account' : debt.source === 'debt' ? 'Debt' : 'Bill'} />
               {isPaidOff && (
-                <span className="text-xs bg-income/30 text-income px-2 py-1 rounded">
-                  Paid Off
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-px rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 14%, transparent)', color: 'var(--color-success)' }}>
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Paid Off
                 </span>
               )}
               {debt.status === 'paused' && (
-                <span className="text-xs bg-warning/30 text-warning px-2 py-1 rounded">
+                <span className="text-[10px] font-semibold px-1.5 py-px rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 14%, transparent)', color: 'var(--color-warning)' }}>
                   Paused
                 </span>
               )}
-              {/* Extra Payment Badge */}
               {(debt.additionalMonthlyPayment ?? 0) > 0 && !isPaidOff && (
-                <span className="text-xs bg-income/20 text-income px-2 py-1 rounded flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
-                  Extra
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-px rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 14%, transparent)', color: 'var(--color-success)' }}>
+                  <TrendingUp className="w-2.5 h-2.5" /> Extra
                 </span>
               )}
-              {/* Credit Utilization Badge */}
               {hasLimit && (
-                <CreditUtilizationBadge
-                  balance={debt.balance}
-                  creditLimit={debt.creditLimit!}
-                  size="sm"
-                  showPercentage={true}
-                  showTooltip={true}
-                />
+                <CreditUtilizationBadge balance={debt.balance} creditLimit={debt.creditLimit!} size="sm" showPercentage showTooltip />
               )}
             </div>
-            <p className="text-muted-foreground text-sm">{debt.creditorName || typeLabel}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[10px] px-1.5 py-px rounded" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)' }}>
+                {debt.creditorName || typeLabel}
+              </span>
+              {debt.interestRate !== undefined && debt.interestRate > 0 && (
+                <span className="text-[10px] font-mono" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {debt.interestRate.toFixed(2)}% APR
+                  {debt.interestType === 'variable' && <span style={{ color: 'var(--color-warning)' }}> var</span>}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Balance */}
+          <div className="text-right shrink-0" onClick={e => e.stopPropagation()}>
+            <div
+              className="text-[15px] font-bold font-mono tabular-nums"
+              style={{ color: isPaidOff ? 'var(--color-success)' : 'var(--color-error)' }}
+            >
+              ${fmt(debt.balance, 2)}
+            </div>
+            {debt.minimumPayment && debt.minimumPayment > 0 && (
+              <div className="text-[10px] font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+                ${fmt((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0), 0)}/mo
+              </div>
+            )}
+          </div>
+
+          {/* Actions — stop propagation so click doesn't toggle card */}
+          <div className="flex items-center gap-0.5 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
+            {/* Strategy toggle */}
+            {onToggleStrategy ? (
+              <button
+                onClick={() => onToggleStrategy(debt.id, !debt.includeInPayoffStrategy)}
+                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors"
+                style={{
+                  backgroundColor: debt.includeInPayoffStrategy
+                    ? 'color-mix(in oklch, var(--color-success) 14%, transparent)'
+                    : 'var(--color-elevated)',
+                  color: debt.includeInPayoffStrategy ? 'var(--color-success)' : 'var(--color-muted-foreground)',
+                }}
+              >
+                <Target className="w-2.5 h-2.5" />
+                {debt.includeInPayoffStrategy ? 'In' : 'Out'}
+              </button>
+            ) : (
+              <span
+                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 14%, transparent)', color: 'var(--color-success)' }}
+              >
+                <Target className="w-2.5 h-2.5" /> In
+              </span>
+            )}
+
+            {/* Edit / Delete */}
+            {(onEdit || onDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                    style={{ color: 'var(--color-muted-foreground)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-elevated)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                    </svg>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+                  {onEdit && (
+                    <DropdownMenuItem onClick={() => onEdit(debt)} className="cursor-pointer">
+                      <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <DropdownMenuItem onClick={() => onDelete(debt.id)} className="cursor-pointer" style={{ color: 'var(--color-destructive)' }}>
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Expand chevron */}
+            <button
+              onClick={() => setIsExpanded(e => !e)}
+              className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+              style={{ color: 'var(--color-muted-foreground)' }}
+            >
+              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          {/* Strategy Badge */}
-          {onToggleStrategy ? (
-            <button
-              onClick={() => onToggleStrategy(debt.id, !debt.includeInPayoffStrategy)}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                debt.includeInPayoffStrategy
-                  ? 'bg-success/10 text-success'
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              <Target className="w-3 h-3" />
-              {debt.includeInPayoffStrategy ? 'In Strategy' : 'Excluded'}
-            </button>
-          ) : (
-            <span className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-success/10 text-success">
-              <Target className="w-3 h-3" />
-              In Strategy
-            </span>
+        {/* ── Progress bar — always visible ─────────────────────────────── */}
+        <div className="mt-3">
+          {/* Credit card utilization bar */}
+          {debt.source === 'account' && hasLimit && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                <span className="font-mono tabular-nums">{(debt.utilization || utilization).toFixed(0)}% used</span>
+                <span className="font-mono tabular-nums">${fmt(debt.availableCredit ?? available)} avail</span>
+              </div>
+              <div
+                className="h-2 rounded-full overflow-hidden"
+                style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 80%, transparent)' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${Math.min(debt.utilization || utilization, 100)}%`,
+                    backgroundColor: utilizationColor,
+                  }}
+                />
+              </div>
+            </div>
           )}
 
-          {/* Expand/Collapse */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-          >
-            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
+          {/* Loan / debt payoff progress bar */}
+          {payoffProgress !== null && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                <span className="font-mono tabular-nums" style={{ color: 'var(--color-success)' }}>
+                  {payoffProgress.toFixed(0)}% paid off
+                </span>
+                <span className="font-mono tabular-nums">${fmt(debt.originalBalance ?? debt.balance)} orig</span>
+              </div>
+              <div
+                className="h-2 rounded-full overflow-hidden"
+                style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 80%, transparent)' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${payoffProgress}%`,
+                    background: `linear-gradient(to right, color-mix(in oklch, var(--color-success) 70%, transparent), var(--color-success))`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
-          {/* Actions Menu */}
-          {(onEdit || onDelete) && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-elevated border-border">
-                {onEdit && (
-                  <DropdownMenuItem
-                    onClick={() => onEdit(debt)}
-                    className="cursor-pointer"
-                  >
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                )}
-                {onDelete && (
-                  <DropdownMenuItem
-                    onClick={() => onDelete(debt.id)}
-                    className="cursor-pointer text-error hover:text-error"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {/* No progress bar — just a thin line divider */}
+          {!hasLimit && payoffProgress === null && (
+            <div className="h-px mt-1" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 50%, transparent)' }} />
           )}
         </div>
       </div>
 
-      {/* Collapsed Summary */}
-      {!isExpanded && (
-        <div className="px-4 pb-4">
-          <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
-            <span className="font-mono text-foreground font-semibold">
-              ${debt.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            {debt.originalBalance && (
-              <span>
-                / ${debt.originalBalance.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-              </span>
-            )}
-            {payoffProgress !== null && (
-              <span className="font-semibold">{Math.round(payoffProgress)}% paid</span>
-            )}
-            {hasLimit && (
-              <span>{utilization.toFixed(0)}% used</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Expanded Content */}
+      {/* ── Expanded content ─────────────────────────────────────────────── */}
       {isExpanded && (
-        <div className="px-4 pb-4 space-y-4">
-          {/* Balance Section */}
+        <div
+          className="px-4 pb-4 pt-2 space-y-4"
+          style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}
+        >
+          {/* Balance + payment row */}
           <div className="flex items-baseline justify-between">
             <div>
-              <p className="text-muted-foreground text-xs">Balance</p>
-              <p className="text-2xl font-bold font-mono text-error">
-                ${debt.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--color-muted-foreground)' }}>Balance</p>
+              <p className="text-2xl font-bold font-mono tabular-nums" style={{ color: 'var(--color-error)' }}>
+                ${fmt(debt.balance, 2)}
               </p>
+              {payoffProgress !== null && paidOff > 0 && (
+                <p className="text-[11px] font-mono tabular-nums mt-0.5" style={{ color: 'var(--color-success)' }}>
+                  ${fmt(paidOff, 2)} paid off
+                </p>
+              )}
             </div>
             {debt.minimumPayment && debt.minimumPayment > 0 && (
               <div className="text-right">
-                <p className="text-muted-foreground text-xs">
-                  {(debt.additionalMonthlyPayment ?? 0) > 0 ? 'Planned Payment' : 'Min Payment'}
+                <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {(debt.additionalMonthlyPayment ?? 0) > 0 ? 'Planned' : 'Min'}
                 </p>
-                <p className="text-lg font-semibold font-mono text-foreground">
-                  ${((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <p className="text-lg font-semibold font-mono tabular-nums" style={{ color: 'var(--color-foreground)' }}>
+                  ${fmt((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0), 2)}/mo
                 </p>
                 {(debt.additionalMonthlyPayment ?? 0) > 0 && (
-                  <p className="text-xs text-income flex items-center justify-end gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    +${(debt.additionalMonthlyPayment ?? 0).toLocaleString('en-US', { maximumFractionDigits: 2 })} extra
+                  <p className="text-[10px] font-mono tabular-nums flex items-center justify-end gap-0.5" style={{ color: 'var(--color-success)' }}>
+                    <TrendingUp className="w-2.5 h-2.5" />
+                    +${fmt(debt.additionalMonthlyPayment ?? 0, 2)} extra
                   </p>
                 )}
               </div>
             )}
           </div>
 
-          {/* Utilization Bar for Credit Accounts */}
-          {debt.source === 'account' && debt.creditLimit && debt.creditLimit > 0 && (
-            <div>
-              <div className="flex justify-between items-center text-xs mb-1">
-                <span className="text-muted-foreground">
-                  {debt.utilization?.toFixed(0) || utilization.toFixed(0)}% used
-                </span>
-                <span className="text-muted-foreground">
-                  ${(debt.availableCredit ?? available).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} available
-                </span>
-              </div>
-              <div className="w-full bg-elevated rounded-full h-2 overflow-hidden border border-border">
-                <div
-                  className={`h-full transition-all ${
-                    (debt.utilization || utilization) >= 100
-                      ? 'bg-error'
-                      : (debt.utilization || utilization) >= 80
-                      ? 'bg-warning'
-                      : (debt.utilization || utilization) >= 30
-                      ? 'bg-primary'
-                      : 'bg-income'
-                  }`}
-                  style={{ width: `${Math.min(debt.utilization || utilization, 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Progress Bar for Loan Debts */}
-          {payoffProgress !== null && (
-            <div>
-              <div className="flex justify-between items-center text-xs mb-1">
-                <span className="text-muted-foreground">
-                  {payoffProgress.toFixed(0)}% paid off
-                </span>
-                <span className="text-muted-foreground">
-                  of ${debt.originalBalance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              <Progress value={payoffProgress} className="h-2 bg-elevated" />
-            </div>
-          )}
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-3 text-center text-sm">
-            <div>
-              <p className="text-muted-foreground text-xs">Paid Off</p>
-              <p className="text-foreground font-semibold">
-                ${paidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-              </p>
-            </div>
-            {debt.interestRate !== undefined && debt.interestRate > 0 && (
-              <div>
-                <p className="text-muted-foreground text-xs">APR</p>
-                <p className="text-foreground font-semibold">
-                  {debt.interestRate.toFixed(2)}%
-                  {debt.interestType === 'variable' && (
-                    <span className="text-warning text-xs ml-1">(Var)</span>
-                  )}
-                </p>
-              </div>
-            )}
-            {debt.creditLimit && debt.creditLimit > 0 ? (
-              <div>
-                <p className="text-muted-foreground text-xs">Credit Limit</p>
-                <p className="text-foreground font-semibold font-mono">
-                  ${debt.creditLimit.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                </p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-muted-foreground text-xs">Type</p>
-                <p className="text-foreground font-semibold capitalize text-xs">{typeLabel}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Payoff Timeline (Strategy vs Minimum) */}
+          {/* Payoff timeline */}
           {payoffTimeline && !isPaidOff && (
-            <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
+            <div
+              className="rounded-lg p-3"
+              style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 22%, var(--color-border))' }}
+            >
               <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-primary" />
-                <span className="text-xs font-semibold text-foreground">
-                  Payoff Timeline ({payoffTimeline.method})
+                <Zap className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+                <span className="text-[11px] font-semibold capitalize" style={{ color: 'var(--color-foreground)' }}>
+                  {payoffTimeline.method} strategy
                 </span>
-                <span className="text-xs text-muted-foreground ml-auto">
+                <span className="text-[10px] ml-auto font-mono" style={{ color: 'var(--color-muted-foreground)' }}>
                   #{payoffTimeline.order} priority
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">With Strategy</p>
+                  <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-muted-foreground)' }}>With Strategy</p>
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-income" />
-                    <span className="text-sm font-semibold text-income">
-                      {payoffTimeline.strategyMonths} months
+                    <Clock className="w-3 h-3" style={{ color: 'var(--color-success)' }} />
+                    <span className="text-[13px] font-semibold font-mono" style={{ color: 'var(--color-success)' }}>
+                      {payoffTimeline.strategyMonths}mo
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] font-mono mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
                     {new Date(payoffTimeline.strategyDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Min Payments Only</p>
+                  <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Min Only</p>
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-sm font-semibold text-muted-foreground">
-                      {payoffTimeline.minimumOnlyMonths === -1 ? 'Never' : `${payoffTimeline.minimumOnlyMonths} months`}
+                    <Clock className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />
+                    <span className="text-[13px] font-semibold font-mono" style={{ color: 'var(--color-muted-foreground)' }}>
+                      {payoffTimeline.minimumOnlyMonths === -1 ? 'Never' : `${payoffTimeline.minimumOnlyMonths}mo`}
                     </span>
                   </div>
                   {payoffTimeline.minimumOnlyMonths > 0 && payoffTimeline.minimumOnlyMonths !== -1 && (
-                    <p className="text-xs text-income">
-                      {payoffTimeline.minimumOnlyMonths - payoffTimeline.strategyMonths} months faster!
+                    <p className="text-[10px] font-mono mt-0.5" style={{ color: 'var(--color-success)' }}>
+                      {payoffTimeline.minimumOnlyMonths - payoffTimeline.strategyMonths}mo faster!
                     </p>
                   )}
                 </div>
@@ -542,130 +510,88 @@ export function UnifiedDebtCard({
             </div>
           )}
 
-          {/* Expanded Details Section */}
-          <div className="border-t border-border pt-3 space-y-2">
-            {/* Statement Info for Credit Cards */}
+          {/* Extra details */}
+          <div
+            className="space-y-2 pt-1 pb-0.5"
+            style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}
+          >
             {debt.statementBalance !== undefined && debt.statementBalance !== null && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Statement Balance</span>
-                <span className="text-foreground font-mono">
-                  ${debt.statementBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              <div className="flex justify-between text-[12px]">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Statement Balance</span>
+                <span className="font-mono tabular-nums" style={{ color: 'var(--color-foreground)' }}>${fmt(debt.statementBalance, 2)}</span>
               </div>
             )}
-
             {debt.statementDueDate && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Due Date</span>
-                <span className="text-foreground">Day {debt.statementDueDate}</span>
+              <div className="flex justify-between text-[12px]">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Statement Due</span>
+                <span style={{ color: 'var(--color-foreground)' }}>Day {debt.statementDueDate}</span>
               </div>
             )}
-
-            {/* Draw Period Status for Lines of Credit */}
             {drawPeriodStatus && (
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: drawPeriodStatus.color }} />
-                <span style={{ color: drawPeriodStatus.color }}>
-                  {drawPeriodStatus.label}
-                </span>
+              <div className="flex items-center gap-1.5 text-[12px]">
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: drawPeriodStatus.color }} />
+                <span style={{ color: drawPeriodStatus.color }}>{drawPeriodStatus.label}</span>
               </div>
             )}
-
-            {/* Tax Deductible Interest */}
             {debt.isInterestTaxDeductible && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Tax Deductible Interest</span>
-                <span className="text-success">
+              <div className="flex justify-between text-[12px]">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Tax Deductible</span>
+                <span style={{ color: 'var(--color-success)' }}>
                   {debt.taxDeductionType === 'mortgage' && 'Mortgage Interest'}
-                  {debt.taxDeductionType === 'student_loan' && 'Student Loan Interest'}
+                  {debt.taxDeductionType === 'student_loan' && 'Student Loan'}
                   {debt.taxDeductionType === 'business' && 'Business Interest'}
-                  {debt.taxDeductionType === 'heloc_home' && 'HELOC (Home Use)'}
-                  {!debt.taxDeductionType || debt.taxDeductionType === 'none' ? 'Yes' : ''}
+                  {debt.taxDeductionType === 'heloc_home' && 'HELOC'}
+                  {(!debt.taxDeductionType || debt.taxDeductionType === 'none') && 'Yes'}
                 </span>
               </div>
             )}
-
-            {/* Source Indicator */}
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Source</span>
-              <span className="text-xs px-2 py-1 rounded bg-elevated text-muted-foreground">
+            <div className="flex justify-between text-[12px]">
+              <span style={{ color: 'var(--color-muted-foreground)' }}>Source</span>
+              <span className="px-1.5 py-px rounded text-[10px]" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)' }}>
                 {debt.source === 'account' ? 'Credit Account' : debt.source === 'debt' ? 'Standalone Debt' : 'Debt Bill'}
               </span>
             </div>
           </div>
 
-          {/* Credit Utilization Section (Credit Cards Only) */}
+          {/* Credit utilization details (collapsible) */}
           {hasLimit && (
-            <div className="border-t border-border pt-3">
+            <div style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', paddingTop: '0.75rem' }}>
               <button
-                onClick={() => setShowUtilization(!showUtilization)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+                onClick={() => setShowUtilization(v => !v)}
+                className="flex items-center gap-1.5 w-full text-[12px] transition-colors"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)')}
               >
-                {showUtilization ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-                <CreditCard className="w-4 h-4" />
-                <span>Credit Utilization Details</span>
-                {isOverTarget && (
-                  <AlertTriangle className="w-3 h-3 text-warning ml-auto" />
-                )}
+                {showUtilization ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                <CreditCard className="w-3.5 h-3.5" />
+                Utilization Details
+                {isOverTarget && <AlertTriangle className="w-3 h-3 ml-auto" style={{ color: 'var(--color-warning)' }} />}
               </button>
-
               {showUtilization && (
-                <div className="mt-4 space-y-3 bg-elevated rounded-lg p-3 border border-border">
-                  {/* Utilization Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Utilization</span>
-                      <span className="text-foreground font-semibold">{utilization.toFixed(1)}%</span>
-                    </div>
-                    <Progress value={utilization} className="h-2 bg-card" />
-                    <div className="flex justify-between items-center text-xs text-muted-foreground">
-                      <span>0%</span>
-                      <span className="text-warning">30% target</span>
-                      <span>100%</span>
-                    </div>
-                  </div>
-
-                  {/* Credit Info Grid */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="mt-3 rounded-lg p-3 space-y-3" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                  <div className="grid grid-cols-2 gap-3 text-[12px]">
                     <div>
-                      <p className="text-muted-foreground text-xs mb-1">Credit Limit</p>
-                      <p className="text-foreground font-semibold font-mono">
-                        ${debt.creditLimit!.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                      </p>
+                      <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Limit</p>
+                      <p className="font-semibold font-mono tabular-nums" style={{ color: 'var(--color-foreground)' }}>${fmt(debt.creditLimit!, 2)}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-xs mb-1">Available Credit</p>
-                      <p className="text-success font-semibold font-mono">
-                        ${available.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                      </p>
+                      <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Available</p>
+                      <p className="font-semibold font-mono tabular-nums" style={{ color: 'var(--color-success)' }}>${fmt(available, 2)}</p>
                     </div>
                   </div>
-
-                  {/* Recommendation */}
                   {recommendation && (
-                    <div className="bg-card rounded-lg p-3 border border-border">
-                      <p className="text-xs text-muted-foreground">{recommendation}</p>
-                    </div>
+                    <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>{recommendation}</p>
                   )}
-
-                  {/* Payment to Target */}
                   {paymentToTarget > 0 && (
-                    <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold text-foreground mb-1">
-                            Pay ${paymentToTarget.toLocaleString()} to reach 30%
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Keeping utilization below 30% helps maintain a healthy credit score.
-                          </p>
-                        </div>
-                      </div>
+                    <div
+                      className="rounded-lg p-2.5 flex items-start gap-2"
+                      style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 25%, transparent)' }}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+                      <p className="text-[11px]" style={{ color: 'var(--color-foreground)' }}>
+                        Pay <strong>${fmt(paymentToTarget)}</strong> to reach 30% utilization target.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -673,39 +599,29 @@ export function UnifiedDebtCard({
             </div>
           )}
 
-          {/* Milestones - Only for standalone debts */}
+          {/* Milestones (standalone debts only) */}
           {debt.source === 'debt' && milestones.length > 0 && (
-            <div className="border-t border-border pt-3">
+            <div style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', paddingTop: '0.75rem' }}>
               <button
-                onClick={() => setShowMilestones(!showMilestones)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowMilestones(v => !v)}
+                className="flex items-center gap-1.5 text-[12px] transition-colors"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)')}
               >
-                {showMilestones ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
+                {showMilestones ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 Milestones
               </button>
               {showMilestones && (
                 <div className="mt-3 space-y-2">
-                  {milestones.map((milestone) => (
-                    <div key={milestone.id} className="flex items-center gap-3 text-sm">
-                      <div className="flex-1">
-                        <div className="flex justify-between mb-1">
-                          <span className="text-muted-foreground">{milestone.percentage}%</span>
-                          <span className="text-muted-foreground">
-                            ${milestone.milestoneBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <Progress
-                          value={milestone.achievedAt ? 100 : 0}
-                          className="h-1.5 bg-elevated"
-                        />
+                  {milestones.map(m => (
+                    <div key={m.id} className="flex items-center gap-3 text-[12px]">
+                      <span className="w-8 text-right font-mono" style={{ color: 'var(--color-muted-foreground)' }}>{m.percentage}%</span>
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                        <div className="h-full rounded-full" style={{ width: m.achievedAt ? '100%' : '0%', backgroundColor: 'var(--color-success)' }} />
                       </div>
-                      {milestone.achievedAt && (
-                        <span className="text-income text-xs">✓</span>
-                      )}
+                      <span className="font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>${fmt(m.milestoneBalance)}</span>
+                      {m.achievedAt && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-success)' }} />}
                     </div>
                   ))}
                 </div>
@@ -713,48 +629,38 @@ export function UnifiedDebtCard({
             </div>
           )}
 
-          {/* Payment History Section - Unified across debt sources */}
-          <div className="border-t border-border pt-3">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPaymentHistory(!showPaymentHistory);
-                }}
-                className="flex items-center justify-between w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  {showPaymentHistory ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                  <History className="w-4 h-4" />
-                  Payment History
-                </span>
-              </button>
-              {showPaymentHistory && (
-                <div className="mt-3">
-                  <PaymentHistoryList debtId={debt.id} source={debt.source} />
-                </div>
-              )}
+          {/* Payment history */}
+          <div style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', paddingTop: '0.75rem' }}>
+            <button
+              onClick={() => setShowPaymentHistory(v => !v)}
+              className="flex items-center gap-1.5 w-full text-[12px] transition-colors"
+              style={{ color: 'var(--color-muted-foreground)' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)')}
+            >
+              {showPaymentHistory ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              <History className="w-3.5 h-3.5" />
+              Payment History
+            </button>
+            {showPaymentHistory && (
+              <div className="mt-3">
+                <PaymentHistoryList debtId={debt.id} source={debt.source} />
+              </div>
+            )}
           </div>
 
-          {/* Amortization Schedule Section - Only for debts with interest */}
+          {/* Amortization (debts with interest only) */}
           {debt.source === 'debt' && (debt.interestRate ?? 0) > 0 && (
-            <div className="border-t border-border pt-3">
+            <div style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', paddingTop: '0.75rem' }}>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAmortization(!showAmortization);
-                }}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowAmortization(v => !v)}
+                className="flex items-center gap-1.5 text-[12px] transition-colors"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)')}
               >
-                {showAmortization ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-                <BarChart3 className="w-4 h-4" />
+                {showAmortization ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                <BarChart3 className="w-3.5 h-3.5" />
                 Amortization Schedule
               </button>
               {showAmortization && (
@@ -765,46 +671,42 @@ export function UnifiedDebtCard({
             </div>
           )}
 
-          {/* Record Payment Button - Unified across debt sources */}
+          {/* Record payment — always visible at bottom when expanded */}
           {!isPaidOff && (
-            <div className="border-t border-border pt-3">
-              {!showPayment ? (
-                <Button
-                  onClick={() => setShowPayment(true)}
-                  className="w-full bg-primary hover:opacity-90 text-primary-foreground"
-                >
-                  Record Payment
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Amount"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-income"
-                    step="0.01"
-                    min="0"
-                  />
-                  <Button
-                    onClick={handlePayment}
-                    className="bg-primary hover:opacity-90 text-primary-foreground"
-                  >
-                    Record
-                  </Button>
-                  <Button
-                    onClick={() => setShowPayment(false)}
-                    variant="outline"
-                    className="border-border text-muted-foreground hover:text-foreground"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
+            <div
+              className="flex items-center gap-2 pt-1"
+              style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}
+            >
+              <div
+                className="flex-1 flex items-center gap-1.5 rounded-lg px-3 h-8"
+                style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}
+              >
+                <span className="text-[12px] font-mono" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
+                <input
+                  type="number"
+                  placeholder="Payment amount"
+                  value={paymentAmount}
+                  onChange={e => setPaymentAmount(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handlePayment()}
+                  className="flex-1 bg-transparent text-[12px] font-mono outline-none tabular-nums min-w-0"
+                  style={{ color: 'var(--color-foreground)' }}
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <Button
+                size="sm"
+                disabled={submittingPayment || !paymentAmount}
+                onClick={handlePayment}
+                className="h-8 px-3 text-xs shrink-0"
+                style={{ backgroundColor: cardColor, color: '#fff', opacity: (submittingPayment || !paymentAmount) ? 0.4 : 1 }}
+              >
+                {submittingPayment ? '…' : 'Record'}
+              </Button>
             </div>
           )}
         </div>
       )}
-    </Card>
+    </div>
   );
 }

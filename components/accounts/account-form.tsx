@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -252,657 +252,314 @@ export function AccountForm({
     }
   };
 
+  const fs = { backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' };
+  const lbl = 'text-[11px] font-medium uppercase tracking-wide block mb-1.5';
+  const lblS = { color: 'var(--color-muted-foreground)' };
+  const errS = { color: 'var(--color-destructive)' };
+  const hint = 'text-[11px] mt-1';
+  const hintS = { color: 'var(--color-muted-foreground)', opacity: 0.8 };
+
+  const Toggle = ({ field }: { field: string }) => (
+    <button type="button" onClick={() => handleCheckboxChange(field)}
+      className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+      style={{ backgroundColor: formData[field as keyof typeof formData] ? 'var(--color-primary)' : 'var(--color-border)' }}>
+      <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform"
+        style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData[field as keyof typeof formData] ? '18px' : '2px'})` }} />
+    </button>
+  );
+
+  const SectionHeader = ({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>, title: string }) => (
+    <div className="flex items-center gap-2 pb-3 mb-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+      <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}>
+        <Icon className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+      </div>
+      <span className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>{title}</span>
+    </div>
+  );
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Name and Type */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.name ? 'text-error' : 'text-muted-foreground'}`}>
-            Account Name
-          </Label>
-          <Input
-            id="account-name"
-            name="name"
-            value={formData.name}
-            onChange={(e) => {
-              handleChange(e);
-              if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
-            }}
-            placeholder="e.g., My Checking"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground ${
-              errors.name ? 'border-error focus:border-error' : 'border-border'
-            }`}
-          />
-          {errors.name && (
-            <p className="text-error text-xs mt-1">{errors.name}</p>
-          )}
+          <Label htmlFor="account-name" className={lbl} style={errors.name ? errS : lblS}>Account Name*</Label>
+          <Input id="account-name" name="name" value={formData.name} onChange={e => { handleChange(e); if (errors.name) setErrors(p => ({ ...p, name: '' })); }}
+            placeholder="e.g., My Checking" className="h-9 text-[13px]"
+            style={{ ...fs, borderColor: errors.name ? 'var(--color-destructive)' : 'var(--color-border)' }} autoFocus />
+          {errors.name && <p className={hint} style={errS}>{errors.name}</p>}
         </div>
         <div>
-          <Label className={`text-sm mb-2 block ${errors.type ? 'text-error' : 'text-muted-foreground'}`}>
-            Account Type
-          </Label>
-          <Select 
-            value={formData.type} 
-            onValueChange={(value) => {
-              handleSelectChange('type', value);
-              if (errors.type) setErrors(prev => ({ ...prev, type: '' }));
-            }}
-          >
-            <SelectTrigger className={`bg-elevated text-foreground ${
-              errors.type ? 'border-error' : 'border-border'
-            }`}>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCOUNT_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
+          <Label className={lbl} style={errors.type ? errS : lblS}>Account Type*</Label>
+          <Select value={formData.type} onValueChange={v => { handleSelectChange('type', v); if (errors.type) setErrors(p => ({ ...p, type: '' })); }}>
+            <SelectTrigger className="h-9 text-[13px]" style={{ ...fs, borderColor: errors.type ? 'var(--color-destructive)' : 'var(--color-border)' }}><SelectValue placeholder="Select type" /></SelectTrigger>
+            <SelectContent>{ACCOUNT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
           </Select>
-          {errors.type && (
-            <p className="text-error text-xs mt-1">{errors.type}</p>
-          )}
+          {errors.type && <p className={hint} style={errS}>{errors.type}</p>}
         </div>
       </div>
 
       {/* Bank Name and Account Number */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.bankName ? 'text-error' : 'text-muted-foreground'}`}>
-            Bank Name
-          </Label>
-          <Input
-            name="bankName"
-            value={formData.bankName}
-            onChange={(e) => {
-              handleChange(e);
-              if (errors.bankName) setErrors(prev => ({ ...prev, bankName: '' }));
-            }}
-            placeholder="e.g., Chase Bank"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground ${
-              errors.bankName ? 'border-error focus:border-error' : 'border-border'
-            }`}
-          />
-          {errors.bankName && (
-            <p className="text-error text-xs mt-1">{errors.bankName}</p>
-          )}
+          <Label className={lbl} style={errors.bankName ? errS : lblS}>Bank Name</Label>
+          <Input name="bankName" value={formData.bankName} onChange={e => { handleChange(e); if (errors.bankName) setErrors(p => ({ ...p, bankName: '' })); }}
+            placeholder="e.g., Chase Bank" className="h-9 text-[13px]"
+            style={{ ...fs, borderColor: errors.bankName ? 'var(--color-destructive)' : 'var(--color-border)' }} />
+          {errors.bankName && <p className={hint} style={errS}>{errors.bankName}</p>}
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Last 4 Digits (Optional)</Label>
-          <Input
-            name="accountNumberLast4"
-            value={formData.accountNumberLast4}
-            onChange={handleChange}
-            placeholder="1234"
-            maxLength={4}
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-          />
+          <Label className={lbl} style={lblS}>Last 4 Digits <span style={{ opacity: 0.6 }}>(optional)</span></Label>
+          <Input name="accountNumberLast4" value={formData.accountNumberLast4} onChange={handleChange} placeholder="1234" maxLength={4} className="h-9 text-[13px] tabular-nums" style={fs} />
         </div>
       </div>
 
       {/* Balance and Credit Limit */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">
-            {isCreditType ? 'Amount Owed' : 'Current Balance'}
-          </Label>
-          <Input
-            name="currentBalance"
-            type="number"
-            value={formData.currentBalance}
-            onChange={handleChange}
-            placeholder="Enter amount"
-            step="0.01"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-          />
-          {isCreditType && (
-            <p className="text-xs text-muted-foreground mt-1">Enter the current balance owed on this account</p>
-          )}
+          <Label className={lbl} style={lblS}>{isCreditType ? 'Amount Owed' : 'Current Balance'}</Label>
+          <Input name="currentBalance" type="number" value={formData.currentBalance} onChange={handleChange} placeholder="0.00" step="0.01" className="h-9 text-[13px] tabular-nums" style={fs} />
+          {isCreditType && <p className={hint} style={hintS}>Current balance owed on this account</p>}
         </div>
         {isCreditType && (
           <div>
-            <Label className="text-muted-foreground text-sm mb-2 block">Credit Limit</Label>
-            <Input
-              name="creditLimit"
-              type="number"
-              value={formData.creditLimit}
-              onChange={handleChange}
-              placeholder="Enter limit"
-              step="0.01"
-              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-            />
+            <Label className={lbl} style={lblS}>Credit Limit</Label>
+            <Input name="creditLimit" type="number" value={formData.creditLimit} onChange={handleChange} placeholder="0.00" step="0.01" className="h-9 text-[13px] tabular-nums" style={fs} />
           </div>
         )}
       </div>
 
-      {/* Credit Card Details Section */}
+      {/* Credit Card Details */}
       {formData.type === 'credit' && (
-        <div className="p-4 bg-card rounded-lg border border-border space-y-4">
-          <div className="text-sm font-medium text-foreground flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-primary" />
-            Credit Card Details
-          </div>
-          
-          {/* APR and Payment Due Day */}
-          <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-xl px-4 py-4 space-y-4" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <SectionHeader icon={CreditCard} title="Credit Card Details" />
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">APR (%)</Label>
-              <Input
-                name="interestRate"
-                type="number"
-                value={formData.interestRate}
-                onChange={handleChange}
-                placeholder="Enter rate"
-                step="0.01"
-                min="0"
-                max="100"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-              />
+              <Label className={lbl} style={lblS}>APR (%)</Label>
+              <Input name="interestRate" type="number" value={formData.interestRate} onChange={handleChange} placeholder="0.00" step="0.01" min="0" max="100" className="h-9 text-[13px] tabular-nums" style={fs} />
             </div>
             <div>
-              <Label className={`text-sm mb-2 block ${errors.statementDueDay ? 'text-error' : 'text-muted-foreground'}`}>
-                Payment Due Day (1-31)
-              </Label>
-              <Input
-                name="statementDueDay"
-                type="number"
-                value={formData.statementDueDay}
-                onChange={(e) => {
-                  handleChange(e);
-                  if (errors.statementDueDay) setErrors(prev => ({ ...prev, statementDueDay: '' }));
-                }}
-                placeholder="Enter day"
-                min="1"
-                max="31"
-                className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-                  errors.statementDueDay ? 'border-error focus:border-error' : 'border-border'
-                }`}
-              />
-              {errors.statementDueDay && (
-                <p className="text-error text-xs mt-1">{errors.statementDueDay}</p>
-              )}
+              <Label className={lbl} style={errors.statementDueDay ? errS : lblS}>Payment Due Day (1–31)</Label>
+              <Input name="statementDueDay" type="number" value={formData.statementDueDay} onChange={e => { handleChange(e); if (errors.statementDueDay) setErrors(p => ({ ...p, statementDueDay: '' })); }}
+                placeholder="15" min="1" max="31" className="h-9 text-[13px]" style={{ ...fs, borderColor: errors.statementDueDay ? 'var(--color-destructive)' : 'var(--color-border)' }} />
+              {errors.statementDueDay && <p className={hint} style={errS}>{errors.statementDueDay}</p>}
             </div>
           </div>
-          
-          {/* Minimum Payment Settings */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Min Payment %</Label>
-              <Input
-                name="minimumPaymentPercent"
-                type="number"
-                value={formData.minimumPaymentPercent}
-                onChange={handleChange}
-                placeholder="Enter %"
-                step="0.1"
-                min="0"
-                max="100"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-              />
+              <Label className={lbl} style={lblS}>Min Payment %</Label>
+              <Input name="minimumPaymentPercent" type="number" value={formData.minimumPaymentPercent} onChange={handleChange} placeholder="2.0" step="0.1" min="0" max="100" className="h-9 text-[13px] tabular-nums" style={fs} />
             </div>
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Min Payment Floor ($)</Label>
-              <Input
-                name="minimumPaymentFloor"
-                type="number"
-                value={formData.minimumPaymentFloor}
-                onChange={handleChange}
-                placeholder="Enter amount"
-                step="1"
-                min="0"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-              />
+              <Label className={lbl} style={lblS}>Min Payment Floor ($)</Label>
+              <Input name="minimumPaymentFloor" type="number" value={formData.minimumPaymentFloor} onChange={handleChange} placeholder="25" step="1" min="0" className="h-9 text-[13px] tabular-nums" style={fs} />
             </div>
           </div>
-          
-          {/* Annual Fee */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Annual Fee ($)</Label>
-              <Input
-                name="annualFee"
-                type="number"
-                value={formData.annualFee}
-                onChange={handleChange}
-                placeholder="Enter fee"
-                step="1"
-                min="0"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-              />
+              <Label className={lbl} style={lblS}>Annual Fee ($)</Label>
+              <Input name="annualFee" type="number" value={formData.annualFee} onChange={handleChange} placeholder="0" step="1" min="0" className="h-9 text-[13px] tabular-nums" style={fs} />
             </div>
             <div>
-              <Label className={`text-sm mb-2 block ${errors.annualFeeMonth ? 'text-error' : 'text-muted-foreground'}`}>
-                Fee Month
-              </Label>
-              <Select 
-                value={formData.annualFeeMonth ? String(formData.annualFeeMonth) : ''} 
-                onValueChange={(value) => {
-                  handleSelectChange('annualFeeMonth', value);
-                  if (errors.annualFeeMonth) setErrors(prev => ({ ...prev, annualFeeMonth: '' }));
-                }}
-              >
-                <SelectTrigger className={`bg-elevated text-foreground ${
-                  errors.annualFeeMonth ? 'border-error' : 'border-border'
-                }`}>
-                  <SelectValue placeholder="Select month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((month) => (
-                    <SelectItem key={month.value} value={String(month.value)}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Label className={lbl} style={errors.annualFeeMonth ? errS : lblS}>Fee Month</Label>
+              <Select value={formData.annualFeeMonth ? String(formData.annualFeeMonth) : ''} onValueChange={v => { handleSelectChange('annualFeeMonth', v); if (errors.annualFeeMonth) setErrors(p => ({ ...p, annualFeeMonth: '' })); }}>
+                <SelectTrigger className="h-9 text-[13px]" style={{ ...fs, borderColor: errors.annualFeeMonth ? 'var(--color-destructive)' : 'var(--color-border)' }}><SelectValue placeholder="Select month" /></SelectTrigger>
+                <SelectContent>{MONTHS.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
               </Select>
-              {errors.annualFeeMonth && (
-                <p className="text-error text-xs mt-1">{errors.annualFeeMonth}</p>
-              )}
+              {errors.annualFeeMonth && <p className={hint} style={errS}>{errors.annualFeeMonth}</p>}
             </div>
           </div>
         </div>
       )}
 
-      {/* Line of Credit Details Section */}
+      {/* Line of Credit Details */}
       {formData.type === 'line_of_credit' && (
-        <div className="p-4 bg-card rounded-lg border border-border space-y-4">
-          <div className="text-sm font-medium text-foreground flex items-center gap-2">
-            <Landmark className="h-4 w-4 text-primary" />
-            Line of Credit Details
-          </div>
-          
-          {/* Interest Type and Rate */}
-          <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-xl px-4 py-4 space-y-4" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <SectionHeader icon={Landmark} title="Line of Credit Details" />
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Interest Type</Label>
-              <Select 
-                value={formData.interestType} 
-                onValueChange={(value) => handleSelectChange('interestType', value)}
-              >
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fixed">Fixed Rate</SelectItem>
-                  <SelectItem value="variable">Variable Rate</SelectItem>
-                </SelectContent>
+              <Label className={lbl} style={lblS}>Interest Type</Label>
+              <Select value={formData.interestType} onValueChange={v => handleSelectChange('interestType', v)}>
+                <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent><SelectItem value="fixed">Fixed Rate</SelectItem><SelectItem value="variable">Variable Rate</SelectItem></SelectContent>
               </Select>
             </div>
             {formData.interestType === 'fixed' ? (
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">APR (%)</Label>
-                <Input
-                  name="interestRate"
-                  type="number"
-                  value={formData.interestRate}
-                  onChange={handleChange}
-                  placeholder="Enter rate"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-                />
+                <Label className={lbl} style={lblS}>APR (%)</Label>
+                <Input name="interestRate" type="number" value={formData.interestRate} onChange={handleChange} placeholder="0.00" step="0.01" min="0" max="100" className="h-9 text-[13px] tabular-nums" style={fs} />
               </div>
             ) : (
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Prime + (%)</Label>
-                <Input
-                  name="primeRateMargin"
-                  type="number"
-                  value={formData.primeRateMargin}
-                  onChange={handleChange}
-                  placeholder="Enter margin"
-                  step="0.01"
-                  min="0"
-                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-                />
+                <Label className={lbl} style={lblS}>Prime + (%)</Label>
+                <Input name="primeRateMargin" type="number" value={formData.primeRateMargin} onChange={handleChange} placeholder="0.00" step="0.01" min="0" className="h-9 text-[13px] tabular-nums" style={fs} />
               </div>
             )}
           </div>
-
-          {/* Payment Due Day */}
           <div>
-            <Label className={`text-sm mb-2 block ${errors.statementDueDay ? 'text-error' : 'text-muted-foreground'}`}>
-              Payment Due Day (1-31)
-            </Label>
-            <Input
-              name="statementDueDay"
-              type="number"
-              value={formData.statementDueDay}
-              onChange={(e) => {
-                handleChange(e);
-                if (errors.statementDueDay) setErrors(prev => ({ ...prev, statementDueDay: '' }));
-              }}
-              placeholder="Enter day"
-              min="1"
-              max="31"
-              className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic w-1/2 ${
-                errors.statementDueDay ? 'border-error focus:border-error' : 'border-border'
-              }`}
-            />
-            {errors.statementDueDay && (
-              <p className="text-error text-xs mt-1">{errors.statementDueDay}</p>
-            )}
+            <Label className={lbl} style={errors.statementDueDay ? errS : lblS}>Payment Due Day (1–31)</Label>
+            <Input name="statementDueDay" type="number" value={formData.statementDueDay} onChange={e => { handleChange(e); if (errors.statementDueDay) setErrors(p => ({ ...p, statementDueDay: '' })); }}
+              placeholder="15" min="1" max="31" className="h-9 text-[13px] w-1/2" style={{ ...fs, borderColor: errors.statementDueDay ? 'var(--color-destructive)' : 'var(--color-border)' }} />
+            {errors.statementDueDay && <p className={hint} style={errS}>{errors.statementDueDay}</p>}
           </div>
-          
-          {/* Minimum Payment Settings */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Min Payment %</Label>
-              <Input
-                name="minimumPaymentPercent"
-                type="number"
-                value={formData.minimumPaymentPercent}
-                onChange={handleChange}
-                placeholder="Enter %"
-                step="0.1"
-                min="0"
-                max="100"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-              />
+              <Label className={lbl} style={lblS}>Min Payment %</Label>
+              <Input name="minimumPaymentPercent" type="number" value={formData.minimumPaymentPercent} onChange={handleChange} placeholder="2.0" step="0.1" min="0" max="100" className="h-9 text-[13px] tabular-nums" style={fs} />
             </div>
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Min Payment Floor ($)</Label>
-              <Input
-                name="minimumPaymentFloor"
-                type="number"
-                value={formData.minimumPaymentFloor}
-                onChange={handleChange}
-                placeholder="Enter amount"
-                step="1"
-                min="0"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-              />
+              <Label className={lbl} style={lblS}>Min Payment Floor ($)</Label>
+              <Input name="minimumPaymentFloor" type="number" value={formData.minimumPaymentFloor} onChange={handleChange} placeholder="25" step="1" min="0" className="h-9 text-[13px] tabular-nums" style={fs} />
             </div>
           </div>
-          
-          {/* Secured LOC Toggle */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between py-1">
             <div>
-              <Label className="text-muted-foreground text-sm block font-medium">Secured Line of Credit</Label>
-              <p className="text-xs text-muted-foreground mt-1">This line of credit is secured by an asset (e.g., HELOC)</p>
+              <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Secured Line of Credit</p>
+              <p className="text-[11px]" style={hintS}>Secured by an asset (e.g., HELOC)</p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleCheckboxChange('isSecured')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.isSecured ? 'bg-primary' : 'bg-elevated'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  formData.isSecured ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            <Toggle field="isSecured" />
           </div>
-          
           {formData.isSecured && (
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Secured Asset Description</Label>
-              <Input
-                name="securedAsset"
-                value={formData.securedAsset}
-                onChange={handleChange}
-                placeholder="e.g., Primary residence at 123 Main St"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-              />
+              <Label className={lbl} style={lblS}>Secured Asset Description</Label>
+              <Input name="securedAsset" value={formData.securedAsset} onChange={handleChange} placeholder="e.g., Primary residence at 123 Main St" className="h-9 text-[13px]" style={fs} />
             </div>
           )}
-          
-          {/* Draw and Repayment Period */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Draw Period Ends</Label>
-              <Input
-                name="drawPeriodEndDate"
-                type="date"
-                value={formData.drawPeriodEndDate}
-                onChange={handleChange}
-                className="bg-elevated border-border text-foreground"
-              />
+              <Label className={lbl} style={lblS}>Draw Period Ends</Label>
+              <Input name="drawPeriodEndDate" type="date" value={formData.drawPeriodEndDate} onChange={handleChange} className="h-9 text-[13px]" style={fs} />
             </div>
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Repayment Period Ends</Label>
-              <Input
-                name="repaymentPeriodEndDate"
-                type="date"
-                value={formData.repaymentPeriodEndDate}
-                onChange={handleChange}
-                className="bg-elevated border-border text-foreground"
-              />
+              <Label className={lbl} style={lblS}>Repayment Period Ends</Label>
+              <Input name="repaymentPeriodEndDate" type="date" value={formData.repaymentPeriodEndDate} onChange={handleChange} className="h-9 text-[13px]" style={fs} />
             </div>
           </div>
         </div>
       )}
 
-      {/* Payment Tracking Section - for credit types */}
+      {/* Payment Tracking - for credit types */}
       {isCreditType && (
-        <div className="p-4 bg-card rounded-lg border border-border space-y-4">
-          <div className="text-sm font-medium text-foreground">Payment Tracking</div>
-          
-          {/* Set up payment tracking toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-start gap-2">
-              <div>
-                <Label className="text-muted-foreground text-sm block font-medium">Set up monthly payment tracking</Label>
-                <p className="text-xs text-muted-foreground mt-1">Automatically creates a bill to track payments for this account</p>
-              </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help mt-0.5" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">When enabled, a monthly bill will be created to help you track and remember payments for this account. The bill will appear on your Bills page and calendar.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleCheckboxChange('autoCreatePaymentBill')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.autoCreatePaymentBill ? 'bg-primary' : 'bg-elevated'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  formData.autoCreatePaymentBill ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
+          <div className="px-4 pt-4 pb-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+            <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Payment Tracking</p>
           </div>
-          
-          {/* Payment amount source - only show if tracking enabled */}
-          {formData.autoCreatePaymentBill && (
-            <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Default Payment Amount</Label>
-              <Select 
-                value={formData.paymentAmountSource} 
-                onValueChange={(value) => handleSelectChange('paymentAmountSource', value)}
-              >
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select payment type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_AMOUNT_SOURCES.map((source) => (
-                    <SelectItem key={source.value} value={source.value}>
-                      {source.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {formData.paymentAmountSource === 'statement_balance' && 'Pay the full statement balance to avoid interest charges'}
-                {formData.paymentAmountSource === 'minimum_payment' && 'Pay only the minimum required (interest will accrue)'}
-                {formData.paymentAmountSource === 'full_balance' && 'Pay the entire current balance'}
-              </p>
-            </div>
-          )}
-          
-          {/* Include in payoff strategy toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-start gap-2">
-              <div>
-                <Label className="text-muted-foreground text-sm block font-medium">Include in debt payoff strategy</Label>
-                <p className="text-xs text-muted-foreground mt-1">Calculate payoff projections and include in snowball/avalanche strategies</p>
+          <div className="px-4 py-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-2">
+                <div>
+                  <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Monthly payment tracking</p>
+                  <p className="text-[11px]" style={hintS}>Creates a bill to track payments for this account</p>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3.5 w-3.5 mt-0.5 cursor-help shrink-0" style={lblS} />
+                    </TooltipTrigger>
+                    <TooltipContent><p className="max-w-xs text-[12px]">When enabled, a monthly bill will be created to help you track and remember payments. The bill will appear on your Bills page and calendar.</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help mt-0.5" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">Turn off for cards you pay in full each month or 0% APR promotional balances that you are managing separately.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Toggle field="autoCreatePaymentBill" />
             </div>
-            <button
-              type="button"
-              onClick={() => handleCheckboxChange('includeInPayoffStrategy')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.includeInPayoffStrategy ? 'bg-primary' : 'bg-elevated'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  formData.includeInPayoffStrategy ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            {formData.autoCreatePaymentBill && (
+              <div>
+                <Label className={lbl} style={lblS}>Default Payment Amount</Label>
+                <Select value={formData.paymentAmountSource} onValueChange={v => handleSelectChange('paymentAmountSource', v)}>
+                  <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select payment type" /></SelectTrigger>
+                  <SelectContent>{PAYMENT_AMOUNT_SOURCES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                </Select>
+                <p className={hint} style={hintS}>
+                  {formData.paymentAmountSource === 'statement_balance' && 'Pay the full statement balance to avoid interest'}
+                  {formData.paymentAmountSource === 'minimum_payment' && 'Pay only the minimum required (interest will accrue)'}
+                  {formData.paymentAmountSource === 'full_balance' && 'Pay the entire current balance'}
+                </p>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 40%, transparent)' }}>
+              <div className="flex items-start gap-2">
+                <div>
+                  <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Debt payoff strategy</p>
+                  <p className="text-[11px]" style={hintS}>Include in snowball/avalanche projections</p>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3.5 w-3.5 mt-0.5 cursor-help shrink-0" style={lblS} />
+                    </TooltipTrigger>
+                    <TooltipContent><p className="max-w-xs text-[12px]">Turn off for cards you pay in full each month or 0% APR promotional balances managed separately.</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Toggle field="includeInPayoffStrategy" />
+            </div>
           </div>
         </div>
       )}
 
-      {/* Business Features Section */}
-      <div className="p-4 bg-card rounded-lg border border-border space-y-4">
-        <div className="text-sm font-medium text-foreground">Business Features</div>
-        
-        {/* Sales Tax Tracking Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-muted-foreground text-sm block font-medium">Sales Tax Tracking</Label>
-            <p className="text-xs text-muted-foreground mt-1">Track sales tax on income for quarterly reporting</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleCheckboxChange('enableSalesTax')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.enableSalesTax ? 'bg-primary' : 'bg-elevated'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                formData.enableSalesTax ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
+      {/* Business Features + Budget Integration */}
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
+        <div className="px-4 pt-4 pb-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+          <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Features &amp; Tracking</p>
         </div>
-        
-        {/* Tax Deduction Tracking Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-muted-foreground text-sm block font-medium">Tax Deduction Tracking</Label>
-            <p className="text-xs text-muted-foreground mt-1">Mark expenses as business deductions for tax purposes</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleCheckboxChange('enableTaxDeductions')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.enableTaxDeductions ? 'bg-primary' : 'bg-elevated'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                formData.enableTaxDeductions ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-      </div>
-
-      {/* Budget Integration Section */}
-      <div className="p-4 bg-card rounded-lg border border-border space-y-4">
-        <div className="text-sm font-medium text-foreground">Budget Integration</div>
-        
-        {/* Include in Discretionary Toggle */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-start gap-2">
-            <div>
-              <Label className="text-muted-foreground text-sm block font-medium">Include in Discretionary</Label>
-              <p className="text-xs text-muted-foreground mt-1">Include this account&apos;s balance in paycheck balance calculations</p>
+        <div className="divide-y" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
+          {[
+            { field: 'enableSalesTax', label: 'Sales Tax Tracking', desc: 'Track sales tax on income for quarterly reporting' },
+            { field: 'enableTaxDeductions', label: 'Tax Deduction Tracking', desc: 'Mark expenses as business deductions for tax purposes' },
+          ].map(({ field, label, desc }) => (
+            <div key={field} className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{label}</p>
+                <p className="text-[11px]" style={hintS}>{desc}</p>
+              </div>
+              <Toggle field={field} />
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help mt-0.5" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs">When enabled, this account&apos;s balance will be included when calculating your discretionary spending money for each pay period. Typically enabled for checking/cash accounts, disabled for savings and credit accounts.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          ))}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-start gap-2">
+              <div>
+                <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Include in Discretionary</p>
+                <p className="text-[11px]" style={hintS}>Include balance in paycheck budget calculations</p>
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 mt-0.5 cursor-help shrink-0" style={lblS} />
+                  </TooltipTrigger>
+                  <TooltipContent><p className="max-w-xs text-[12px]">Typically enabled for checking/cash accounts, disabled for savings and credit accounts.</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Toggle field="includeInDiscretionary" />
           </div>
-          <button
-            type="button"
-            onClick={() => handleCheckboxChange('includeInDiscretionary')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.includeInDiscretionary ? 'bg-primary' : 'bg-elevated'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                formData.includeInDiscretionary ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
         </div>
       </div>
 
       {/* Color Picker */}
       <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Account Color</Label>
-        <div className="flex gap-2 flex-wrap">
-          {ACCOUNT_COLORS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => handleColorChange(color)}
-              className={`w-10 h-10 rounded-lg border-2 transition-all ${
-                formData.color === color
-                  ? 'border-foreground ring-2 ring-primary scale-110'
-                  : 'border-transparent hover:scale-105'
-              }`}
-              style={{ backgroundColor: color }}
-              title={`Color ${color}`}
-            />
+        <Label className={lbl} style={lblS}>Account Color</Label>
+        <div className="flex gap-2 flex-wrap mt-1">
+          {ACCOUNT_COLORS.map(color => (
+            <button key={color} type="button" onClick={() => handleColorChange(color)}
+              className="w-8 h-8 rounded-lg transition-all"
+              style={{ backgroundColor: color, boxShadow: formData.color === color ? `0 0 0 2px var(--color-background), 0 0 0 4px ${color}` : 'none', transform: formData.color === color ? 'scale(1.15)' : 'scale(1)' }}
+              title={`Color ${color}`} />
           ))}
         </div>
       </div>
 
       {/* Icon Picker */}
       <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Account Icon</Label>
-        <div className="flex gap-2 flex-wrap">
-          {ACCOUNT_ICONS.map((iconItem) => {
-            const IconComponent = iconItem.icon;
+        <Label className={lbl} style={lblS}>Account Icon</Label>
+        <div className="flex gap-2 flex-wrap mt-1">
+          {ACCOUNT_ICONS.map(iconItem => {
+            const Icon = iconItem.icon;
+            const active = formData.icon === iconItem.value;
             return (
-              <button
-                key={iconItem.value}
-                type="button"
-                onClick={() => handleIconChange(iconItem.value)}
-                className={`w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center ${
-                  formData.icon === iconItem.value
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-elevated text-muted-foreground hover:bg-elevated hover:border-primary/30'
-                }`}
-                title={iconItem.label}
-                aria-label={iconItem.label}
-              >
-                <IconComponent className="w-6 h-6" />
+              <button key={iconItem.value} type="button" onClick={() => handleIconChange(iconItem.value)}
+                className="w-10 h-10 rounded-lg flex items-center justify-center transition-all"
+                style={{ backgroundColor: active ? 'color-mix(in oklch, var(--color-primary) 12%, transparent)' : 'var(--color-elevated)', border: `2px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}` }}
+                title={iconItem.label} aria-label={iconItem.label}>
+                <Icon className="w-4.5 h-4.5" style={{ color: active ? 'var(--color-primary)' : 'var(--color-muted-foreground)' }} />
               </button>
             );
           })}
@@ -910,45 +567,18 @@ export function AccountForm({
       </div>
 
       {/* Actions */}
-      <div className="space-y-2 pt-4 border-t border-border">
-        {/* Primary action buttons */}
+      <div className="space-y-2 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
         <div className="flex gap-2">
-          <Button
-            type="submit"
-            onClick={() => setSaveMode('save')}
-            disabled={isLoading}
-            className="flex-1 bg-primary text-white hover:opacity-90 font-medium"
-          >
-            {account
-              ? isLoading && saveMode === 'save'
-                ? 'Updating...'
-                : 'Update Account'
-              : isLoading && saveMode === 'save'
-              ? 'Saving...'
-              : 'Save'}
+          <Button type="submit" onClick={() => setSaveMode('save')} disabled={isLoading} className="flex-1 h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+            {account ? (isLoading && saveMode === 'save' ? 'Updating…' : 'Update Account') : (isLoading && saveMode === 'save' ? 'Saving…' : 'Save Account')}
           </Button>
           {!account && (
-            <Button
-              type="submit"
-              onClick={() => setSaveMode('saveAndAdd')}
-              disabled={isLoading}
-              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium"
-            >
-              {isLoading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
+            <Button type="submit" onClick={() => setSaveMode('saveAndAdd')} disabled={isLoading} variant="outline" className="flex-1 h-9 text-[13px]">
+              {isLoading && saveMode === 'saveAndAdd' ? 'Saving…' : 'Save & Add Another'}
             </Button>
           )}
         </div>
-        {/* Cancel button */}
-        {onCancel && (
-          <Button
-            type="button"
-            onClick={onCancel}
-            variant="outline"
-            className="w-full bg-elevated border-border text-foreground hover:bg-elevated"
-          >
-            Cancel
-          </Button>
-        )}
+        {onCancel && <Button type="button" onClick={onCancel} variant="outline" className="w-full h-9 text-[13px]">Cancel</Button>}
       </div>
     </form>
   );

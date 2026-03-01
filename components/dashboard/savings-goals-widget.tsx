@@ -146,19 +146,19 @@ export function SavingsGoalsWidget() {
   const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {
       case 'up':
-        return <TrendingUp className="w-4 h-4 text-income" />;
+        return <TrendingUp className="w-4 h-4" style={{ color: 'var(--color-income)' }} />;
       case 'down':
-        return <TrendingDown className="w-4 h-4 text-expense" />;
+        return <TrendingDown className="w-4 h-4" style={{ color: 'var(--color-expense)' }} />;
       default:
-        return <Minus className="w-4 h-4 text-muted-foreground" />;
+        return <Minus className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />;
     }
   };
 
   if (loading) {
     return (
-      <Card className="bg-card border-border p-6">
+      <Card className="p-6" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Loading goals...</p>
+          <p style={{ color: 'var(--color-muted-foreground)' }}>Loading goals...</p>
         </div>
       </Card>
     );
@@ -166,14 +166,14 @@ export function SavingsGoalsWidget() {
 
   return (
     <>
-      <Card className="bg-card border-border p-6">
+      <Card className="p-6" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-semibold text-foreground">Savings Goals</h3>
+            <Target className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+            <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Savings Goals</h3>
           </div>
           <Link href="/dashboard/goals">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" style={{ color: 'var(--color-muted-foreground)' }}>
               View All
             </Button>
           </Link>
@@ -181,9 +181,9 @@ export function SavingsGoalsWidget() {
 
         {goals.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-muted-foreground text-sm mb-3">No active goals yet</p>
+            <p className="text-sm mb-3" style={{ color: 'var(--color-muted-foreground)' }}>No active goals yet</p>
             <Link href="/dashboard/goals">
-              <Button size="sm" className="bg-primary hover:opacity-90 text-primary-foreground">
+              <Button size="sm" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
                 Create Your First Goal
               </Button>
             </Link>
@@ -202,16 +202,17 @@ export function SavingsGoalsWidget() {
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: goal.color }}
                       />
-                      <span className="text-sm text-foreground font-medium">{goal.name}</span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{goal.name}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                         {Math.round(progressPercent)}%
                       </span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-primary"
+                        className="h-6 w-6"
+                        style={{ color: 'var(--color-muted-foreground)' }}
                         onClick={() => setQuickContributeGoal(goal)}
                         title="Quick contribute"
                       >
@@ -219,14 +220,14 @@ export function SavingsGoalsWidget() {
                       </Button>
                     </div>
                   </div>
-                  <Progress value={progressPercent} className="h-1.5 bg-elevated" />
+                  <Progress value={progressPercent} className="h-1.5" style={{ backgroundColor: 'var(--color-elevated)' }} />
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>
                       ${goal.currentAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })} / 
                       ${goal.targetAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                     </span>
                     {lastContribution && (
-                      <span className="text-muted-foreground flex items-center gap-1">
+                      <span className="flex items-center gap-1" style={{ color: 'var(--color-muted-foreground)' }}>
                         <History className="w-3 h-3" />
                         +${lastContribution.amount.toFixed(0)} {formatDistanceToNow(parseISO(lastContribution.createdAt), { addSuffix: true })}
                       </span>
@@ -240,14 +241,14 @@ export function SavingsGoalsWidget() {
 
         {/* Savings Rate Mini-Indicator */}
         {savingsRate && (
-          <div className="border-t border-border pt-4 mt-4">
+          <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
-                <Wallet className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Savings Rate</span>
+                <Wallet className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Savings Rate</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-primary">
+                <span className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
                   {savingsRate.averageRate.toFixed(1)}%
                 </span>
                 {getTrendIcon(savingsRate.trend)}
@@ -259,16 +260,16 @@ export function SavingsGoalsWidget() {
 
       {/* Quick Contribute Dialog */}
       <Dialog open={!!quickContributeGoal} onOpenChange={() => setQuickContributeGoal(null)}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
               <div
                 className="w-4 h-4 rounded-full"
                 style={{ backgroundColor: quickContributeGoal?.color }}
               />
               Add to {quickContributeGoal?.name}
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
               Quick contribute to your savings goal
             </DialogDescription>
           </DialogHeader>
@@ -280,7 +281,7 @@ export function SavingsGoalsWidget() {
                 <Button
                   key={amount}
                   variant="outline"
-                  className="border-border text-foreground hover:bg-elevated"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)', backgroundColor: 'transparent' }}
                   onClick={() => handleQuickContribute(amount)}
                   disabled={contributing}
                 >
@@ -291,19 +292,19 @@ export function SavingsGoalsWidget() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
+                <span className="w-full border-t" style={{ borderColor: 'var(--color-border)' }} />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">or enter custom</span>
+                <span className="px-2" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-muted-foreground)' }}>or enter custom</span>
               </div>
             </div>
 
             {/* Custom amount */}
             <div className="space-y-2">
-              <Label htmlFor="amount" className="text-foreground">Amount</Label>
+              <Label htmlFor="amount" style={{ color: 'var(--color-foreground)' }}>Amount</Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+                  <span className="absolute left-3 top-2.5" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
                   <Input
                     id="amount"
                     type="number"
@@ -312,13 +313,14 @@ export function SavingsGoalsWidget() {
                     value={contributeAmount}
                     onChange={(e) => setContributeAmount(e.target.value)}
                     placeholder="0.00"
-                    className="pl-7 bg-elevated border-border text-foreground"
+                    className="pl-7"
+                    style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                   />
                 </div>
                 <Button
                   onClick={() => handleQuickContribute()}
                   disabled={contributing || !contributeAmount}
-                  className="bg-primary hover:opacity-90 text-primary-foreground"
+                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
                 >
                   {contributing ? 'Adding...' : 'Add'}
                 </Button>
@@ -327,8 +329,8 @@ export function SavingsGoalsWidget() {
 
             {/* Current progress */}
             {quickContributeGoal && (
-              <div className="pt-2 border-t border-border">
-                <div className="flex justify-between text-sm text-muted-foreground">
+                <div className="pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="flex justify-between text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                   <span>Current progress</span>
                   <span>
                     ${quickContributeGoal.currentAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })} / 
@@ -337,7 +339,8 @@ export function SavingsGoalsWidget() {
                 </div>
                 <Progress 
                   value={Math.min((quickContributeGoal.currentAmount / quickContributeGoal.targetAmount) * 100, 100)} 
-                  className="h-2 bg-elevated mt-2"
+                  className="h-2 mt-2"
+                  style={{ backgroundColor: 'var(--color-elevated)' }}
                 />
               </div>
             )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import {
   Bell,
   Calendar,
@@ -127,16 +127,16 @@ export function NotificationBell() {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: string): CSSProperties => {
     switch (priority) {
       case 'urgent':
-        return 'border-error bg-error/10';
+        return { borderLeft: '4px solid var(--color-destructive)', backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)' };
       case 'high':
-        return 'border-warning bg-warning/10';
+        return { borderLeft: '4px solid var(--color-warning)', backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)' };
       case 'normal':
-        return 'border-primary bg-primary/10';
+        return { borderLeft: '4px solid var(--color-primary)', backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)' };
       default:
-        return 'border-border bg-muted/10';
+        return { borderLeft: '4px solid var(--color-border)', backgroundColor: 'color-mix(in oklch, var(--color-muted) 10%, transparent)' };
     }
   };
 
@@ -161,23 +161,26 @@ export function NotificationBell() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative text-muted-foreground hover:text-foreground hover:bg-elevated"
+        className="relative"
+        style={{ color: 'var(--color-muted-foreground)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
         onClick={() => setIsOpen(true)}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-card transform translate-x-1 -translate-y-1 bg-error rounded-full">
+          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none transform translate-x-1 -translate-y-1 rounded-full" style={{ color: 'var(--color-foreground)', backgroundColor: 'var(--color-destructive)' }}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </Button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent className="w-96 bg-background border-border">
+        <SheetContent className="w-96 border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
           <SheetHeader className="mb-4">
-            <SheetTitle className="text-foreground">Notifications</SheetTitle>
+            <SheetTitle style={{ color: 'var(--color-foreground)' }}>Notifications</SheetTitle>
             {unreadCount > 0 && (
-              <SheetDescription className="text-muted-foreground">
+              <SheetDescription style={{ color: 'var(--color-muted-foreground)' }}>
                 {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
               </SheetDescription>
             )}
@@ -186,9 +189,9 @@ export function NotificationBell() {
           {/* Notifications List */}
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-muted-foreground">Loading...</div>
+              <div className="p-4 text-center" style={{ color: 'var(--color-muted-foreground)' }}>Loading...</div>
             ) : notifications.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
+              <div className="p-8 text-center" style={{ color: 'var(--color-muted-foreground)' }}>
                 <p>No notifications yet</p>
               </div>
             ) : (
@@ -197,20 +200,21 @@ export function NotificationBell() {
                 return (
                   <div
                     key={notification.id}
-                    className={`p-3 border-l-4 rounded hover:bg-card transition-colors cursor-pointer ${getPriorityColor(
-                      notification.priority
-                    )}`}
+                    className="p-3 rounded transition-colors cursor-pointer"
+                    style={getPriorityColor(notification.priority)}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-background)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = (getPriorityColor(notification.priority).backgroundColor as string) ?? ''; }}
                     onClick={() => handleMarkAsRead(notification.id)}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <IconComponent className="w-4 h-4 text-foreground shrink-0" />
-                          <p className="font-medium text-foreground text-sm truncate">
+                          <IconComponent className="w-4 h-4 shrink-0" style={{ color: 'var(--color-foreground)' }} />
+                          <p className="font-medium text-sm truncate" style={{ color: 'var(--color-foreground)' }}>
                             {notification.title}
                           </p>
                         </div>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--color-muted-foreground)' }}>
                         {notification.message}
                       </p>
                       {notification.isActionable && notification.actionUrl && (
@@ -221,7 +225,8 @@ export function NotificationBell() {
                             handleMarkAsRead(notification.id);
                             setIsOpen(false);
                           }}
-                          className="text-xs text-primary hover:text-primary/80 mt-2 inline-block"
+                          className="text-xs mt-2 inline-block"
+                          style={{ color: 'var(--color-primary)' }}
                         >
                           {notification.actionLabel || 'View'}
                         </Link>
@@ -232,7 +237,10 @@ export function NotificationBell() {
                           e.stopPropagation();
                           handleDismiss(notification.id);
                         }}
-                        className="text-muted-foreground hover:text-foreground shrink-0"
+                        className="shrink-0"
+                        style={{ color: 'var(--color-muted-foreground)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -244,10 +252,13 @@ export function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-border mt-4 pt-4">
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
             <Link
               href="/dashboard/notifications"
-              className="block text-center text-sm text-primary hover:text-primary/80 py-2"
+              className="block text-center text-sm py-2"
+              style={{ color: 'var(--color-primary)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'color-mix(in oklch, var(--color-primary) 80%, transparent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-primary)'; }}
               onClick={() => setIsOpen(false)}
             >
               View all notifications

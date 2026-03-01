@@ -195,62 +195,56 @@ export function ConvertToTransferModal({
   const _targetAccount = accounts.find((acc) => acc.id === targetAccountId);
   const _selectedMatch = matchingTransactions.find((tx) => tx.id === selectedMatchingTxId);
 
+  const fs = { backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' };
+  const lbl = 'text-[11px] font-medium uppercase tracking-wide block mb-1.5';
+  const lblS = { color: 'var(--color-muted-foreground)' };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1a1a] border border-[#2a2a2a] text-white max-w-2xl">
+      <DialogContent className="max-w-2xl" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
-            <ArrowRightLeft className="w-5 h-5 text-blue-500" />
+          <DialogTitle className="flex items-center gap-2 text-[15px]" style={{ color: 'var(--color-foreground)' }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)' }}>
+              <ArrowRightLeft className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+            </div>
             Convert to Transfer
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
             Convert this transaction into a transfer between accounts
           </DialogDescription>
         </DialogHeader>
 
         {transaction && (
-          <div className="space-y-6">
+          <div className="space-y-4 mt-1">
             {/* Current Transaction Info */}
-            <div className="p-4 bg-[#242424] rounded-lg border border-[#2a2a2a]">
-              <p className="text-xs text-gray-500 mb-2">Current Transaction</p>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Description:</span>
-                  <span className="text-sm text-white font-medium">{transaction.description}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Amount:</span>
-                  <span className={`text-sm font-mono font-semibold ${
-                    transaction.type === 'expense' ? 'text-red-400' : 'text-emerald-400'
-                  }`}>
-                    {transaction.type === 'expense' ? '-' : '+'}${transaction.amount.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Date:</span>
-                  <span className="text-sm text-white">
-                    {format(parseISO(transaction.date), 'MMM d, yyyy')}
-                  </span>
-                </div>
+            <div className="rounded-xl px-3 py-3 space-y-2" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={lblS}>Current Transaction</p>
+              <div className="space-y-1.5">
+                {[
+                  { label: 'Description', value: transaction.description },
+                  { label: 'Amount', value: `${transaction.type === 'expense' ? '-' : '+'}$${transaction.amount.toFixed(2)}`, color: transaction.type === 'expense' ? 'var(--color-destructive)' : 'var(--color-income)' },
+                  { label: 'Date', value: format(parseISO(transaction.date), 'MMM d, yyyy') },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="flex justify-between items-center">
+                    <span className="text-[12px]" style={lblS}>{label}</span>
+                    <span className="text-[13px] font-medium tabular-nums" style={{ color: color || 'var(--color-foreground)' }}>{value}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Target Account Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white">Target Account</label>
+            <div>
+              <label className={lbl} style={lblS}>Target Account</label>
               <Select value={targetAccountId} onValueChange={setTargetAccountId}>
-                <SelectTrigger className="bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
+                <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select account" /></SelectTrigger>
                 <SelectContent>
-                  {accounts.map((account) => (
+                  {accounts.map(account => (
                     <SelectItem key={account.id} value={account.id}>
                       <div className="flex items-center gap-2 w-full">
-                        <DollarSign className="w-4 h-4 shrink-0" />
+                        <DollarSign className="w-3.5 h-3.5 shrink-0" />
                         <span className="flex-1 truncate">{account.name}</span>
-                        <span className="text-xs text-gray-400 shrink-0">
-                          ${account.currentBalance?.toFixed(2) || '0.00'}
-                        </span>
+                        <span className="text-[11px] tabular-nums" style={lblS}>${account.currentBalance?.toFixed(2) || '0.00'}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -260,68 +254,45 @@ export function ConvertToTransferModal({
 
             {/* Match Mode Selection */}
             {targetAccountId && (
-              <div className="space-y-4">
-                <RadioGroup value={matchMode} onValueChange={(value) => setMatchMode(value as 'create' | 'match')}>
-                  <div className="flex items-center space-x-2 p-3 bg-[#242424] rounded-lg border border-[#2a2a2a]">
+              <div className="space-y-3">
+                <RadioGroup value={matchMode} onValueChange={v => setMatchMode(v as 'create' | 'match')}>
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: `2px solid ${matchMode === 'create' ? 'var(--color-primary)' : 'var(--color-border)'}` }}>
                     <RadioGroupItem value="create" id="create" />
                     <Label htmlFor="create" className="flex-1 cursor-pointer">
-                      <div>
-                        <p className="text-sm font-medium text-white">Create new transaction</p>
-                        <p className="text-xs text-gray-500">
-                          Create a matching transaction in the target account
-                        </p>
-                      </div>
+                      <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Create new transaction</p>
+                      <p className="text-[11px]" style={lblS}>Create a matching transaction in the target account</p>
                     </Label>
                   </div>
-
                   {matchingTransactions.length > 0 && (
-                    <div className="flex items-center space-x-2 p-3 bg-[#242424] rounded-lg border border-[#2a2a2a]">
+                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: `2px solid ${matchMode === 'match' ? 'var(--color-primary)' : 'var(--color-border)'}` }}>
                       <RadioGroupItem value="match" id="match" />
                       <Label htmlFor="match" className="flex-1 cursor-pointer">
-                        <div>
-                          <p className="text-sm font-medium text-white">
-                            Match with existing transaction
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {matchingTransactions.length} potential {matchingTransactions.length === 1 ? 'match' : 'matches'} found
-                          </p>
-                        </div>
+                        <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Match with existing transaction</p>
+                        <p className="text-[11px]" style={lblS}>{matchingTransactions.length} potential {matchingTransactions.length === 1 ? 'match' : 'matches'} found</p>
                       </Label>
                     </div>
                   )}
                 </RadioGroup>
 
-                {/* Matching Transactions List */}
                 {matchMode === 'match' && matchingTransactions.length > 0 && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Select matching transaction</label>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {matchingTransactions.map((tx) => (
-                        <button
-                          key={tx.id}
-                          type="button"
-                          onClick={() => setSelectedMatchingTxId(tx.id)}
-                          className={`w-full p-3 rounded-lg border transition-all ${
-                            selectedMatchingTxId === tx.id
-                              ? 'bg-blue-500/20 border-blue-500'
-                              : 'bg-[#242424] border-[#2a2a2a] hover:border-[#3a3a3a]'
-                          }`}
-                        >
+                  <div>
+                    <label className={lbl} style={lblS}>Select matching transaction</label>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {matchingTransactions.map(tx => (
+                        <button key={tx.id} type="button" onClick={() => setSelectedMatchingTxId(tx.id)}
+                          className="w-full px-3 py-2.5 rounded-lg text-left transition-all"
+                          style={{ backgroundColor: selectedMatchingTxId === tx.id ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'var(--color-elevated)', border: `1.5px solid ${selectedMatchingTxId === tx.id ? 'var(--color-primary)' : 'var(--color-border)'}` }}>
                           <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 text-left space-y-1">
-                              <p className="text-sm font-medium text-white">{tx.description}</p>
-                              <div className="flex items-center gap-3 text-xs text-gray-400">
-                                <span>{new Date(tx.date).toLocaleDateString()}</span>
-                                <span className={`font-mono font-semibold ${
-                                  tx.type === 'expense' ? 'text-red-400' : 'text-emerald-400'
-                                }`}>
+                            <div className="flex-1 space-y-0.5">
+                              <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{tx.description}</p>
+                              <div className="flex items-center gap-2 text-[11px]">
+                                <span style={lblS}>{new Date(tx.date).toLocaleDateString()}</span>
+                                <span className="font-mono font-semibold tabular-nums" style={{ color: tx.type === 'expense' ? 'var(--color-destructive)' : 'var(--color-income)' }}>
                                   {tx.type === 'expense' ? '-' : '+'}${tx.amount.toFixed(2)}
                                 </span>
                               </div>
                             </div>
-                            {selectedMatchingTxId === tx.id && (
-                              <Check className="w-5 h-5 text-blue-500 shrink-0" />
-                            )}
+                            {selectedMatchingTxId === tx.id && <Check className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />}
                           </div>
                         </button>
                       ))}
@@ -329,22 +300,18 @@ export function ConvertToTransferModal({
                   </div>
                 )}
 
-                {/* Loading state for matches */}
                 {loadingMatches && (
-                  <div className="p-4 bg-[#242424] rounded-lg border border-[#2a2a2a] text-center">
-                    <p className="text-sm text-gray-400">Looking for matching transactions...</p>
+                  <div className="px-3 py-3 rounded-lg text-center" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                    <p className="text-[12px]" style={lblS}>Looking for matching transactions…</p>
                   </div>
                 )}
 
-                {/* Warning if no matches found */}
                 {!loadingMatches && matchMode === 'match' && matchingTransactions.length === 0 && (
-                  <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-amber-500">No matching transactions found</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Looking for opposite type transactions with similar amounts and dates
-                      </p>
+                  <div className="flex items-start gap-2.5 px-3 py-3 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 20%, transparent)' }}>
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+                    <div>
+                      <p className="text-[12px] font-semibold" style={{ color: 'var(--color-warning)' }}>No matching transactions found</p>
+                      <p className="text-[11px] mt-0.5" style={lblS}>Looking for opposite type transactions with similar amounts and dates</p>
                     </div>
                   </div>
                 )}
@@ -353,21 +320,10 @@ export function ConvertToTransferModal({
           </div>
         )}
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-            className="bg-transparent border-[#2a2a2a] text-white hover:bg-[#242424]"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConvert}
-            disabled={loading || !targetAccountId}
-            className="bg-primary hover:opacity-90 text-white"
-          >
-            {loading ? 'Converting...' : 'Convert to Transfer'}
+        <DialogFooter className="mt-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="h-9 text-[13px]">Cancel</Button>
+          <Button onClick={handleConvert} disabled={loading || !targetAccountId} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+            {loading ? 'Converting…' : 'Convert to Transfer'}
           </Button>
         </DialogFooter>
       </DialogContent>

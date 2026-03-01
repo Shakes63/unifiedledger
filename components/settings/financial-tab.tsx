@@ -244,7 +244,7 @@ export function FinancialTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--color-primary)' }} />
       </div>
     );
   }
@@ -252,8 +252,8 @@ export function FinancialTab() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">My Financial Settings</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--color-foreground)' }}>My Financial Settings</h2>
+        <p className="text-sm mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           Your personal financial display options for this household
         </p>
       </div>
@@ -261,7 +261,7 @@ export function FinancialTab() {
       <div className="space-y-6">
         {/* Show Cents */}
         <div className="space-y-2">
-          <Label htmlFor="showCents" className="text-foreground">Amount Display</Label>
+          <Label htmlFor="showCents" style={{ color: 'var(--color-foreground)' }}>Amount Display</Label>
           <Select
             value={settings.showCents ? 'show' : 'hide'}
             onValueChange={(value) => setSettings({ ...settings, showCents: value === 'show' })}
@@ -270,7 +270,8 @@ export function FinancialTab() {
               id="showCents"
               name="showCents"
               aria-label="Select whether to show cents"
-              className="bg-background border-border text-foreground"
+              style={{ backgroundColor: 'var(--color-background)' }}
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
             >
               <SelectValue />
             </SelectTrigger>
@@ -283,7 +284,7 @@ export function FinancialTab() {
 
         {/* Negative Format */}
         <div className="space-y-2">
-          <Label htmlFor="negativeFormat" className="text-foreground">Negative Number Format</Label>
+          <Label htmlFor="negativeFormat" style={{ color: 'var(--color-foreground)' }}>Negative Number Format</Label>
           <Select
             value={settings.negativeNumberFormat}
             onValueChange={(value) => setSettings({ ...settings, negativeNumberFormat: value })}
@@ -292,7 +293,8 @@ export function FinancialTab() {
               id="negativeFormat"
               name="negativeFormat"
               aria-label="Select negative number format"
-              className="bg-background border-border text-foreground"
+              style={{ backgroundColor: 'var(--color-background)' }}
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
             >
               <SelectValue />
             </SelectTrigger>
@@ -302,14 +304,14 @@ export function FinancialTab() {
               <SelectItem value="$100-">$100-</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
             How negative amounts are displayed
           </p>
         </div>
 
         {/* Default Transaction Type */}
         <div className="space-y-2">
-          <Label htmlFor="defaultTransactionType" className="text-foreground">
+          <Label htmlFor="defaultTransactionType" style={{ color: 'var(--color-foreground)' }}>
             Default Transaction Type
           </Label>
           <Select
@@ -320,7 +322,7 @@ export function FinancialTab() {
               id="defaultTransactionType"
               name="defaultTransactionType"
               aria-label="Select default transaction type"
-              className="bg-background border-border text-foreground"
+              style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
             >
               <SelectValue />
             </SelectTrigger>
@@ -330,7 +332,7 @@ export function FinancialTab() {
               <SelectItem value="transfer">Transfer</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
             Pre-selected type when creating new transactions
           </p>
         </div>
@@ -339,10 +341,10 @@ export function FinancialTab() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="combinedTransferView" className="text-foreground">
+              <Label htmlFor="combinedTransferView" style={{ color: 'var(--color-foreground)' }}>
                 Combined Transfer View
               </Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 Show transfers as single entries or display both transfer sides separately
               </p>
             </div>
@@ -361,7 +363,7 @@ export function FinancialTab() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-primary hover:bg-primary/90"
+            style={{ backgroundColor: 'var(--color-primary)' }}
           >
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Save Financial Settings
@@ -370,33 +372,33 @@ export function FinancialTab() {
       </div>
 
       {/* Budget Schedule Section */}
-      <div className="border-t border-border pt-8 mt-8">
+      <div className="border-t pt-8 mt-8" style={{ borderColor: 'var(--color-border)' }}>
         <div className="mb-6">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Budget Schedule</h2>
+            <Calendar className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+            <h2 className="text-xl font-semibold" style={{ color: 'var(--color-foreground)' }}>Budget Schedule</h2>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             Set up your budget cycle to match your pay schedule or preferred budgeting period
           </p>
         </div>
 
         {/* Current Period Display */}
         {currentPeriod && (
-          <div className="mb-6 p-4 rounded-lg border border-border bg-card">
+          <div className="mb-6 p-4 rounded-lg border" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-background)' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Current Budget Period</p>
-                <p className="text-lg font-semibold text-foreground">{currentPeriod.label}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Current Budget Period</p>
+                <p className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>{currentPeriod.label}</p>
+                <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                   {currentPeriod.start} to {currentPeriod.end}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
                   {currentPeriod.daysRemaining}
                 </p>
-                <p className="text-sm text-muted-foreground">days remaining</p>
+                <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>days remaining</p>
               </div>
             </div>
           </div>
@@ -406,13 +408,13 @@ export function FinancialTab() {
           {/* Budget Cycle Frequency */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label htmlFor="budgetCycleFrequency" className="text-foreground">
+              <Label htmlFor="budgetCycleFrequency" style={{ color: 'var(--color-foreground)' }}>
                 Budget Cycle
               </Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                    <HelpCircle className="w-4 h-4 cursor-help" style={{ color: 'var(--color-muted-foreground)' }} />
                   </TooltipTrigger>
                   <TooltipContent side="right" className="max-w-xs">
                     <p className="text-sm">
@@ -430,7 +432,8 @@ export function FinancialTab() {
                 id="budgetCycleFrequency"
                 name="budgetCycleFrequency"
                 aria-label="Select budget cycle frequency"
-                className="bg-background border-border text-foreground"
+                style={{ backgroundColor: 'var(--color-background)' }}
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -441,7 +444,7 @@ export function FinancialTab() {
                 <SelectItem value="monthly">Monthly</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               {scheduleSettings.budgetCycleFrequency === 'weekly' && 'Budget resets every week'}
               {scheduleSettings.budgetCycleFrequency === 'biweekly' && 'Budget resets every other week (e.g., every other Friday)'}
               {scheduleSettings.budgetCycleFrequency === 'semi-monthly' && 'Budget resets twice a month on specific days'}
@@ -452,7 +455,7 @@ export function FinancialTab() {
           {/* Day of Week Picker (for weekly/biweekly) */}
           {(scheduleSettings.budgetCycleFrequency === 'weekly' || scheduleSettings.budgetCycleFrequency === 'biweekly') && (
             <div className="space-y-2">
-              <Label htmlFor="budgetCycleStartDay" className="text-foreground">
+              <Label htmlFor="budgetCycleStartDay" style={{ color: 'var(--color-foreground)' }}>
                 Start Day
               </Label>
               <Select
@@ -465,7 +468,8 @@ export function FinancialTab() {
                   id="budgetCycleStartDay"
                   name="budgetCycleStartDay"
                   aria-label="Select budget cycle start day"
-                  className="bg-background border-border text-foreground"
+                  style={{ backgroundColor: 'var(--color-background)' }}
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -477,7 +481,7 @@ export function FinancialTab() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 Your budget period starts on this day each {scheduleSettings.budgetCycleFrequency === 'weekly' ? 'week' : 'two weeks'}
               </p>
             </div>
@@ -487,13 +491,13 @@ export function FinancialTab() {
           {scheduleSettings.budgetCycleFrequency === 'biweekly' && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="budgetCycleReferenceDate" className="text-foreground">
+                <Label htmlFor="budgetCycleReferenceDate" style={{ color: 'var(--color-foreground)' }}>
                   Reference Date
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                      <HelpCircle className="w-4 h-4 cursor-help" style={{ color: 'var(--color-muted-foreground)' }} />
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-xs">
                       <p className="text-sm">
@@ -510,9 +514,10 @@ export function FinancialTab() {
                 onChange={(e) =>
                   setScheduleSettings({ ...scheduleSettings, budgetCycleReferenceDate: e.target.value })
                 }
-                className="bg-background border-border text-foreground"
+                style={{ backgroundColor: 'var(--color-background)' }}
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 A known date when your budget cycle starts (e.g., your next payday)
               </p>
             </div>
@@ -521,10 +526,10 @@ export function FinancialTab() {
           {/* Semi-Monthly Days */}
           {scheduleSettings.budgetCycleFrequency === 'semi-monthly' && (
             <div className="space-y-2">
-              <Label className="text-foreground">Budget Reset Days</Label>
+              <Label style={{ color: 'var(--color-foreground)' }}>Budget Reset Days</Label>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <Label htmlFor="semiMonthlyDay1" className="text-xs text-muted-foreground">
+                  <Label htmlFor="semiMonthlyDay1" className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                     First Period Starts
                   </Label>
                   <Select
@@ -535,7 +540,8 @@ export function FinancialTab() {
                       id="semiMonthlyDay1"
                       name="semiMonthlyDay1"
                       aria-label="Select first semi-monthly day"
-                      className="bg-background border-border text-foreground"
+                      style={{ backgroundColor: 'var(--color-background)' }}
+                      style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -549,7 +555,7 @@ export function FinancialTab() {
                   </Select>
                 </div>
                 <div className="flex-1">
-                  <Label htmlFor="semiMonthlyDay2" className="text-xs text-muted-foreground">
+                  <Label htmlFor="semiMonthlyDay2" className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                     Second Period Starts
                   </Label>
                   <Select
@@ -560,7 +566,8 @@ export function FinancialTab() {
                       id="semiMonthlyDay2"
                       name="semiMonthlyDay2"
                       aria-label="Select second semi-monthly day"
-                      className="bg-background border-border text-foreground"
+                      style={{ backgroundColor: 'var(--color-background)' }}
+                      style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -574,7 +581,7 @@ export function FinancialTab() {
                   </Select>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 Common options: 1st & 15th, 5th & 20th, or match your pay schedule
               </p>
             </div>
@@ -585,13 +592,13 @@ export function FinancialTab() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="budgetPeriodRollover" className="text-foreground">
+                    <Label htmlFor="budgetPeriodRollover" style={{ color: 'var(--color-foreground)' }}>
                     Period Rollover
                   </Label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                        <HelpCircle className="w-4 h-4 cursor-help" style={{ color: 'var(--color-muted-foreground)' }} />
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs">
                         <p className="text-sm">
@@ -601,7 +608,7 @@ export function FinancialTab() {
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                   Carry unused budget to the next period within the month
                 </p>
               </div>
@@ -618,13 +625,13 @@ export function FinancialTab() {
           {/* Manual Period Budget Override */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label htmlFor="budgetPeriodManualAmount" className="text-foreground">
+              <Label htmlFor="budgetPeriodManualAmount" style={{ color: 'var(--color-foreground)' }}>
                 Manual Period Budget (Optional)
               </Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                    <HelpCircle className="w-4 h-4 cursor-help" style={{ color: 'var(--color-muted-foreground)' }} />
                   </TooltipTrigger>
                   <TooltipContent side="right" className="max-w-xs">
                     <p className="text-sm">
@@ -647,9 +654,10 @@ export function FinancialTab() {
                   budgetPeriodManualAmount: e.target.value ? parseFloat(e.target.value) : null,
                 })
               }
-              className="bg-background border-border text-foreground"
+              style={{ backgroundColor: 'var(--color-background)' }}
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               Set a specific amount for each budget period, or leave empty to divide monthly budget automatically
             </p>
           </div>
@@ -659,7 +667,7 @@ export function FinancialTab() {
             <Button
               onClick={handleSaveSchedule}
               disabled={savingSchedule}
-              className="bg-primary hover:bg-primary/90"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {savingSchedule && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Save Budget Schedule

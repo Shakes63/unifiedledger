@@ -32,17 +32,18 @@ export function TransactionsToolbar({
   onOpenImportModal,
 }: TransactionsToolbarProps) {
   return (
-    <>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Search & Filter</h2>
+    <div className="space-y-4 mb-6">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Link href="/dashboard/transactions/new">
             <Button
               size="sm"
-              className="bg-primary text-primary-foreground hover:opacity-90 font-medium"
+              className="hover:opacity-90 font-medium rounded-lg"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
             >
-              <Plus className="w-4 h-4 mr-1" />
-              New Transaction
+              <Plus className="w-4 h-4 mr-1.5" />
+              <span className="hidden xs:inline">New</span>
+              <span className="hidden sm:inline"> Transaction</span>
             </Button>
           </Link>
           <TransactionTemplatesManager
@@ -59,28 +60,27 @@ export function TransactionsToolbar({
               window.location.href = `/dashboard/transactions/new?${params.toString()}`;
             }}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenImportModal}
-            className="flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Import CSV
-          </Button>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onOpenImportModal}
+          className="rounded-lg hover:opacity-90"
+            style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          <Upload className="w-4 h-4 sm:mr-1.5" />
+          <span className="hidden sm:inline">Import</span>
+        </Button>
       </div>
 
-      <div className="mb-8">
-        <AdvancedSearch
-          categories={categories}
-          accounts={accounts}
-          onSearch={onSearch}
-          onClear={onClearFilters}
-          isLoading={searchLoading}
-          initialFilters={currentFilters ?? undefined}
-        />
-      </div>
-    </>
+      <AdvancedSearch
+        categories={categories}
+        accounts={accounts}
+        onSearch={onSearch}
+        onClear={onClearFilters}
+        isLoading={searchLoading}
+        initialFilters={currentFilters ?? undefined}
+      />
+    </div>
   );
 }

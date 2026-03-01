@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -131,90 +129,68 @@ export function TransactionTemplatesManager({
   };
 
   if (!showTrigger) {
-    if (loading) return <div className="text-muted-foreground">Loading templates...</div>;
+    if (loading) return <div style={{ color: 'var(--color-muted-foreground)' }}>Loading templates...</div>;
     return null;
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="bg-card text-foreground border-border hover:bg-elevated">
-          <Copy className="w-4 h-4 mr-2" />
-          Templates
+        <Button variant="outline" size="sm" className="h-8 text-[12px]">
+          <Copy className="w-3.5 h-3.5 mr-1.5" />Templates
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border max-w-2xl">
+      <DialogContent className="max-w-2xl" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
         <DialogHeader>
-          <DialogTitle>Transaction Templates</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogTitle className="flex items-center gap-2 text-[15px]" style={{ color: 'var(--color-foreground)' }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)' }}>
+              <Copy className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+            </div>
+            Transaction Templates
+          </DialogTitle>
+          <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
             Quick-start transactions from your saved templates
           </DialogDescription>
         </DialogHeader>
 
         {error && (
-          <div className="p-4 bg-error/20 border border-error/40 rounded-lg text-error text-sm">
+          <div className="px-3 py-2.5 rounded-lg text-[12px]" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 20%, transparent)', color: 'var(--color-destructive)' }}>
             {error}
           </div>
         )}
 
         {loading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
           </div>
         ) : templates.length === 0 ? (
-          <div className="text-center p-8">
-            <p className="text-muted-foreground">No templates yet</p>
-          </div>
+          <div className="text-center p-8 text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>No templates yet</div>
         ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {templates.map((template) => (
-              <Card
-                key={template.id}
-                className="p-4 border-border bg-elevated hover:bg-muted/50 cursor-pointer transition-colors"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div
-                    className="flex-1 min-w-0"
-                    onClick={() => handleUseTemplate(template)}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <p className="font-medium text-foreground">{template.name}</p>
-                      <Badge className={getTypeColor(template.type)}>
+          <div className="space-y-2 max-h-96 overflow-y-auto mt-1">
+            {templates.map(template => {
+              const typeColor = template.type === 'income' ? 'var(--color-income)' : template.type === 'expense' ? 'var(--color-destructive)' : 'var(--color-primary)';
+              return (
+                <div key={template.id} className="rounded-xl p-3 flex items-start justify-between gap-3 cursor-pointer transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                  <div className="flex-1 min-w-0" onClick={() => handleUseTemplate(template)}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>{template.name}</p>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `color-mix(in oklch, ${typeColor} 12%, transparent)`, color: typeColor }}>
                         {getTypeLabel(template.type)}
-                      </Badge>
+                      </span>
                     </div>
-                    {template.description && (
-                      <p className="text-sm text-muted-foreground mb-1">
-                        {template.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>${template.amount.toFixed(2)}</span>
-                      {template.usageCount > 0 && (
-                        <span>Used {template.usageCount} times</span>
-                      )}
+                    {template.description && <p className="text-[11px] mb-1" style={{ color: 'var(--color-muted-foreground)' }}>{template.description}</p>}
+                    <div className="flex items-center gap-2.5 text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                      <span className="font-mono tabular-nums">${template.amount.toFixed(2)}</span>
+                      {template.usageCount > 0 && <span>Used {template.usageCount} times</span>}
                     </div>
                   </div>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 hover:bg-muted"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(template.id);
-                    }}
-                    disabled={deletingId === template.id}
-                  >
-                    {deletingId === template.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 shrink-0" onClick={e => { e.stopPropagation(); handleDelete(template.id); }} disabled={deletingId === template.id}>
+                    {deletingId === template.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                   </Button>
                 </div>
-              </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </DialogContent>

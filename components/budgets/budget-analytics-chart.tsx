@@ -64,47 +64,47 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
   const savingsData = payload.find((p: TooltipPayloadItem) => p.dataKey === 'savings');
 
   return (
-    <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-      <p className="text-sm font-semibold text-foreground mb-2">{label ? formatMonth(label) : ''}</p>
+    <div className="rounded-lg p-3 shadow-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+      <p className="text-sm font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>{label ? formatMonth(label) : ''}</p>
       <div className="space-y-1">
         {incomeData && (
           <div className="flex items-center justify-between gap-4">
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <span className="text-xs flex items-center gap-1.5" style={{ color: 'var(--color-muted-foreground)' }}>
               <span
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: incomeData.color as string }}
               />
               {incomeData.name}:
             </span>
-            <span className="text-xs font-semibold text-foreground">
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-foreground)' }}>
               {formatCurrency(incomeData.value as number)}
             </span>
           </div>
         )}
         {expensesData && (
           <div className="flex items-center justify-between gap-4">
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <span className="text-xs flex items-center gap-1.5" style={{ color: 'var(--color-muted-foreground)' }}>
               <span
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: expensesData.color as string }}
               />
               {expensesData.name}:
             </span>
-            <span className="text-xs font-semibold text-foreground">
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-foreground)' }}>
               {formatCurrency(expensesData.value as number)}
             </span>
           </div>
         )}
         {savingsData && (
           <div className="flex items-center justify-between gap-4">
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <span className="text-xs flex items-center gap-1.5" style={{ color: 'var(--color-muted-foreground)' }}>
               <span
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: savingsData.color as string }}
               />
               {savingsData.name}:
             </span>
-            <span className="text-xs font-semibold text-foreground">
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-foreground)' }}>
               {formatCurrency(savingsData.value as number)}
             </span>
           </div>
@@ -156,8 +156,8 @@ export function BudgetAnalyticsChart({ data, height = 350 }: BudgetAnalyticsChar
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center bg-card border border-border rounded-xl" style={{ height: `${height}px` }}>
-        <p className="text-muted-foreground">No data available</p>
+      <div className="flex items-center justify-center rounded-xl" style={{ height: `${height}px`, backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <p style={{ color: 'var(--color-muted-foreground)' }}>No data available</p>
       </div>
     );
   }

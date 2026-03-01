@@ -91,13 +91,13 @@ export function InlineTransferAccountSelect({
     return (
       <span
         className={cn(
-          "cursor-pointer",
-          "hover:underline transition-colors duration-150",
-          isUnknown && "text-warning hover:text-warning/80",
-          !isUnknown && "hover:text-foreground/80",
+          "cursor-pointer hover:underline transition-colors duration-150",
           disabled && "cursor-not-allowed opacity-60",
           className
         )}
+        style={{ color: isUnknown ? 'var(--color-warning)' : undefined }}
+        onMouseEnter={e => { if (!disabled && !isUnknown) e.currentTarget.style.color = 'color-mix(in oklch, var(--color-foreground) 80%, transparent)'; }}
+        onMouseLeave={e => { if (isUnknown) e.currentTarget.style.color = 'var(--color-warning)'; else e.currentTarget.style.color = ''; }}
         onClick={handleClick}
         title={isUnknown ? "Click to select account" : `${displayName} (click to change)`}
       >
@@ -121,12 +121,12 @@ export function InlineTransferAccountSelect({
     >
       <SelectTrigger
         className={cn(
-          "h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[120px] bg-elevated rounded",
-          "border border-primary text-foreground",
+          "h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[120px] rounded",
           "focus:ring-1 focus:ring-offset-0",
           isUpdating && "opacity-60",
           className
         )}
+        style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-primary)', color: 'var(--color-foreground)' }}
       >
         {isUpdating ? (
           <Loader2 className="w-3 h-3 animate-spin mr-1" />
@@ -135,9 +135,9 @@ export function InlineTransferAccountSelect({
           <span className="truncate">{displayName}</span>
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="bg-card border-border max-h-[200px] z-[100]">
+      <SelectContent className="max-h-[200px] z-[100]" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         {availableAccounts.length === 0 ? (
-          <div className="px-2 py-1 text-xs text-muted-foreground">No accounts available</div>
+          <div className="px-2 py-1 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>No accounts available</div>
         ) : (
           availableAccounts.map((account) => (
             <SelectItem key={account.id} value={account.id}>

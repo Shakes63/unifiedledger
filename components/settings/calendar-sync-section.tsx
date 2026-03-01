@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -10,10 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -78,13 +75,45 @@ interface TickTickProject {
   color?: string;
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+      </div>
+      <div className="px-4 py-4 space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function SwitchRow({ label, description, checked, onCheckedChange }: { label: string; description?: string; checked: boolean; onCheckedChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <p className="text-[13px]" style={{ color: 'var(--color-foreground)' }}>{label}</p>
+        {description && <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.8 }}>{description}</p>}
+      </div>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function CalendarSyncSection() {
-  const {
-    selectedHouseholdId,
-    postWithHousehold,
-    putWithHousehold,
-  } = useHouseholdFetch();
-  
+  const { selectedHouseholdId, postWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [loading, setLoading] = useState(true);
   const [connections, setConnections] = useState<CalendarConnection[]>([]);
   const [settings, setSettings] = useState<SyncSettings>({
@@ -101,25 +130,15 @@ export function CalendarSyncSection() {
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [enabling, setEnabling] = useState(false);
-  
-  // Google OAuth status
-  const [googleStatus, setGoogleStatus] = useState<GoogleStatus>({
-    configured: false,
-    linked: false,
-    calendars: [],
-    selectedCalendarId: null,
-    selectedCalendarName: null,
-    connectionId: null,
-  });
-  
-  // Calendar selection state (for Google)
+
+  const [googleStatus, setGoogleStatus] = useState<GoogleStatus>({ configured: false, linked: false, calendars: [], selectedCalendarId: null, selectedCalendarName: null, connectionId: null });
+
   const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
   const [loadingCalendars, setLoadingCalendars] = useState(false);
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('');
-  
-  // Project selection state (for TickTick)
+
   const [projects, setProjects] = useState<TickTickProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
@@ -127,622 +146,269 @@ export function CalendarSyncSection() {
 
   const fetchGoogleStatus = useCallback(async () => {
     if (!selectedHouseholdId) return;
-    
     try {
-      const response = await fetch(
-        `/api/calendar-sync/google/status`,
-        {
-          headers: {
-            'x-household-id': selectedHouseholdId,
-          },
-          credentials: 'include',
-        }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setGoogleStatus(data);
-        setCalendars(data.calendars || []);
-      }
-    } catch (error) {
-      console.error('Failed to load Google status:', error);
-    }
+      const res = await fetch('/api/calendar-sync/google/status', { headers: { 'x-household-id': selectedHouseholdId }, credentials: 'include' });
+      if (res.ok) { const d = await res.json(); setGoogleStatus(d); setCalendars(d.calendars || []); }
+    } catch (e) { console.error('Failed to load Google status:', e); }
   }, [selectedHouseholdId]);
 
   const fetchSettings = useCallback(async () => {
     if (!selectedHouseholdId) return;
-    
     try {
       setLoading(true);
-      const response = await fetch(
-        `/api/calendar-sync/settings`,
-        {
-          headers: {
-            'x-household-id': selectedHouseholdId,
-          },
-          credentials: 'include',
-        }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setConnections(data.connections || []);
-        if (data.settings) {
-          setSettings(data.settings);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load calendar sync settings:', error);
-    } finally {
-      setLoading(false);
-    }
+      const res = await fetch('/api/calendar-sync/settings', { headers: { 'x-household-id': selectedHouseholdId }, credentials: 'include' });
+      if (res.ok) { const d = await res.json(); setConnections(d.connections || []); if (d.settings) setSettings(d.settings); }
+    } catch (e) { console.error('Failed to load calendar sync settings:', e); }
+    finally { setLoading(false); }
   }, [selectedHouseholdId]);
 
-  useEffect(() => {
-    fetchGoogleStatus();
-    fetchSettings();
-  }, [fetchGoogleStatus, fetchSettings]);
+  useEffect(() => { fetchGoogleStatus(); fetchSettings(); }, [fetchGoogleStatus, fetchSettings]);
 
-  // Handle linking Google account via Better Auth
-  const handleLinkGoogle = () => {
-    // Redirect to Better Auth Google OAuth
-    signIn.social({
-      provider: 'google',
-      callbackURL: window.location.href,
-    });
-  };
+  const handleLinkGoogle = () => signIn.social({ provider: 'google', callbackURL: window.location.href });
 
-  // Handle enabling Google Calendar sync (after Google is already linked)
   const handleEnableGoogleSync = async () => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household first');
-      return;
-    }
-
+    if (!selectedHouseholdId) { toast.error('Please select a household first'); return; }
     try {
       setEnabling(true);
-      const response = await postWithHousehold('/api/calendar-sync/google/enable', {});
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to enable calendar sync');
-      }
-
+      const res = await postWithHousehold('/api/calendar-sync/google/enable', {});
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to enable'); }
       toast.success('Google Calendar sync enabled');
-      fetchGoogleStatus();
-      fetchSettings();
-    } catch (error) {
-      console.error('Error enabling Google Calendar:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to enable');
-    } finally {
-      setEnabling(false);
-    }
+      fetchGoogleStatus(); fetchSettings();
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to enable'); }
+    finally { setEnabling(false); }
   };
 
-  // Handle TickTick connection (still uses separate OAuth)
   const handleConnectTickTick = async () => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household first');
-      return;
-    }
-
+    if (!selectedHouseholdId) { toast.error('Please select a household first'); return; }
     try {
-      const response = await fetch(
-        `/api/calendar-sync/ticktick/connect`,
-        {
-          headers: {
-            'x-household-id': selectedHouseholdId,
-          },
-          credentials: 'include',
-        }
-      );
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to initiate connection');
-      }
-
-      const data = await response.json();
-      window.location.href = data.authUrl;
-    } catch (error) {
-      console.error('Error connecting to TickTick:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to connect');
-    }
+      const res = await fetch('/api/calendar-sync/ticktick/connect', { headers: { 'x-household-id': selectedHouseholdId }, credentials: 'include' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
+      const d = await res.json(); window.location.href = d.authUrl;
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to connect'); }
   };
 
-  const handleDisconnect = async (connectionId: string, deleteEvents: boolean = false) => {
+  const handleDisconnect = async (connectionId: string) => {
     try {
       setDisconnecting(true);
-      const response = await fetch('/api/calendar-sync/disconnect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ connectionId, deleteRemoteEvents: deleteEvents }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to disconnect');
-      }
-
+      const res = await fetch('/api/calendar-sync/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ connectionId, deleteRemoteEvents: false }) });
+      if (!res.ok) throw new Error('Failed to disconnect');
       toast.success('Calendar sync disabled');
-      fetchGoogleStatus();
-      fetchSettings();
-    } catch (error) {
-      console.error('Error disconnecting:', error);
-      toast.error('Failed to disconnect calendar');
-    } finally {
-      setDisconnecting(false);
-    }
+      fetchGoogleStatus(); fetchSettings();
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to disconnect'); }
+    finally { setDisconnecting(false); }
   };
 
-  const handleSelectCalendar = async () => {
+  const handleSelectCalendar = () => {
     if (!googleStatus.connectionId) return;
-    
     setSelectedConnectionId(googleStatus.connectionId);
-    setLoadingCalendars(true);
-    setCalendarDialogOpen(true);
-    setSelectedCalendarId(googleStatus.selectedCalendarId || '');
-
-    // Calendars are already loaded from status
     setCalendars(googleStatus.calendars);
+    setSelectedCalendarId(googleStatus.selectedCalendarId || '');
     setLoadingCalendars(false);
+    setCalendarDialogOpen(true);
   };
 
   const handleSelectProject = async (connectionId: string) => {
     setSelectedConnectionId(connectionId);
     setLoadingProjects(true);
     setProjectDialogOpen(true);
-
     try {
-      const response = await fetch(
-        `/api/calendar-sync/projects?connectionId=${connectionId}`,
-        { credentials: 'include' }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setProjects(data.projects || []);
-        setSelectedProjectId(data.selectedProjectId || '');
-      }
-    } catch (error) {
-      console.error('Error loading projects:', error);
-      toast.error('Failed to load projects');
-    } finally {
-      setLoadingProjects(false);
-    }
-  };
-
-  const handleSaveProjectSelection = async () => {
-    if (!selectedConnectionId || !selectedProjectId) return;
-
-    try {
-      setSaving(true);
-      const response = await fetch('/api/calendar-sync/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          connectionId: selectedConnectionId,
-          projectId: selectedProjectId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save project selection');
-      }
-
-      toast.success('Project selected');
-      setProjectDialogOpen(false);
-      fetchSettings();
-    } catch (error) {
-      console.error('Error saving project:', error);
-      toast.error('Failed to save project selection');
-    } finally {
-      setSaving(false);
-    }
+      const res = await fetch(`/api/calendar-sync/projects?connectionId=${connectionId}`, { credentials: 'include' });
+      if (res.ok) { const d = await res.json(); setProjects(d.projects || []); setSelectedProjectId(d.selectedProjectId || ''); }
+    } catch (e) { console.error('Error loading projects:', e); toast.error('Failed to load projects'); }
+    finally { setLoadingProjects(false); }
   };
 
   const handleSaveCalendarSelection = async () => {
     if (!selectedConnectionId || !selectedCalendarId) return;
-
     try {
       setSaving(true);
-      const response = await fetch('/api/calendar-sync/calendars', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          connectionId: selectedConnectionId,
-          calendarId: selectedCalendarId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save calendar selection');
-      }
-
+      const res = await fetch('/api/calendar-sync/calendars', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ connectionId: selectedConnectionId, calendarId: selectedCalendarId }) });
+      if (!res.ok) throw new Error('Failed to save calendar selection');
       toast.success('Calendar selected');
       setCalendarDialogOpen(false);
-      fetchGoogleStatus();
+      fetchGoogleStatus(); fetchSettings();
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save'); }
+    finally { setSaving(false); }
+  };
+
+  const handleSaveProjectSelection = async () => {
+    if (!selectedConnectionId || !selectedProjectId) return;
+    try {
+      setSaving(true);
+      const res = await fetch('/api/calendar-sync/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ connectionId: selectedConnectionId, projectId: selectedProjectId }) });
+      if (!res.ok) throw new Error('Failed to save project selection');
+      toast.success('Project selected');
+      setProjectDialogOpen(false);
       fetchSettings();
-    } catch (error) {
-      console.error('Error saving calendar:', error);
-      toast.error('Failed to save calendar selection');
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save'); }
+    finally { setSaving(false); }
   };
 
   const handleSettingChange = async (key: keyof SyncSettings, value: unknown) => {
     if (!selectedHouseholdId) return;
-
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
-
+    setSettings(prev => ({ ...prev, [key]: value }));
     try {
       setSaving(true);
-      const response = await putWithHousehold('/api/calendar-sync/settings', {
-        [key]: value,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save setting');
-      }
-
+      const res = await putWithHousehold('/api/calendar-sync/settings', { [key]: value });
+      if (!res.ok) throw new Error('Failed to save');
       toast.success('Setting updated');
-    } catch (error) {
-      console.error('Error saving setting:', error);
-      toast.error('Failed to save setting');
-      fetchSettings();
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save'); fetchSettings(); }
+    finally { setSaving(false); }
   };
 
   const handleSync = async () => {
     if (!selectedHouseholdId) return;
-
     try {
       setSyncing(true);
-      const response = await postWithHousehold('/api/calendar-sync/sync', {});
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(
-          `Sync complete: ${data.created} created, ${data.updated} updated, ${data.deleted} removed`
-        );
-        fetchSettings();
-      } else {
-        throw new Error(data.error || 'Sync failed');
-      }
-    } catch (error) {
-      console.error('Error syncing:', error);
-      toast.error(error instanceof Error ? error.message : 'Sync failed');
-    } finally {
-      setSyncing(false);
-    }
+      const res = await postWithHousehold('/api/calendar-sync/sync', {});
+      const d = await res.json();
+      if (res.ok) { toast.success(`Sync complete: ${d.created} created, ${d.updated} updated, ${d.deleted} removed`); fetchSettings(); }
+      else throw new Error(d.error || 'Sync failed');
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Sync failed'); }
+    finally { setSyncing(false); }
   };
 
-  const googleConnection = connections.find((c) => c.provider === 'google');
-  const ticktickConnection = connections.find((c) => c.provider === 'ticktick');
-  const hasActiveSync = connections.length > 0 && connections.some((c) => c.calendarId);
+  const googleConnection = connections.find(c => c.provider === 'google');
+  const ticktickConnection = connections.find(c => c.provider === 'ticktick');
+  const hasActiveSync = connections.length > 0 && connections.some(c => c.calendarId);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-        Loading...
-      </div>
-    );
+    return <div className="h-32 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }} />;
   }
 
+  const sel = (id: string) => ({ id, name: id, className: 'h-9 text-[13px]', style: { backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' } });
+
   return (
-    <div className="space-y-4">
-      {/* Connection Status */}
-      <div className="space-y-3">
-        {/* Google Calendar */}
-        <Card className="p-4 bg-card border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#4285F4]/10 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-[#4285F4]" />
-              </div>
-              <div>
-                <h4 className="font-medium text-foreground">Google Calendar</h4>
-                {!googleStatus.configured ? (
-                  <span className="text-xs text-muted-foreground">Not configured</span>
-                ) : !googleStatus.linked ? (
-                  <span className="text-xs text-muted-foreground">Link your Google account to enable</span>
-                ) : googleConnection ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-success" />
-                    <span className="text-xs text-muted-foreground">
-                      {googleConnection.calendarName || 'Enabled - Select a calendar'}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-success" />
-                    <span className="text-xs text-muted-foreground">Google account linked</span>
-                  </div>
+    <>
+      {/* ── Provider connections ──────────────────────────────────────── */}
+      <Section icon={Calendar} label="Calendar Connections" accent="var(--color-primary)">
+        <div className="divide-y rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+          {/* Google Calendar */}
+          <div className="flex items-center gap-3 px-3 py-2.5" style={{ backgroundColor: 'var(--color-elevated)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(66,133,244,0.12)', border: '1px solid rgba(66,133,244,0.2)' }}>
+              <Calendar className="w-3.5 h-3.5" style={{ color: '#4285F4' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Google Calendar</span>
+                {googleConnection?.calendarId && (
+                  <Badge className="text-[10px] h-4 px-1.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 15%, transparent)', color: 'var(--color-success)', border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)' }}>
+                    <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />{googleConnection.calendarName || 'Active'}
+                  </Badge>
                 )}
               </div>
+              <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.8 }}>
+                {!googleStatus.configured ? 'Admin setup required' : !googleStatus.linked ? 'Link your Google account to enable' : googleConnection ? (googleConnection.calendarId ? '' : 'Select a calendar to continue') : 'Google account linked'}
+              </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 shrink-0">
               {!googleStatus.configured ? (
-                <Badge variant="secondary">Setup Required</Badge>
+                <Badge className="text-[10px] h-5 px-2" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 15%, transparent)', color: 'var(--color-warning)', border: '1px solid color-mix(in oklch, var(--color-warning) 25%, transparent)' }}>Setup Required</Badge>
               ) : !googleStatus.linked ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLinkGoogle}
-                  className="border-border"
-                >
-                  <Link2 className="w-4 h-4 mr-2" />
-                  Link Google
-                </Button>
+                <Button variant="outline" size="sm" onClick={handleLinkGoogle} className="h-7 text-[11px]"><Link2 className="w-3.5 h-3.5 mr-1" />Link Google</Button>
               ) : googleConnection ? (
                 <>
-                  {!googleConnection.calendarId && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectCalendar}
-                      className="border-border"
-                    >
-                      Select Calendar
-                    </Button>
-                  )}
-                  {googleConnection.calendarId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleSelectCalendar}
-                      className="text-muted-foreground"
-                    >
-                      Change
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDisconnect(googleConnection.id)}
-                    disabled={disconnecting}
-                    className="text-error hover:text-error"
-                  >
-                    <Unlink className="w-4 h-4" />
-                  </Button>
+                  <Button variant="ghost" size="sm" onClick={handleSelectCalendar} className="h-7 text-[11px]">{googleConnection.calendarId ? 'Change' : 'Select Calendar'}</Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDisconnect(googleConnection.id)} disabled={disconnecting} className="h-7 w-7 p-0"><Unlink className="w-3.5 h-3.5" style={{ color: 'var(--color-destructive)' }} /></Button>
                 </>
               ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleEnableGoogleSync}
-                  disabled={enabling}
-                  className="border-border"
-                >
-                  {enabling ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Calendar className="w-4 h-4 mr-2" />
-                  )}
+                <Button variant="outline" size="sm" onClick={handleEnableGoogleSync} disabled={enabling} className="h-7 text-[11px]">
+                  {enabling ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Calendar className="w-3.5 h-3.5 mr-1" />}
                   Enable Sync
                 </Button>
               )}
             </div>
           </div>
-        </Card>
 
-        {/* TickTick */}
-        <Card className="p-4 bg-card border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#4772FA]/10 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-[#4772FA]" />
-              </div>
-              <div>
-                <h4 className="font-medium text-foreground">TickTick</h4>
-                {ticktickConnection ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-success" />
-                    <span className="text-xs text-muted-foreground">
-                      {ticktickConnection.calendarName || 'Connected - Select a project'}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Sync to TickTick tasks</span>
+          {/* TickTick */}
+          <div className="flex items-center gap-3 px-3 py-2.5" style={{ backgroundColor: 'var(--color-elevated)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(71,114,250,0.12)', border: '1px solid rgba(71,114,250,0.2)' }}>
+              <Calendar className="w-3.5 h-3.5" style={{ color: '#4772FA' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>TickTick</span>
+                {ticktickConnection?.calendarId && (
+                  <Badge className="text-[10px] h-4 px-1.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 15%, transparent)', color: 'var(--color-success)', border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)' }}>
+                    <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />{ticktickConnection.calendarName || 'Active'}
+                  </Badge>
                 )}
               </div>
+              <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.8 }}>
+                {ticktickConnection ? (ticktickConnection.calendarId ? '' : 'Select a project to continue') : 'Sync financial events to TickTick tasks'}
+              </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 shrink-0">
               {ticktickConnection ? (
                 <>
-                  {!ticktickConnection.calendarId && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSelectProject(ticktickConnection.id)}
-                      className="border-border"
-                    >
-                      Select Project
-                    </Button>
-                  )}
-                  {ticktickConnection.calendarId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSelectProject(ticktickConnection.id)}
-                      className="text-muted-foreground"
-                    >
-                      Change
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDisconnect(ticktickConnection.id)}
-                    disabled={disconnecting}
-                    className="text-error hover:text-error"
-                  >
-                    <Unlink className="w-4 h-4" />
-                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleSelectProject(ticktickConnection.id)} className="h-7 text-[11px]">{ticktickConnection.calendarId ? 'Change' : 'Select Project'}</Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDisconnect(ticktickConnection.id)} disabled={disconnecting} className="h-7 w-7 p-0"><Unlink className="w-3.5 h-3.5" style={{ color: 'var(--color-destructive)' }} /></Button>
                 </>
               ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleConnectTickTick}
-                  className="border-border"
-                >
-                  <Link2 className="w-4 h-4 mr-2" />
-                  Connect
-                </Button>
+                <Button variant="outline" size="sm" onClick={handleConnectTickTick} className="h-7 text-[11px]"><Link2 className="w-3.5 h-3.5 mr-1" />Connect</Button>
               )}
             </div>
           </div>
-        </Card>
-      </div>
+        </div>
 
-      {/* Sync Settings - Only show if connected */}
+        {!hasActiveSync && (
+          <div className="flex items-start gap-3 px-3 py-3 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 6%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+            <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
+              {googleStatus.linked ? 'Enable Google Calendar sync to see bill due dates and milestones on your calendar.' : 'Link your Google account or connect TickTick to sync financial events to your calendar.'}
+            </p>
+          </div>
+        )}
+      </Section>
+
+      {/* ── Sync settings (only when connected) ──────────────────────── */}
       {hasActiveSync && (
-        <>
-          <Separator className="bg-border" />
-
-          {/* Sync Mode */}
-          <div className="space-y-3">
-            <Label className="text-foreground">Sync Mode</Label>
-            <div className="space-y-2">
-              <Card
-                className={`p-3 cursor-pointer transition-colors ${
-                  settings.syncMode === 'direct'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-card hover:bg-elevated'
-                }`}
-                onClick={() => handleSettingChange('syncMode', 'direct')}
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="radio"
-                    checked={settings.syncMode === 'direct'}
-                    onChange={() => handleSettingChange('syncMode', 'direct')}
-                    className="mt-1"
-                  />
-                  <div>
-                    <h4 className="font-medium text-foreground">Direct dates</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Events appear on their actual due dates
-                    </p>
+        <Section icon={RefreshCw} label="Sync Settings" accent="var(--color-primary)">
+          {/* Sync mode */}
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Sync Mode</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { value: 'direct', label: 'Direct dates', desc: 'Events appear on their actual due dates' },
+                { value: 'budget_period', label: 'Budget periods', desc: 'Group by pay period start date' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleSettingChange('syncMode', opt.value)}
+                  className="text-left px-3 py-2.5 rounded-lg transition-colors"
+                  style={{
+                    border: `1px solid ${settings.syncMode === opt.value ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                    backgroundColor: settings.syncMode === opt.value ? 'color-mix(in oklch, var(--color-primary) 8%, transparent)' : 'var(--color-elevated)',
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="w-3 h-3 rounded-full border-2 flex items-center justify-center shrink-0" style={{ borderColor: settings.syncMode === opt.value ? 'var(--color-primary)' : 'var(--color-border)' }}>
+                      {settings.syncMode === opt.value && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />}
+                    </div>
+                    <span className="text-[12px] font-medium" style={{ color: 'var(--color-foreground)' }}>{opt.label}</span>
                   </div>
-                </div>
-              </Card>
-
-              <Card
-                className={`p-3 cursor-pointer transition-colors ${
-                  settings.syncMode === 'budget_period'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-card hover:bg-elevated'
-                }`}
-                onClick={() => handleSettingChange('syncMode', 'budget_period')}
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="radio"
-                    checked={settings.syncMode === 'budget_period'}
-                    onChange={() => handleSettingChange('syncMode', 'budget_period')}
-                    className="mt-1"
-                  />
-                  <div>
-                    <h4 className="font-medium text-foreground">Budget periods</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Group events by pay period start date (based on your budget cycle settings)
-                    </p>
-                  </div>
-                </div>
-              </Card>
+                  <p className="text-[11px] pl-5" style={{ color: 'var(--color-muted-foreground)' }}>{opt.desc}</p>
+                </button>
+              ))}
             </div>
           </div>
 
-          <Separator className="bg-border" />
-
-          {/* What to Sync */}
+          {/* What to sync */}
           <div className="space-y-3">
-            <Label className="text-foreground">What to Sync</Label>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm text-foreground">Bill due dates</span>
-                  <p className="text-xs text-muted-foreground">Upcoming and recurring bills</p>
-                </div>
-                <Switch
-                  checked={settings.syncBills}
-                  onCheckedChange={(checked) => handleSettingChange('syncBills', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm text-foreground">Savings goal milestones</span>
-                  <p className="text-xs text-muted-foreground">25%, 50%, 75%, 100% progress</p>
-                </div>
-                <Switch
-                  checked={settings.syncSavingsMilestones}
-                  onCheckedChange={(checked) => handleSettingChange('syncSavingsMilestones', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm text-foreground">Debt payoff milestones</span>
-                  <p className="text-xs text-muted-foreground">Track debt reduction progress</p>
-                </div>
-                <Switch
-                  checked={settings.syncDebtMilestones}
-                  onCheckedChange={(checked) => handleSettingChange('syncDebtMilestones', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm text-foreground">Goal target dates</span>
-                  <p className="text-xs text-muted-foreground">When you plan to reach savings goals</p>
-                </div>
-                <Switch
-                  checked={settings.syncGoalTargetDates}
-                  onCheckedChange={(checked) => handleSettingChange('syncGoalTargetDates', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm text-foreground">Projected payoff dates</span>
-                  <p className="text-xs text-muted-foreground">Estimated debt-free dates</p>
-                </div>
-                <Switch
-                  checked={settings.syncPayoffDates}
-                  onCheckedChange={(checked) => handleSettingChange('syncPayoffDates', checked)}
-                />
-              </div>
-            </div>
+            <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>What to Sync</p>
+            <SwitchRow label="Bill due dates" description="Upcoming and recurring bills" checked={settings.syncBills} onCheckedChange={v => handleSettingChange('syncBills', v)} />
+            <SwitchRow label="Savings goal milestones" description="25%, 50%, 75%, 100% progress" checked={settings.syncSavingsMilestones} onCheckedChange={v => handleSettingChange('syncSavingsMilestones', v)} />
+            <SwitchRow label="Debt payoff milestones" description="Track debt reduction progress" checked={settings.syncDebtMilestones} onCheckedChange={v => handleSettingChange('syncDebtMilestones', v)} />
+            <SwitchRow label="Goal target dates" description="When you plan to reach savings goals" checked={settings.syncGoalTargetDates} onCheckedChange={v => handleSettingChange('syncGoalTargetDates', v)} />
+            <SwitchRow label="Projected payoff dates" description="Estimated debt-free dates" checked={settings.syncPayoffDates} onCheckedChange={v => handleSettingChange('syncPayoffDates', v)} />
           </div>
-
-          <Separator className="bg-border" />
 
           {/* Reminders */}
-          <div className="space-y-2">
-            <Label htmlFor="reminderMinutes" className="text-foreground">Reminders</Label>
-            <Select
-              value={settings.reminderMinutes?.toString() || 'none'}
-              onValueChange={(value) => 
-                handleSettingChange('reminderMinutes', value === 'none' ? null : parseInt(value))
-              }
-            >
-              <SelectTrigger
-                id="reminderMinutes"
-                className="bg-card border-border"
-              >
-                <SelectValue />
-              </SelectTrigger>
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Reminders</p>
+            <Select value={settings.reminderMinutes?.toString() || 'none'} onValueChange={v => handleSettingChange('reminderMinutes', v === 'none' ? null : parseInt(v))}>
+              <SelectTrigger {...sel('reminderMinutes')}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No reminder</SelectItem>
                 <SelectItem value="60">1 hour before</SelectItem>
@@ -753,207 +419,89 @@ export function CalendarSyncSection() {
             </Select>
           </div>
 
-          <Separator className="bg-border" />
-
-          {/* Sync Now */}
-          <div className="flex items-center justify-between">
+          {/* Manual sync */}
+          <div className="flex items-center justify-between pt-1">
             <div>
-              <span className="text-sm text-foreground">Manual sync</span>
+              <p className="text-[13px]" style={{ color: 'var(--color-foreground)' }}>Manual Sync</p>
               {settings.lastFullSyncAt && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.8 }}>
                   Last synced: {new Date(settings.lastFullSyncAt).toLocaleString()}
                 </p>
               )}
             </div>
-            <Button
-              variant="outline"
-              onClick={handleSync}
-              disabled={syncing}
-              className="border-border"
-            >
-              {syncing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sync Now
-                </>
-              )}
+            <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing} className="text-[12px] h-8">
+              {syncing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+              Sync Now
             </Button>
           </div>
-        </>
+        </Section>
       )}
 
-      {/* No Connection Info */}
-      {!hasActiveSync && (
-        <Card className="p-4 bg-elevated border-border">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
-            <div>
-              <h4 className="font-medium text-foreground mb-1">Sync Your Calendar</h4>
-              <p className="text-sm text-muted-foreground">
-                {googleStatus.linked 
-                  ? 'Enable Google Calendar sync to see bill due dates, milestones, and payoff dates on your calendar.'
-                  : 'Link your Google account to sync bill due dates, milestones, and payoff dates to your calendar. Events include links back to Unified Ledger for quick access.'}
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Calendar Selection Dialog */}
+      {/* ── Select Calendar dialog ────────────────────────────────────── */}
       <Dialog open={calendarDialogOpen} onOpenChange={setCalendarDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Select Calendar</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Choose which calendar to sync your financial events to
-            </DialogDescription>
+            <DialogTitle style={{ color: 'var(--color-foreground)' }}>Select Calendar</DialogTitle>
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>Choose which calendar to sync financial events to.</DialogDescription>
           </DialogHeader>
-
           {loadingCalendars ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
+            <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} /></div>
           ) : (
-            <div className="space-y-2 max-h-[300px] overflow-y-auto py-2">
-              {calendars.map((cal) => (
-                <Card
-                  key={cal.id}
-                  className={`p-3 cursor-pointer transition-colors ${
-                    selectedCalendarId === cal.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-card hover:bg-elevated'
-                  }`}
-                  onClick={() => setSelectedCalendarId(cal.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        checked={selectedCalendarId === cal.id}
-                        onChange={() => setSelectedCalendarId(cal.id)}
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-foreground">
-                          {cal.summary}
-                        </span>
-                        {cal.primary && (
-                          <Badge variant="secondary" className="ml-2 text-xs">
-                            Primary
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto py-2">
+              {calendars.map(cal => (
+                <button key={cal.id} type="button" onClick={() => setSelectedCalendarId(cal.id)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors"
+                  style={{ border: `1px solid ${selectedCalendarId === cal.id ? 'var(--color-primary)' : 'var(--color-border)'}`, backgroundColor: selectedCalendarId === cal.id ? 'color-mix(in oklch, var(--color-primary) 8%, transparent)' : 'var(--color-elevated)' }}>
+                  <div className="w-3 h-3 rounded-full border-2 flex items-center justify-center shrink-0" style={{ borderColor: selectedCalendarId === cal.id ? 'var(--color-primary)' : 'var(--color-border)' }}>
+                    {selectedCalendarId === cal.id && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />}
                   </div>
-                </Card>
+                  <span className="text-[13px] font-medium flex-1" style={{ color: 'var(--color-foreground)' }}>{cal.summary}</span>
+                  {cal.primary && <Badge className="text-[10px] h-4 px-1.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)', color: 'var(--color-primary)' }}>Primary</Badge>}
+                </button>
               ))}
             </div>
           )}
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setCalendarDialogOpen(false)}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveCalendarSelection}
-              disabled={!selectedCalendarId || saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Select Calendar'
-              )}
+            <Button variant="outline" size="sm" onClick={() => setCalendarDialogOpen(false)} className="text-[12px]">Cancel</Button>
+            <Button size="sm" onClick={handleSaveCalendarSelection} disabled={!selectedCalendarId || saving} className="text-[12px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
+              Select Calendar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Project Selection Dialog (TickTick) */}
+      {/* ── Select Project dialog (TickTick) ──────────────────────────── */}
       <Dialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Select Project</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Choose which TickTick project to sync your financial events to
-            </DialogDescription>
+            <DialogTitle style={{ color: 'var(--color-foreground)' }}>Select Project</DialogTitle>
+            <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>Choose which TickTick project to sync financial events to.</DialogDescription>
           </DialogHeader>
-
           {loadingProjects ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
+            <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} /></div>
           ) : (
-            <div className="space-y-2 max-h-[300px] overflow-y-auto py-2">
-              {projects.map((project) => (
-                <Card
-                  key={project.id}
-                  className={`p-3 cursor-pointer transition-colors ${
-                    selectedProjectId === project.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-card hover:bg-elevated'
-                  }`}
-                  onClick={() => setSelectedProjectId(project.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        checked={selectedProjectId === project.id}
-                        onChange={() => setSelectedProjectId(project.id)}
-                      />
-                      <div className="flex items-center gap-2">
-                        {project.color && (
-                          <div 
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: project.color }}
-                          />
-                        )}
-                        <span className="text-sm font-medium text-foreground">
-                          {project.name}
-                        </span>
-                      </div>
-                    </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto py-2">
+              {projects.map(project => (
+                <button key={project.id} type="button" onClick={() => setSelectedProjectId(project.id)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors"
+                  style={{ border: `1px solid ${selectedProjectId === project.id ? 'var(--color-primary)' : 'var(--color-border)'}`, backgroundColor: selectedProjectId === project.id ? 'color-mix(in oklch, var(--color-primary) 8%, transparent)' : 'var(--color-elevated)' }}>
+                  <div className="w-3 h-3 rounded-full border-2 flex items-center justify-center shrink-0" style={{ borderColor: selectedProjectId === project.id ? 'var(--color-primary)' : 'var(--color-border)' }}>
+                    {selectedProjectId === project.id && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />}
                   </div>
-                </Card>
+                  {project.color && <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: project.color }} />}
+                  <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{project.name}</span>
+                </button>
               ))}
             </div>
           )}
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setProjectDialogOpen(false)}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveProjectSelection}
-              disabled={!selectedProjectId || saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Select Project'
-              )}
+            <Button variant="outline" size="sm" onClick={() => setProjectDialogOpen(false)} className="text-[12px]">Cancel</Button>
+            <Button size="sm" onClick={handleSaveProjectSelection} disabled={!selectedProjectId || saving} className="text-[12px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
+              Select Project
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

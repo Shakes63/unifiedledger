@@ -68,23 +68,24 @@ export default function NewBillPage() {
         <div className="flex items-center gap-4">
         <Link
           href="/dashboard/bills"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          style={{ color: 'var(--color-muted-foreground)' }}
+          className="transition-opacity hover:opacity-80"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Create New Bill</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-foreground)' }}>Create New Bill</h1>
+          <p className="mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             Set up a recurring bill and automatically track payments
           </p>
         </div>
       </div>
 
       {/* Form Card */}
-      <Card className="bg-background border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader>
-          <CardTitle>Bill Details</CardTitle>
-          <CardDescription className="text-gray-500">
+          <CardTitle style={{ color: 'var(--color-foreground)' }}>Bill Details</CardTitle>
+          <CardDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Enter the bill information. The system will automatically match and track payments.
           </CardDescription>
         </CardHeader>

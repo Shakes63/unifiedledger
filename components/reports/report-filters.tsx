@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
@@ -73,7 +72,7 @@ export function ReportFilters({
   };
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
       <CardHeader className="pb-3">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -82,20 +81,20 @@ export function ReportFilters({
           aria-label="Toggle report filters"
         >
           <div className="flex items-center gap-2">
-            <CardTitle className="text-lg font-semibold text-foreground">Report Filters</CardTitle>
+            <CardTitle className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Report Filters</CardTitle>
             {activeFilterCount > 0 && (
-              <Badge
-                variant="default"
-                className="bg-primary text-primary-foreground"
+              <span
+                className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-md"
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
               >
                 {activeFilterCount}
-              </Badge>
+              </span>
             )}
           </div>
           {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            <ChevronUp className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
           ) : (
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            <ChevronDown className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
           )}
         </button>
       </CardHeader>
@@ -104,11 +103,11 @@ export function ReportFilters({
         <CardContent className="space-y-6">
           {/* Accounts Filter */}
           <div className="space-y-2">
-            <label htmlFor="accounts-filter" className="text-sm font-medium text-foreground">
+            <label htmlFor="accounts-filter" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
               Accounts
             </label>
             {accounts.length === 0 ? (
-              <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }} role="status" aria-live="polite">
                 No accounts available
               </p>
             ) : (
@@ -121,14 +120,18 @@ export function ReportFilters({
                 {accounts.map((account) => {
                   const isSelected = selectedAccountIds.includes(account.id);
                   return (
-                    <Badge
+                    <span
                       key={account.id}
-                      variant={isSelected ? 'default' : 'outline'}
-                      className={`cursor-pointer transition-colors ${
+                      role="button"
+                      tabIndex={0}
+                      className="cursor-pointer transition-colors inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border"
+                      style={
                         isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
-                      }`}
+                          ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)', borderColor: 'var(--color-primary)' }
+                          : { backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)', borderColor: 'var(--color-border)' }
+                      }
+                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+                      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
                       onClick={() => handleAccountToggle(account.id)}
                       role="button"
                       tabIndex={0}
@@ -142,7 +145,7 @@ export function ReportFilters({
                       aria-label={`${isSelected ? 'Remove' : 'Add'} ${account.name} filter`}
                     >
                       {account.name}
-                    </Badge>
+                    </span>
                   );
                 })}
               </div>
@@ -151,11 +154,11 @@ export function ReportFilters({
 
           {/* Categories Filter */}
           <div className="space-y-2">
-            <label htmlFor="categories-filter" className="text-sm font-medium text-foreground">
+            <label htmlFor="categories-filter" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
               Categories
             </label>
             {categories.length === 0 ? (
-              <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }} role="status" aria-live="polite">
                 No categories available
               </p>
             ) : (
@@ -168,17 +171,19 @@ export function ReportFilters({
                 {categories.map((category) => {
                   const isSelected = selectedCategoryIds.includes(category.id);
                   return (
-                    <Badge
+                    <span
                       key={category.id}
-                      variant={isSelected ? 'default' : 'outline'}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
-                      }`}
-                      onClick={() => handleCategoryToggle(category.id)}
                       role="button"
                       tabIndex={0}
+                      className="cursor-pointer transition-colors inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border"
+                      style={
+                        isSelected
+                          ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)', borderColor: 'var(--color-primary)' }
+                          : { backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)', borderColor: 'var(--color-border)' }
+                      }
+                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+                      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+                      onClick={() => handleCategoryToggle(category.id)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
@@ -189,7 +194,7 @@ export function ReportFilters({
                       aria-label={`${isSelected ? 'Remove' : 'Add'} ${category.name} filter`}
                     >
                       {category.name}
-                    </Badge>
+                    </span>
                   );
                 })}
               </div>
@@ -198,11 +203,11 @@ export function ReportFilters({
 
           {/* Merchants Filter */}
           <div className="space-y-2">
-            <label htmlFor="merchants-filter" className="text-sm font-medium text-foreground">
+            <label htmlFor="merchants-filter" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
               Merchants
             </label>
             {merchants.length === 0 ? (
-              <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }} role="status" aria-live="polite">
                 No merchants available
               </p>
             ) : (
@@ -218,11 +223,12 @@ export function ReportFilters({
                     <Badge
                       key={merchant.id}
                       variant={isSelected ? 'default' : 'outline'}
-                      className={`cursor-pointer transition-colors ${
+                      className={`cursor-pointer transition-colors ${!isSelected ? 'hover:bg-[var(--color-elevated)]' : ''}`}
+                      style={
                         isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
-                      }`}
+                          ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)', borderColor: 'var(--color-primary)' }
+                          : { backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)', borderColor: 'var(--color-border)' }
+                      }
                       onClick={() => handleMerchantToggle(merchant.id)}
                       role="button"
                       tabIndex={0}
@@ -245,13 +251,15 @@ export function ReportFilters({
 
           {/* Clear Filters Button */}
           {activeFilterCount > 0 && (
-            <div className="flex justify-end pt-2 border-t border-border">
+            <div className="flex justify-end pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={onClearFilters}
-                className="text-muted-foreground border-border hover:bg-elevated"
+                style={{ color: 'var(--color-muted-foreground)', borderColor: 'var(--color-border)' }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
               >
                 <X className="w-4 h-4 mr-2" />
                 Clear All Filters

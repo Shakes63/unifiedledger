@@ -118,11 +118,11 @@ export function SavingsRateChart({
   const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {
       case 'up':
-        return <TrendingUp className="w-4 h-4 text-income" />;
+        return <TrendingUp className="w-4 h-4" style={{ color: 'var(--color-income)' }} />;
       case 'down':
-        return <TrendingDown className="w-4 h-4 text-expense" />;
+        return <TrendingDown className="w-4 h-4" style={{ color: 'var(--color-expense)' }} />;
       default:
-        return <Minus className="w-4 h-4 text-muted-foreground" />;
+        return <Minus className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />;
     }
   };
 
@@ -133,26 +133,26 @@ export function SavingsRateChart({
     const dataPoint = data.find(d => (d as unknown as { name: string }).name === label);
     
     return (
-      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-medium text-foreground mb-2">{label}</p>
+      <div className="rounded-lg p-3 shadow-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-foreground)' }}>{label}</p>
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="text-muted-foreground">Savings Rate</span>
-            <span className="font-semibold text-primary">
+            <span style={{ color: 'var(--color-muted-foreground)' }}>Savings Rate</span>
+            <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>
               {payload[0].value.toFixed(1)}%
             </span>
           </div>
           {dataPoint && (
             <>
               <div className="flex items-center justify-between gap-4 text-xs">
-                <span className="text-muted-foreground">Saved</span>
-                <span className="text-income">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Saved</span>
+                <span style={{ color: 'var(--color-income)' }}>
                   ${dataPoint.totalSavingsContributions.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4 text-xs">
-                <span className="text-muted-foreground">Income</span>
-                <span className="text-foreground">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Income</span>
+                <span style={{ color: 'var(--color-foreground)' }}>
                   ${dataPoint.totalIncome.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                 </span>
               </div>
@@ -173,21 +173,21 @@ export function SavingsRateChart({
     >
       {/* Summary Stats */}
       {summary && (
-        <div className="flex items-center gap-6 mb-4 pb-4 border-b border-border">
+        <div className="flex items-center gap-6 mb-4 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Average</span>
-            <span className="text-lg font-semibold text-primary">
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Average</span>
+            <span className="text-lg font-semibold" style={{ color: 'var(--color-primary)' }}>
               {summary.averageRate.toFixed(1)}%
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Total Saved</span>
-            <span className="text-lg font-semibold text-income">
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Total Saved</span>
+            <span className="text-lg font-semibold" style={{ color: 'var(--color-income)' }}>
               ${summary.totalSaved.toLocaleString('en-US', { maximumFractionDigits: 0 })}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Trend</span>
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Trend</span>
             {getTrendIcon(summary.trend)}
           </div>
         </div>

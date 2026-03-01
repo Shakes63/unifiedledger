@@ -129,169 +129,109 @@ export function ApplySurplusModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-2xl">
+      <DialogContent className="max-w-2xl" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
         <DialogHeader>
-          <DialogTitle className="text-foreground">Apply Budget Surplus to Debt</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogTitle className="flex items-center gap-2 text-[15px]" style={{ color: 'var(--color-foreground)' }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 15%, transparent)' }}>
+              <TrendingDown className="w-3.5 h-3.5" style={{ color: 'var(--color-success)' }} />
+            </div>
+            Apply Budget Surplus to Debt
+          </DialogTitle>
+          <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
             Use your available budget surplus to accelerate debt payoff
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-accent animate-spin" />
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
           </div>
         ) : !suggestion?.hasSuggestion ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">
-              {suggestion?.reason === 'no_debts'
-                ? 'You have no active debts to pay off.'
-                : 'No surplus available to apply.'}
-            </p>
+          <div className="py-8 text-center text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>
+            {suggestion?.reason === 'no_debts' ? 'You have no active debts to pay off.' : 'No surplus available to apply.'}
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Amount Selector */}
-            <div className="space-y-4">
+          <div className="space-y-4 mt-1">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-muted-foreground">Amount to Apply</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-foreground">
-                    {formatCurrency(amount)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">/ month</span>
+                <label className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Amount to Apply</label>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[22px] font-bold tabular-nums" style={{ color: 'var(--color-foreground)' }}>{formatCurrency(amount)}</span>
+                  <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>/ month</span>
                 </div>
               </div>
-
-              {/* Slider */}
-              <div className="space-y-2">
-                <Slider
-                  value={[amount]}
-                  onValueChange={(values) => setAmount(values[0])}
-                  max={availableAmount}
-                  min={0}
-                  step={10}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>$0</span>
-                  <span className="text-accent">
-                    Suggested: {formatCurrency(suggestedAmount)}
-                  </span>
-                  <span>{formatCurrency(availableAmount)}</span>
-                </div>
+              <Slider value={[amount]} onValueChange={v => setAmount(v[0])} max={availableAmount} min={0} step={10} className="w-full" />
+              <div className="flex justify-between text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                <span>$0</span>
+                <span style={{ color: 'var(--color-success)' }}>Suggested: {formatCurrency(suggestedAmount)}</span>
+                <span>{formatCurrency(availableAmount)}</span>
               </div>
             </div>
 
-            {/* Impact Preview - Only show if amount > 0 */}
             {amount > 0 && suggestion.impact && suggestion.currentPlan && suggestion.suggestedPlan && (
-              <div className="grid grid-cols-2 gap-4">
-                {/* Current Plan */}
-                <div className="p-4 bg-elevated border border-border rounded-lg">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 bg-muted/20 rounded">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-muted-foreground) 10%, transparent)' }}>
+                      <Clock className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />
                     </div>
-                    <span className="text-xs text-muted-foreground">Current Plan</span>
+                    <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--color-muted-foreground)' }}>Current Plan</span>
                   </div>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Debt-Free In</p>
-                      <p className="text-lg font-bold text-foreground">
-                        {suggestion.currentPlan.monthsToDebtFree} months
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(suggestion.currentPlan.debtFreeDate)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Total Interest</p>
-                      <p className="text-sm font-semibold text-muted-foreground">
-                        {formatCurrency(suggestion.currentPlan.totalInterest)}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>Debt-Free In</p>
+                    <p className="text-[16px] font-bold tabular-nums" style={{ color: 'var(--color-foreground)' }}>{suggestion.currentPlan.monthsToDebtFree} months</p>
+                    <p className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>{formatDate(suggestion.currentPlan.debtFreeDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>Total Interest</p>
+                    <p className="text-[13px] font-semibold tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>{formatCurrency(suggestion.currentPlan.totalInterest)}</p>
                   </div>
                 </div>
-
-                {/* New Plan */}
-                <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 bg-accent/20 rounded">
-                      <TrendingDown className="w-4 h-4 text-accent" />
+                <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 8%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 20%, transparent)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 15%, transparent)' }}>
+                      <TrendingDown className="w-3.5 h-3.5" style={{ color: 'var(--color-success)' }} />
                     </div>
-                    <span className="text-xs text-accent">With Surplus</span>
+                    <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--color-success)' }}>With Surplus</span>
                   </div>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Debt-Free In</p>
-                      <p className="text-lg font-bold text-accent">
-                        {suggestion.suggestedPlan.monthsToDebtFree} months
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(suggestion.suggestedPlan.debtFreeDate)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Total Interest</p>
-                      <p className="text-sm font-semibold text-accent">
-                        {formatCurrency(suggestion.suggestedPlan.totalInterest)}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>Debt-Free In</p>
+                    <p className="text-[16px] font-bold tabular-nums" style={{ color: 'var(--color-success)' }}>{suggestion.suggestedPlan.monthsToDebtFree} months</p>
+                    <p className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>{formatDate(suggestion.suggestedPlan.debtFreeDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>Total Interest</p>
+                    <p className="text-[13px] font-semibold tabular-nums" style={{ color: 'var(--color-success)' }}>{formatCurrency(suggestion.suggestedPlan.totalInterest)}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Savings Summary */}
             {amount > 0 && suggestion.impact && (
-              <div className="p-4 bg-elevated border border-border rounded-lg">
-                <div className="flex items-center gap-2 mb-3">
-                  <DollarSign className="w-5 h-5 text-accent" />
-                  <span className="text-sm font-semibold text-foreground">Impact</span>
+              <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="w-4 h-4" style={{ color: 'var(--color-success)' }} />
+                  <span className="text-[12px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Impact</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">Time Saved</p>
-                    <p className="text-lg font-bold text-accent">
-                      {suggestion.impact.monthsSaved} month{suggestion.impact.monthsSaved !== 1 ? 's' : ''}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {suggestion.impact.percentageFaster}% faster
-                    </p>
+                    <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Time Saved</p>
+                    <p className="text-[16px] font-bold tabular-nums" style={{ color: 'var(--color-success)' }}>{suggestion.impact.monthsSaved} month{suggestion.impact.monthsSaved !== 1 ? 's' : ''}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>{suggestion.impact.percentageFaster}% faster</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Interest Saved</p>
-                    <p className="text-lg font-bold text-accent">
-                      {formatCurrency(suggestion.impact.interestSaved)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Less interest paid</p>
+                    <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Interest Saved</p>
+                    <p className="text-[16px] font-bold tabular-nums" style={{ color: 'var(--color-success)' }}>{formatCurrency(suggestion.impact.interestSaved)}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Less interest paid</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                onClick={onClose}
-                variant="outline"
-                className="flex-1 border-border text-muted-foreground hover:bg-elevated"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleApply}
-                disabled={applying || amount <= 0}
-                className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-medium"
-              >
-                {applying ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Applying...
-                  </>
-                ) : (
-                  `Apply ${formatCurrency(amount)}`
-                )}
+            <div className="flex gap-2 pt-1">
+              <Button onClick={onClose} variant="outline" className="flex-1 h-9 text-[13px]">Cancel</Button>
+              <Button onClick={handleApply} disabled={applying || amount <= 0} className="flex-1 h-9 text-[13px]" style={{ backgroundColor: 'var(--color-success)', color: 'white' }}>
+                {applying ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Applying…</> : `Apply ${formatCurrency(amount)}`}
               </Button>
             </div>
           </div>

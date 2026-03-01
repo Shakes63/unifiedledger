@@ -23,7 +23,7 @@ export default function EditTransactionPage({ params }: EditTransactionPageProps
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
       <div className="max-w-2xl mx-auto p-6">
         <div className="mb-6 flex items-center justify-between">
           <Link href={`/dashboard/transactions/${resolvedParams.id}`}>
@@ -34,8 +34,8 @@ export default function EditTransactionPage({ params }: EditTransactionPageProps
           </Link>
         </div>
 
-        <Card className="border-border bg-card p-6">
-          <h1 className="text-2xl font-bold text-white mb-6">Edit Transaction</h1>
+        <Card className="p-6" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--color-foreground)' }}>Edit Transaction</h1>
           <TransactionForm transactionId={resolvedParams.id} onEditSuccess={handleEditSuccess} />
         </Card>
       </div>

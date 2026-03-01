@@ -111,8 +111,8 @@ export function DebtAmortizationSection({
   // No interest rate - don't show amortization
   if (debt.interestRate === 0) {
     return (
-      <div className={`p-4 bg-elevated border border-border rounded-lg ${className}`}>
-        <p className="text-sm text-muted-foreground text-center">
+      <div className={`p-4 rounded-lg ${className}`} style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+        <p className="text-sm text-center" style={{ color: 'var(--color-muted-foreground)' }}>
           This debt has no interest, so there&apos;s no amortization schedule to display.
         </p>
       </div>
@@ -122,10 +122,10 @@ export function DebtAmortizationSection({
   // Loading state
   if (loading) {
     return (
-      <div className={`p-8 bg-card border border-border rounded-lg ${className}`}>
+      <div className={`p-8 rounded-lg ${className}`} style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex flex-col items-center justify-center">
-          <Loader2 className="w-8 h-8 text-accent animate-spin mb-3" />
-          <p className="text-sm text-muted-foreground">Loading amortization schedule...</p>
+          <Loader2 className="w-8 h-8 animate-spin mb-3" style={{ color: 'var(--color-accent)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading amortization schedule...</p>
         </div>
       </div>
     );
@@ -134,11 +134,11 @@ export function DebtAmortizationSection({
   // Error state
   if (error || !strategy) {
     return (
-      <div className={`p-4 bg-error/10 border border-error/30 rounded-lg ${className}`}>
-        <p className="text-sm text-error">
+      <div className={`p-4 rounded-lg ${className}`} style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 30%, transparent)' }}>
+        <p className="text-sm" style={{ color: 'var(--color-destructive)' }}>
           {error || 'Unable to load amortization schedule'}
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           Try refreshing the page or contact support if the issue persists.
         </p>
       </div>

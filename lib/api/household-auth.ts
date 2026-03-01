@@ -43,6 +43,16 @@ export function getHouseholdIdFromRequest(
   const headerHouseholdId = request.headers.get('x-household-id');
   if (headerHouseholdId) return headerHouseholdId;
 
+  // Try query params (some GET endpoints pass householdId in URL)
+  try {
+    const url = new URL(request.url);
+    const queryHouseholdId =
+      url.searchParams.get('householdId') || url.searchParams.get('household_id');
+    if (queryHouseholdId) return queryHouseholdId;
+  } catch {
+    // Ignore URL parsing issues and continue fallback checks
+  }
+
   // Try body (for POST/PUT/DELETE requests)
   if (body?.householdId) return body.householdId;
 

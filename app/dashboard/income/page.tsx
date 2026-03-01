@@ -1,18 +1,15 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
-import { 
-  ArrowDownCircle, 
-  CheckCircle2, 
-  Clock, 
-  TrendingUp, 
-  Plus, 
-  ChevronLeft, 
-  ChevronRight,
-  AlertTriangle 
+import {
+  format, parseISO, differenceInDays, addDays,
+  startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth,
+} from 'date-fns';
+import {
+  ArrowDownCircle, CheckCircle2, Clock, TrendingUp,
+  Plus, ChevronLeft, ChevronRight, AlertTriangle,
+  ArrowLeft, Settings2,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -21,11 +18,9 @@ import { FREQUENCY_LABELS } from '@/lib/bills/bill-utils';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { QuickAddIncomeModal } from '@/components/income/quick-add-income-modal';
-import type {
-  BillOccurrenceWithTemplateDto,
-  BillTemplateDto,
-  RecurrenceType,
-} from '@/lib/bills/contracts';
+import type { BillOccurrenceWithTemplateDto, BillTemplateDto, RecurrenceType } from '@/lib/bills/contracts';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface IncomeInstance {
   id: string;
@@ -64,6 +59,8 @@ interface IncomeWithInstance extends IncomeSource {
   upcomingInstances?: IncomeInstance[];
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function toFrequency(recurrenceType: RecurrenceType): string {
   if (recurrenceType === 'one_time') return 'one-time';
   if (recurrenceType === 'semi_annual') return 'semi-annual';
@@ -71,12 +68,10 @@ function toFrequency(recurrenceType: RecurrenceType): string {
 }
 
 function toDueDateNumber(template: BillTemplateDto): number {
-  if (template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly') {
+  if (template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly')
     return template.recurrenceDueWeekday ?? 0;
-  }
-  if (template.recurrenceType === 'one_time') {
+  if (template.recurrenceType === 'one_time')
     return Number(template.recurrenceSpecificDueDate?.split('-')[2] || '1');
-  }
   return template.recurrenceDueDay ?? 1;
 }
 
@@ -100,24 +95,20 @@ function mapTemplateToIncomeSource(template: BillTemplateDto): IncomeWithInstanc
 }
 
 function mapOccurrenceRowsToIncomeInstances(rows: BillOccurrenceWithTemplateDto[]): IncomeInstance[] {
-  return rows.map((row) => ({
+  return rows.map(row => ({
     id: row.occurrence.id,
     userId: '',
     billId: row.occurrence.templateId,
     dueDate: row.occurrence.dueDate,
     expectedAmount: row.occurrence.amountDueCents / 100,
-    actualAmount:
-      row.occurrence.actualAmountCents !== null ? row.occurrence.actualAmountCents / 100 : null,
+    actualAmount: row.occurrence.actualAmountCents !== null ? row.occurrence.actualAmountCents / 100 : null,
     paidDate: row.occurrence.paidDate,
     transactionId: row.occurrence.lastTransactionId,
     status:
-      row.occurrence.status === 'paid' || row.occurrence.status === 'overpaid'
-        ? 'paid'
-        : row.occurrence.status === 'overdue'
-          ? 'overdue'
-          : row.occurrence.status === 'skipped'
-            ? 'skipped'
-            : 'pending',
+      row.occurrence.status === 'paid' || row.occurrence.status === 'overpaid' ? 'paid'
+      : row.occurrence.status === 'overdue' ? 'overdue'
+      : row.occurrence.status === 'skipped' ? 'skipped'
+      : 'pending',
     daysLate: row.occurrence.daysLate,
     notes: row.occurrence.notes,
     createdAt: row.occurrence.createdAt,
@@ -125,9 +116,199 @@ function mapOccurrenceRowsToIncomeInstances(rows: BillOccurrenceWithTemplateDto[
   }));
 }
 
+// ── Income row ────────────────────────────────────────────────────────────────
+
+function IncomeRow({
+  instance,
+  sources,
+  showDaysUntil = true,
+}: {
+  instance: IncomeInstance;
+  sources: IncomeWithInstance[];
+  showDaysUntil?: boolean;
+}) {
+  const dueDate   = parseISO(instance.dueDate);
+  const today     = new Date();
+  const daysUntil = differenceInDays(dueDate, today);
+  const source = sources.find(s => s.id === instance.billId);
+  const sourceName = source?.name || 'Unknown Source';
+
+  const isLate     = instance.status === 'overdue';
+  const isReceived = instance.status === 'paid';
+  const isPending  = instance.status === 'pending';
+
+  const DotIcon = isLate ? AlertTriangle : isReceived ? CheckCircle2 : ArrowDownCircle;
+  const dotColor = isLate ? 'var(--color-warning)'
+    : isReceived ? 'var(--color-income)'
+    : 'color-mix(in oklch, var(--color-income) 55%, transparent)';
+
+  let statusText = '';
+  let statusColor = 'var(--color-muted-foreground)';
+  if (isPending && showDaysUntil) {
+    if (daysUntil === 0)       { statusText = 'today';    statusColor = 'var(--color-income)'; }
+    else if (daysUntil === 1)  { statusText = 'tomorrow'; statusColor = 'var(--color-income)'; }
+    else if (daysUntil <= 5)   { statusText = `${daysUntil}d`;  statusColor = 'var(--color-income)'; }
+    else                       { statusText = `${daysUntil}d`; }
+  } else if (isLate) {
+    statusText = `${instance.daysLate}d late`;
+    statusColor = 'var(--color-warning)';
+  } else if (isReceived) {
+    statusText = 'Received';
+    statusColor = 'var(--color-income)';
+  }
+
+  return (
+    <Link href={`/dashboard/bills/${instance.billId}`}>
+      <div
+        className="group flex items-center gap-3 px-4 py-3 transition-colors"
+        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 50%, transparent)')}
+        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+      >
+        {/* Status icon */}
+        <DotIcon className="w-3.5 h-3.5 shrink-0" style={{ color: dotColor }} />
+
+        {/* Name + frequency badge */}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <span className="text-[13px] font-medium truncate" style={{ color: 'var(--color-foreground)' }}>
+            {sourceName}
+          </span>
+          {source?.frequency && (
+            <span
+              className="text-[10px] px-1.5 py-px rounded font-medium shrink-0"
+              style={{
+                backgroundColor: 'color-mix(in oklch, var(--color-income) 14%, transparent)',
+                color: 'var(--color-income)',
+              }}
+            >
+              {FREQUENCY_LABELS[source.frequency] || source.frequency}
+            </span>
+          )}
+          <EntityIdBadge id={instance.billId} label="Source" />
+          <EntityIdBadge id={instance.id} label="Instance" />
+        </div>
+
+        {/* Date */}
+        <span className="text-[11px] tabular-nums shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
+          {format(dueDate, 'MMM d')}
+        </span>
+
+        {/* Amount — always green, always + prefix */}
+        <span
+          className="text-[13px] font-mono tabular-nums font-semibold shrink-0 w-20 text-right"
+          style={{ color: 'var(--color-income)' }}
+        >
+          +${instance.expectedAmount.toFixed(2)}
+        </span>
+
+        {/* Status text */}
+        <span
+          className="text-[11px] font-mono tabular-nums shrink-0 w-16 text-right"
+          style={{ color: statusColor }}
+        >
+          {statusText}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+// ── Section container ─────────────────────────────────────────────────────────
+
+function SectionList({
+  label,
+  count,
+  totalAmount,
+  accentColor,
+  children,
+  emptyMessage,
+  monthNav,
+}: {
+  label: string;
+  count: number;
+  totalAmount: number;
+  accentColor: string;
+  children: React.ReactNode;
+  emptyMessage: string;
+  monthNav?: React.ReactNode;
+}) {
+  const isWarning = accentColor === 'var(--color-warning)';
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-2">
+        <span className="text-[11px] font-semibold uppercase tracking-widest shrink-0" style={{ color: accentColor }}>
+          {label}
+        </span>
+        <div className="flex-1 h-px" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 50%, transparent)' }} />
+        {monthNav}
+        <span className="text-[11px] font-mono tabular-nums shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
+          {count} source{count !== 1 ? 's' : ''}
+          {totalAmount > 0 && (
+            <span style={{ color: 'color-mix(in oklch, var(--color-muted-foreground) 55%, transparent)' }}>
+              {' '}· +${totalAmount.toFixed(0)}
+            </span>
+          )}
+        </span>
+      </div>
+
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{
+          border: `1px solid ${isWarning ? 'color-mix(in oklch, var(--color-warning) 30%, var(--color-border))' : 'var(--color-border)'}`,
+          backgroundColor: 'var(--color-background)',
+        }}
+      >
+        {count === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>{emptyMessage}</p>
+          </div>
+        ) : (
+          children
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Month nav ─────────────────────────────────────────────────────────────────
+
+function MonthNav({ month, onPrev, onNext, disablePrev }: {
+  month: Date; onPrev: () => void; onNext: () => void; disablePrev?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 shrink-0">
+      <button
+        onClick={onPrev} disabled={disablePrev}
+        className="w-5 h-5 flex items-center justify-center rounded disabled:opacity-30 transition-opacity"
+        style={{ color: 'var(--color-muted-foreground)' }}
+      >
+        <ChevronLeft className="w-3.5 h-3.5" />
+      </button>
+      <span className="text-[11px] tabular-nums min-w-[58px] text-center font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
+        {format(month, 'MMM yyyy')}
+      </span>
+      <button
+        onClick={onNext}
+        className="w-5 h-5 flex items-center justify-center rounded transition-opacity"
+        style={{ color: 'var(--color-muted-foreground)' }}
+      >
+        <ChevronRight className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function RowDivider() {
+  return (
+    <div className="mx-4" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 35%, transparent)' }} />
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function IncomeDashboard() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
+
   const [incomeSources, setIncomeSources] = useState<IncomeWithInstance[]>([]);
   const [incomeInstances, setIncomeInstances] = useState<IncomeInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,41 +327,28 @@ export default function IncomeDashboard() {
 
   const fetchData = useCallback(async () => {
     if (!selectedHouseholdId) return;
-
     try {
       setLoading(true);
+      const [sourcesRes, instancesRes] = await Promise.all([
+        fetchWithHousehold('/api/bills/templates?isActive=true&billType=income&limit=100'),
+        fetchWithHousehold('/api/bills/occurrences?billType=income&limit=1000'),
+      ]);
+      if (!sourcesRes.ok) throw new Error(`Failed to fetch income sources: ${sourcesRes.statusText}`);
+      if (!instancesRes.ok) throw new Error(`Failed to fetch income instances: ${instancesRes.statusText}`);
 
-      // Fetch active income sources (bills with billType=income)
-      const sourcesRes = await fetchWithHousehold('/api/bills/templates?isActive=true&billType=income&limit=100');
-      if (!sourcesRes.ok) {
-        throw new Error(`Failed to fetch income sources: ${sourcesRes.statusText}`);
-      }
       const sourcesData = await sourcesRes.json();
-
-      // Fetch all bill instances
-      const instancesRes = await fetchWithHousehold('/api/bills/occurrences?billType=income&limit=1000');
-      if (!instancesRes.ok) {
-        throw new Error(`Failed to fetch income instances: ${instancesRes.statusText}`);
-      }
       const instancesData = await instancesRes.json();
 
-      const incomeSourcesList = Array.isArray(sourcesData?.data)
+      const sourcesList = Array.isArray(sourcesData?.data)
         ? (sourcesData.data as BillTemplateDto[]).map(mapTemplateToIncomeSource)
         : [];
+      const sourceIds = new Set(sourcesList.map(s => s.id));
+      const rawInstances = (Array.isArray(instancesData?.data) ? instancesData.data : []) as BillOccurrenceWithTemplateDto[];
+      const instancesList = mapOccurrenceRowsToIncomeInstances(rawInstances).filter(i => sourceIds.has(i.billId));
 
-      // Get income source IDs
-      const incomeSourceIds = new Set(incomeSourcesList.map(s => s.id));
-
-      // Filter instances to income only
-      const rawInstances = (Array.isArray(instancesData?.data)
-        ? instancesData.data
-        : []) as BillOccurrenceWithTemplateDto[];
-      const allInstances = mapOccurrenceRowsToIncomeInstances(rawInstances)
-        .filter((instance) => incomeSourceIds.has(instance.billId));
-
-      setIncomeSources(incomeSourcesList);
-      setIncomeInstances(allInstances);
-      calculateStats(allInstances, incomeSourcesList);
+      setIncomeSources(sourcesList);
+      setIncomeInstances(instancesList);
+      calculateStats(instancesList, sourcesList);
     } catch (error) {
       console.error('Error fetching income data:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to load income sources');
@@ -192,21 +360,12 @@ export default function IncomeDashboard() {
   }, [selectedHouseholdId, fetchWithHousehold]);
 
   useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchData();
-    } else {
-      setLoading(false);
-    }
+    if (selectedHouseholdId) fetchData();
+    else setLoading(false);
   }, [selectedHouseholdId, fetchData]);
 
-  // Listen for income refresh events
   useEffect(() => {
-    const handleRefresh = () => {
-      if (selectedHouseholdId) {
-        fetchData();
-      }
-    };
-
+    const handleRefresh = () => { if (selectedHouseholdId) fetchData(); };
     window.addEventListener('income-refresh', handleRefresh);
     window.addEventListener('bills-refresh', handleRefresh);
     return () => {
@@ -221,158 +380,60 @@ export default function IncomeDashboard() {
     const monthStart = startOfMonth(today);
     const monthEnd = endOfMonth(today);
 
-    let totalExpected = 0;
-    let totalLate = 0;
-    let totalExpectedAmount = 0;
-    let totalLateAmount = 0;
-    let receivedThisMonth = 0;
-    let receivedThisMonthAmount = 0;
+    let totalExpected = 0, totalLate = 0, totalExpectedAmount = 0, totalLateAmount = 0;
+    let receivedThisMonth = 0, receivedThisMonthAmount = 0;
 
-    instances.forEach((instance) => {
-      const dueDate = parseISO(instance.dueDate);
-      const isPaid = instance.status === 'paid';
-      const isOverdue = instance.status === 'overdue';
-      const isPending = instance.status === 'pending';
-
-      if (isOverdue) {
-        totalLate++;
-        totalLateAmount += instance.expectedAmount;
+    instances.forEach(i => {
+      const due = parseISO(i.dueDate);
+      if (i.status === 'overdue') { totalLate++; totalLateAmount += i.expectedAmount; }
+      if (i.status === 'pending' && due <= thirtyDaysFromNow && due >= today) {
+        totalExpected++; totalExpectedAmount += i.expectedAmount;
       }
-
-      if (isPending && dueDate <= thirtyDaysFromNow && dueDate >= today) {
-        totalExpected++;
-        totalExpectedAmount += instance.expectedAmount;
-      }
-
-      if (isPaid && dueDate >= monthStart && dueDate <= monthEnd) {
-        receivedThisMonth++;
-        receivedThisMonthAmount += instance.actualAmount || instance.expectedAmount;
+      if (i.status === 'paid' && due >= monthStart && due <= monthEnd) {
+        receivedThisMonth++; receivedThisMonthAmount += i.actualAmount || i.expectedAmount;
       }
     });
 
-    setStats({
-      totalExpected,
-      totalLate,
-      totalExpectedAmount,
-      totalLateAmount,
-      receivedThisMonth,
-      receivedThisMonthAmount,
-      totalSources: sources.length,
-    });
+    setStats({ totalExpected, totalLate, totalExpectedAmount, totalLateAmount, receivedThisMonth, receivedThisMonthAmount, totalSources: sources.length });
   };
 
   const getExpectedIncome = () => {
-    const monthStart = startOfMonth(pendingMonth);
-    const monthEnd = endOfMonth(pendingMonth);
-
+    const s = startOfMonth(pendingMonth), e = endOfMonth(pendingMonth);
     return incomeInstances
-      .filter((instance) => {
-        const dueDate = parseISO(instance.dueDate);
-        return (
-          instance.status === 'pending' &&
-          dueDate >= monthStart &&
-          dueDate <= monthEnd
-        );
-      })
+      .filter(i => i.status === 'pending' && parseISO(i.dueDate) >= s && parseISO(i.dueDate) <= e)
       .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
   };
 
-  const getLateIncome = () => {
-    return incomeInstances
-      .filter((instance) => instance.status === 'overdue')
+  const getLateIncome = () =>
+    incomeInstances.filter(i => i.status === 'overdue')
       .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
-  };
 
   const getReceivedIncome = () => {
-    const monthStart = startOfMonth(receivedMonth);
-    const monthEnd = endOfMonth(receivedMonth);
-
+    const s = startOfMonth(receivedMonth), e = endOfMonth(receivedMonth);
     return incomeInstances
-      .filter((instance) => {
-        const dueDate = parseISO(instance.dueDate);
-        return (
-          instance.status === 'paid' &&
-          dueDate >= monthStart &&
-          dueDate <= monthEnd
-        );
-      })
+      .filter(i => i.status === 'paid' && parseISO(i.dueDate) >= s && parseISO(i.dueDate) <= e)
       .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
   };
 
-  const getSourceName = (billId: string) => {
-    const source = incomeSources.find((s) => s.id === billId);
-    return source?.name || 'Unknown Source';
-  };
-
-  const IncomeItem = ({ instance, showDaysUntil = true }: { instance: IncomeInstance; showDaysUntil?: boolean }) => {
-    const dueDate = parseISO(instance.dueDate);
-    const today = new Date();
-    const daysUntil = differenceInDays(dueDate, today);
-    const sourceName = getSourceName(instance.billId);
-    const source = incomeSources.find((s) => s.id === instance.billId);
-
-    return (
-      <Link href={`/dashboard/bills/${instance.billId}`}>
-        <div className="flex items-center justify-between p-3 bg-card border border-income/30 rounded-lg hover:bg-elevated transition-colors cursor-pointer">
-          <div className="flex items-start gap-3 flex-1">
-            <div className="mt-0.5">
-              {instance.status === 'paid' && (
-                <CheckCircle2 className="w-5 h-5 text-income" />
-              )}
-              {instance.status === 'overdue' && (
-                <AlertTriangle className="w-5 h-5 text-warning" />
-              )}
-              {instance.status === 'pending' && (
-                <ArrowDownCircle className="w-5 h-5 text-income/60" />
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-medium text-foreground">{sourceName}</p>
-                {source && source.frequency && (
-                  <span className="text-xs px-2 py-0.5 rounded-full border bg-income/10 text-income border-income/20">
-                    {FREQUENCY_LABELS[source.frequency] || source.frequency}
-                  </span>
-                )}
-                <EntityIdBadge id={instance.billId} label="Source" />
-                <EntityIdBadge id={instance.id} label="Instance" />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Expected: {format(dueDate, 'MMM d, yyyy')}
-              </p>
-              {instance.status === 'overdue' && instance.daysLate > 0 && (
-                <p className="text-sm text-warning">
-                  {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} late
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-medium text-income">
-              +${instance.expectedAmount.toFixed(2)}
-            </p>
-            {showDaysUntil && instance.status === 'pending' && (
-              <p className={`text-sm ${daysUntil <= 3 ? 'text-income' : 'text-muted-foreground'}`}>
-                {daysUntil === 0 && 'Expected today'}
-                {daysUntil === 1 && 'Expected tomorrow'}
-                {daysUntil > 1 && `${daysUntil} days`}
-              </p>
-            )}
-            {instance.status === 'paid' && (
-              <p className="text-sm text-income">Received</p>
-            )}
-          </div>
-        </div>
-      </Link>
-    );
-  };
-
+  // ── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="w-full p-6 space-y-4">
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-card rounded-lg" />
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              <div className="w-16 h-5 rounded animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            </div>
+            <div className="flex gap-2">
+              <div className="w-24 h-8 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            </div>
+          </div>
+        </div>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+          <div className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)' }} />
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-12 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', animationDelay: `${i * 50}ms` }} />
           ))}
         </div>
       </div>
@@ -380,216 +441,243 @@ export default function IncomeDashboard() {
   }
 
   const expectedIncome = getExpectedIncome();
-  const lateIncome = getLateIncome();
+  const lateIncome     = getLateIncome();
   const receivedIncome = getReceivedIncome();
 
+  const lateTotal     = lateIncome.reduce((s, i) => s + i.expectedAmount, 0);
+  const expectedTotal = expectedIncome.reduce((s, i) => s + i.expectedAmount, 0);
+  const receivedTotal = receivedIncome.reduce((s, i) => s + (i.actualAmount || i.expectedAmount), 0);
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Income</h1>
-            <p className="text-muted-foreground mt-2">Track your recurring income sources</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard/bills/new?billType=income">
-              <Button variant="outline" className="border-border text-muted-foreground hover:text-foreground">
-                Advanced
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+
+      {/* ── Sticky header ──────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
+        >
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+                  Income
+                </h1>
+                {stats.totalLate > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-px rounded-full"
+                    style={{
+                      backgroundColor: 'color-mix(in oklch, var(--color-warning) 18%, transparent)',
+                      color: 'var(--color-warning)',
+                    }}
+                  >
+                    {stats.totalLate} late
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard/bills/new?billType=income">
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5 text-xs hidden sm:flex">
+                  <Settings2 className="w-3.5 h-3.5" />
+                  Advanced
+                </Button>
+              </Link>
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 px-3 text-xs font-medium"
+                onClick={() => setQuickAddModalOpen(true)}
+                style={{ backgroundColor: 'var(--color-income)', color: 'white' }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Income
               </Button>
-            </Link>
-            <Button 
-              onClick={() => setQuickAddModalOpen(true)}
-              className="bg-income hover:opacity-90 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Income
-            </Button>
+            </div>
+          </div>
+        </div>
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-income) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
+        />
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+
+        {/* ── Stats strip ────────────────────────────────────────────────── */}
+        <div
+          className="rounded-xl px-4 py-3 flex items-center"
+          style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+        >
+          {/* Late */}
+          <div className="flex-1 text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-warning)' }}>
+              Late
+            </div>
+            <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: stats.totalLate > 0 ? 'var(--color-warning)' : 'var(--color-muted-foreground)' }}>
+              {stats.totalLate}
+            </div>
+            {stats.totalLateAmount > 0 && (
+              <div className="text-[10px] font-mono tabular-nums mt-0.5" style={{ color: 'var(--color-warning)' }}>
+                +${stats.totalLateAmount.toFixed(0)}
+              </div>
+            )}
+          </div>
+
+          <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+
+          {/* Expected soon */}
+          <div className="flex-1 text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'color-mix(in oklch, var(--color-income) 70%, var(--color-muted-foreground))' }}>
+              Expected
+            </div>
+            <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-foreground)' }}>
+              {stats.totalExpected}
+            </div>
+            {stats.totalExpectedAmount > 0 && (
+              <div className="text-[10px] font-mono tabular-nums mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+                +${stats.totalExpectedAmount.toFixed(0)}
+              </div>
+            )}
+          </div>
+
+          <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+
+          {/* Received */}
+          <div className="flex-1 text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-income)' }}>
+              Received
+            </div>
+            <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-foreground)' }}>
+              {stats.receivedThisMonth}
+            </div>
+            {stats.receivedThisMonthAmount > 0 && (
+              <div className="text-[10px] font-mono tabular-nums mt-0.5" style={{ color: 'var(--color-income)' }}>
+                +${stats.receivedThisMonthAmount.toFixed(0)}
+              </div>
+            )}
+          </div>
+
+          <div className="w-px h-8 self-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)' }} />
+
+          {/* Active sources */}
+          <div className="flex-1 text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
+              Sources
+            </div>
+            <div className="text-lg font-bold font-mono tabular-nums leading-none" style={{ color: 'var(--color-foreground)' }}>
+              {stats.totalSources}
+            </div>
+            <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
+              active
+            </div>
           </div>
         </div>
 
-        {/* Statistics Cards - Compact with inline layout on larger screens */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <div className="bg-card border border-income/30 rounded-lg px-3 py-2">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                <ArrowDownCircle className="w-3.5 h-3.5 text-income" />
-                Expected
-              </div>
-              <span className="text-lg md:text-base font-bold text-income">{stats.totalExpected}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 md:text-right">
-              +${stats.totalExpectedAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-            </p>
-          </div>
-
-          <div className="bg-card border border-warning/30 rounded-lg px-3 py-2">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                <Clock className="w-3.5 h-3.5 text-warning" />
-                Late
-              </div>
-              <span className="text-lg md:text-base font-bold text-warning">{stats.totalLate}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 md:text-right">
-              +${stats.totalLateAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-            </p>
-          </div>
-
-          <div className="bg-card border border-income/30 rounded-lg px-3 py-2">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                <CheckCircle2 className="w-3.5 h-3.5 text-income" />
-                Received
-              </div>
-              <span className="text-lg md:text-base font-bold text-income">{stats.receivedThisMonth}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 md:text-right">
-              +${stats.receivedThisMonthAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-            </p>
-          </div>
-
-          <div className="bg-card border border-income/30 rounded-lg px-3 py-2">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                <TrendingUp className="w-3.5 h-3.5 text-income" />
-                Sources
-              </div>
-              <span className="text-lg md:text-base font-bold text-income">{stats.totalSources}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 md:text-right">
-              Active streams
-            </p>
-          </div>
-        </div>
-
-        {/* Late Income Section */}
+        {/* ── Late Income ─────────────────────────────────────────────────── */}
         {lateIncome.length > 0 && (
-          <Card className="bg-background border-warning/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-warning">
-                <AlertTriangle className="w-5 h-5" />
-                Late Income
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                {lateIncome.length} income source{lateIncome.length !== 1 ? 's' : ''} not yet received
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {lateIncome.map((instance) => (
-                <IncomeItem key={instance.id} instance={instance} showDaysUntil={false} />
-              ))}
-            </CardContent>
-          </Card>
+          <SectionList
+            label="Late"
+            count={lateIncome.length}
+            totalAmount={lateTotal}
+            accentColor="var(--color-warning)"
+            emptyMessage="No late income"
+          >
+            {lateIncome.map((instance, i) => (
+              <div key={instance.id}>
+                <IncomeRow instance={instance} sources={incomeSources} showDaysUntil={false} />
+                {i < lateIncome.length - 1 && <RowDivider />}
+              </div>
+            ))}
+          </SectionList>
         )}
 
-        {/* Expected Income Section */}
-        <Card className="bg-background border-income/30">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <ArrowDownCircle className="w-5 h-5 text-income" />
-                Expected Income ({format(pendingMonth, 'MMMM yyyy')})
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPendingMonth(subMonths(pendingMonth, 1))}
-                  disabled={isSameMonth(pendingMonth, new Date())}
-                  className="text-muted-foreground hover:text-foreground hover:bg-elevated disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Previous month"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPendingMonth(addMonths(pendingMonth, 1))}
-                  className="text-muted-foreground hover:text-foreground hover:bg-elevated"
-                  aria-label="Next month"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+        {/* ── Expected Income ─────────────────────────────────────────────── */}
+        <SectionList
+          label="Expected"
+          count={expectedIncome.length}
+          totalAmount={expectedTotal}
+          accentColor="var(--color-income)"
+          emptyMessage={`No expected income in ${format(pendingMonth, 'MMMM yyyy')}`}
+          monthNav={
+            <MonthNav
+              month={pendingMonth}
+              onPrev={() => setPendingMonth(subMonths(pendingMonth, 1))}
+              onNext={() => setPendingMonth(addMonths(pendingMonth, 1))}
+              disablePrev={isSameMonth(pendingMonth, new Date())}
+            />
+          }
+        >
+          {expectedIncome.map((instance, i) => (
+            <div key={instance.id}>
+              <IncomeRow instance={instance} sources={incomeSources} />
+              {i < expectedIncome.length - 1 && <RowDivider />}
             </div>
-            <CardDescription className="text-muted-foreground">
-              {expectedIncome.length > 0
-                ? `${expectedIncome.length} income source${expectedIncome.length !== 1 ? 's' : ''} expected`
-                : `No expected income in ${format(pendingMonth, 'MMMM yyyy')}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {expectedIncome.length > 0 ? (
-              expectedIncome.map((instance) => (
-                <IncomeItem key={instance.id} instance={instance} />
-              ))
-            ) : (
-              <p className="text-center text-muted-foreground py-8">
-                No expected income in {format(pendingMonth, 'MMMM yyyy')}.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+          ))}
+        </SectionList>
 
-        {/* Received Income Section */}
-        <Card className="bg-background border-income/30">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-income" />
-                Received Income ({format(receivedMonth, 'MMMM yyyy')})
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setReceivedMonth(subMonths(receivedMonth, 1))}
-                  className="text-muted-foreground hover:text-foreground hover:bg-elevated"
-                  aria-label="Previous month"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setReceivedMonth(addMonths(receivedMonth, 1))}
-                  className="text-muted-foreground hover:text-foreground hover:bg-elevated"
-                  aria-label="Next month"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+        {/* ── Received Income ─────────────────────────────────────────────── */}
+        <SectionList
+          label="Received"
+          count={receivedIncome.length}
+          totalAmount={receivedTotal}
+          accentColor="var(--color-success)"
+          emptyMessage={`No income received in ${format(receivedMonth, 'MMMM yyyy')}`}
+          monthNav={
+            <MonthNav
+              month={receivedMonth}
+              onPrev={() => setReceivedMonth(subMonths(receivedMonth, 1))}
+              onNext={() => setReceivedMonth(addMonths(receivedMonth, 1))}
+            />
+          }
+        >
+          {receivedIncome.map((instance, i) => (
+            <div key={instance.id}>
+              <IncomeRow instance={instance} sources={incomeSources} showDaysUntil={false} />
+              {i < receivedIncome.length - 1 && <RowDivider />}
             </div>
-            <CardDescription className="text-muted-foreground">
-              {receivedIncome.length > 0
-                ? `${receivedIncome.length} income source${receivedIncome.length !== 1 ? 's' : ''} received`
-                : `No income received in ${format(receivedMonth, 'MMMM yyyy')}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {receivedIncome.length > 0 ? (
-              receivedIncome.map((instance) => (
-                <IncomeItem key={instance.id} instance={instance} showDaysUntil={false} />
-              ))
-            ) : (
-              <p className="text-center text-muted-foreground py-8">
-                No income was received in {format(receivedMonth, 'MMMM yyyy')}.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          ))}
+        </SectionList>
 
-      {/* Quick Add Income Modal */}
+        {/* Empty state — no income sources at all */}
+        {stats.totalSources === 0 && !loading && (
+          <div
+            className="rounded-xl py-16 text-center"
+            style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+          >
+            <div
+              className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
+              style={{ backgroundColor: 'color-mix(in oklch, var(--color-income) 12%, transparent)' }}
+            >
+              <TrendingUp className="w-5 h-5" style={{ color: 'var(--color-income)' }} />
+            </div>
+            <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No income sources yet</p>
+            <p className="text-sm mb-5" style={{ color: 'var(--color-muted-foreground)' }}>
+              Add your recurring income sources to track expected payments.
+            </p>
+            <Button
+              size="sm"
+              onClick={() => setQuickAddModalOpen(true)}
+              style={{ backgroundColor: 'var(--color-income)', color: 'white' }}
+            >
+              Add Income Source
+            </Button>
+          </div>
+        )}
+      </main>
+
       <QuickAddIncomeModal
         open={quickAddModalOpen}
         onOpenChange={setQuickAddModalOpen}
-        onIncomeCreated={() => {
-          window.dispatchEvent(new CustomEvent('income-refresh'));
-        }}
+        onIncomeCreated={() => window.dispatchEvent(new CustomEvent('income-refresh'))}
       />
     </div>
   );
 }
-

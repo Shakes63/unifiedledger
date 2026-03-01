@@ -105,8 +105,8 @@ export function ColumnMapper({
         </CardHeader>
         <CardContent className="space-y-2">
           {mappings.map((mapping) => (
-            <div key={mapping.csvColumn} className="space-y-2 p-2 bg-elevated rounded-lg border border-border">
-              <div className="text-xs font-medium text-foreground truncate">
+            <div key={mapping.csvColumn} className="space-y-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+              <div className="text-xs font-medium truncate" style={{ color: 'var(--color-foreground)' }}>
                 {mapping.csvColumn}
               </div>
 
@@ -117,7 +117,7 @@ export function ColumnMapper({
                     updateMapping(mapping.csvColumn, 'appField', value)
                   }
                 >
-                  <SelectTrigger className="bg-card h-8 text-xs">
+                  <SelectTrigger className="h-8 text-xs" style={{ backgroundColor: 'var(--color-background)' }}>
                     <SelectValue placeholder="Select field" />
                   </SelectTrigger>
                   <SelectContent>
@@ -139,7 +139,7 @@ export function ColumnMapper({
                     )
                   }
                 >
-                  <SelectTrigger className="bg-card h-8 text-xs">
+                  <SelectTrigger className="h-8 text-xs" style={{ backgroundColor: 'var(--color-background)' }}>
                     <SelectValue placeholder="Transform" />
                   </SelectTrigger>
                   <SelectContent>
@@ -164,15 +164,16 @@ export function ColumnMapper({
           ))}
 
           {unmappedColumns.length > 0 && (
-            <div className="space-y-2 pt-2 mt-2 border-t border-border">
-              <div className="text-xs text-muted-foreground">Unmapped columns:</div>
+            <div className="space-y-2 pt-2 mt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Unmapped columns:</div>
               <div className="max-h-32 overflow-y-auto space-y-1">
                 {unmappedColumns.map((column) => (
                   <div
                     key={column}
-                    className="flex items-center justify-between p-2 bg-card rounded text-xs"
+                    className="flex items-center justify-between p-2 rounded text-xs"
+                    style={{ backgroundColor: 'var(--color-background)' }}
                   >
-                    <span className="text-muted-foreground truncate flex-1 mr-2">{column}</span>
+                    <span className="truncate flex-1 mr-2" style={{ color: 'var(--color-muted-foreground)' }}>{column}</span>
                     <Button
                       variant="outline"
                       size="sm"
@@ -189,7 +190,7 @@ export function ColumnMapper({
         </CardContent>
       </Card>
 
-      <div className="text-xs text-muted-foreground px-1">
+      <div className="text-xs px-1" style={{ color: 'var(--color-muted-foreground)' }}>
         <strong>Mapped:</strong> {mappings.length}/{headers.length} columns
       </div>
     </div>

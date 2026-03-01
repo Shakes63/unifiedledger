@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import { ArrowLeft, CalendarDays, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { CalendarHeader } from '@/components/calendar/calendar-header';
 import { CalendarMonth } from '@/components/calendar/calendar-month';
 import { CalendarWeek } from '@/components/calendar/calendar-week';
 import { CalendarDayModal } from '@/components/calendar/calendar-day-modal';
-import { Loader2 } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface GoalSummary {
@@ -69,9 +71,9 @@ interface DayTransactionSummary {
   totalSpent: number;
   billDueCount: number;
   billOverdueCount: number;
-  bills?: Array<{ 
-    name: string; 
-    status: string; 
+  bills?: Array<{
+    name: string;
+    status: string;
     amount: number;
     isDebt?: boolean;
     isAutopayEnabled?: boolean;
@@ -181,13 +183,9 @@ export default function CalendarPage() {
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
-  const [daySummaries, setDaySummaries] = useState<
-    Record<string, DayTransactionSummary>
-  >({});
+  const [daySummaries, setDaySummaries] = useState<Record<string, DayTransactionSummary>>({});
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [selectedDayTransactions, setSelectedDayTransactions] = useState<
-    Transaction[]
-  >([]);
+  const [selectedDayTransactions, setSelectedDayTransactions] = useState<Transaction[]>([]);
   const [selectedDayBills, setSelectedDayBills] = useState<Bill[]>([]);
   const [selectedDayGoals, setSelectedDayGoals] = useState<Goal[]>([]);
   const [selectedDayDebts, setSelectedDayDebts] = useState<Debt[]>([]);
@@ -208,15 +206,11 @@ export default function CalendarPage() {
     const loadCalendarData = async () => {
       try {
         setIsLoading(true);
-
         const monthStart = startOfMonth(currentDate);
         const monthEnd = endOfMonth(currentDate);
-
-        // Fetch month summary
         const response = await fetchWithHousehold(
           `/api/calendar/month?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`
         );
-
         if (response.ok) {
           const data = await response.json();
           setDaySummaries(data.daySummaries || {});
@@ -233,14 +227,10 @@ export default function CalendarPage() {
 
   const handleDayClick = async (date: Date) => {
     if (!selectedHouseholdId) return;
-
     try {
       setIsLoading(true);
       setSelectedDay(date);
-
-      // Fetch day details
       const response = await fetchWithHousehold(`/api/calendar/day?date=${date.toISOString()}`);
-
       if (response.ok) {
         const data = await response.json();
         setSelectedDayTransactions(data.transactions || []);
@@ -261,65 +251,98 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <CalendarHeader
-        currentDate={currentDate}
-        onDateChange={setCurrentDate}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
-
-      {!selectedHouseholdId && (
-        <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-          Select a household to view calendar data.
-        </div>
-      )}
-
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        </div>
-      )}
-
-      {/* Calendar View */}
-      {!isLoading && selectedHouseholdId && (
-        <>
-          {viewMode === 'month' ? (
-            <CalendarMonth
-              currentMonth={currentDate}
-              daySummaries={daySummaries}
-              onDayClick={handleDayClick}
-            />
-          ) : (
-            <CalendarWeek
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
+        >
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>Calendar</h1>
+            </div>
+            <CalendarHeader
               currentDate={currentDate}
-              daySummaries={daySummaries}
-              onDayClick={handleDayClick}
+              onDateChange={setCurrentDate}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
             />
-          )}
-        </>
-      )}
-
-      {/* Day Detail Modal */}
-      {selectedDay && (
-        <CalendarDayModal
-          open={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          date={selectedDay}
-          transactions={selectedDayTransactions}
-          bills={selectedDayBills}
-          goals={selectedDayGoals}
-          debts={selectedDayDebts}
-          autopayEvents={selectedDayAutopay}
-          payoffDates={selectedDayPayoffDates}
-          billMilestones={selectedDayBillMilestones}
-          transactionCounts={selectedDayInfo || undefined}
+          </div>
+        </div>
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-primary) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
         />
-      )}
-      </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {!selectedHouseholdId && (
+          <div
+            className="rounded-xl border py-16 text-center"
+            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-background)' }}
+          >
+            <div
+              className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
+              style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)' }}
+            >
+              <CalendarDays className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+            </div>
+            <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No household selected</p>
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Select a household to view calendar data.</p>
+          </div>
+        )}
+
+        {/* Loading */}
+        {isLoading && selectedHouseholdId && (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-primary)' }} />
+          </div>
+        )}
+
+        {/* Calendar View */}
+        {!isLoading && selectedHouseholdId && (
+          <>
+            {viewMode === 'month' ? (
+              <CalendarMonth
+                currentMonth={currentDate}
+                daySummaries={daySummaries}
+                onDayClick={handleDayClick}
+              />
+            ) : (
+              <CalendarWeek
+                currentDate={currentDate}
+                daySummaries={daySummaries}
+                onDayClick={handleDayClick}
+              />
+            )}
+          </>
+        )}
+
+        {/* Day Detail Modal */}
+        {selectedDay && (
+          <CalendarDayModal
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
+            date={selectedDay}
+            transactions={selectedDayTransactions}
+            bills={selectedDayBills}
+            goals={selectedDayGoals}
+            debts={selectedDayDebts}
+            autopayEvents={selectedDayAutopay}
+            payoffDates={selectedDayPayoffDates}
+            billMilestones={selectedDayBillMilestones}
+            transactionCounts={selectedDayInfo || undefined}
+          />
+        )}
+      </main>
     </div>
   );
 }

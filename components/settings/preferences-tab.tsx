@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Globe, Hash, CalendarDays, Landmark, CheckCircle2 } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Account {
@@ -29,26 +29,72 @@ interface PreferencesData {
 }
 
 const CURRENCIES = [
-  { value: 'USD', label: 'USD - US Dollar ($)' },
-  { value: 'EUR', label: 'EUR - Euro (€)' },
-  { value: 'GBP', label: 'GBP - British Pound (£)' },
-  { value: 'CAD', label: 'CAD - Canadian Dollar (C$)' },
-  { value: 'AUD', label: 'AUD - Australian Dollar (A$)' },
-  { value: 'JPY', label: 'JPY - Japanese Yen (¥)' },
+  { value: 'USD', label: 'USD — US Dollar ($)'       },
+  { value: 'EUR', label: 'EUR — Euro (€)'            },
+  { value: 'GBP', label: 'GBP — British Pound (£)'   },
+  { value: 'CAD', label: 'CAD — Canadian Dollar (C$)' },
+  { value: 'AUD', label: 'AUD — Australian Dollar (A$)' },
+  { value: 'JPY', label: 'JPY — Japanese Yen (¥)'    },
 ];
 
 const DATE_FORMATS = [
-  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY (12/31/2025)' },
-  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY (31/12/2025)' },
-  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (2025-12-31)' },
+  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY  ·  12/31/2025' },
+  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY  ·  31/12/2025' },
+  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD  ·  2025-12-31' },
 ];
 
 const NUMBER_FORMATS = [
-  { value: 'en-US', label: '1,000.00 (US)' },
-  { value: 'en-GB', label: '1,000.00 (UK)' },
-  { value: 'de-DE', label: '1.000,00 (Germany)' },
-  { value: 'fr-FR', label: '1 000,00 (France)' },
+  { value: 'en-US', label: '1,000.00  ·  US'     },
+  { value: 'en-GB', label: '1,000.00  ·  UK'     },
+  { value: 'de-DE', label: '1.000,00  ·  Germany' },
+  { value: 'fr-FR', label: '1 000,00  ·  France'  },
 ];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  footer,
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+      </div>
+      <div className="px-4 py-4 space-y-4">{children}</div>
+      {footer && (
+        <div className="px-4 py-3 flex items-center justify-end gap-2" style={{ borderTop: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 35%, transparent)' }}>
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, helper, id, children }: { label: string; helper?: string; id?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      {id
+        ? <Label htmlFor={id} className="text-[11px] font-medium uppercase tracking-wide block" style={{ color: 'var(--color-muted-foreground)' }}>{label}</Label>
+        : <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>{label}</p>
+      }
+      {children}
+      {helper && <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>{helper}</p>}
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function PreferencesTab() {
   const [loading, setLoading] = useState(true);
@@ -65,33 +111,27 @@ export function PreferencesTab() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch settings (user-level, doesn't need household)
-      const settingsResponse = await fetch('/api/user/settings', { credentials: 'include' });
-      if (settingsResponse.ok) {
-        const settingsData = await settingsResponse.json();
+      const settingsRes = await fetch('/api/user/settings', { credentials: 'include' });
+      if (settingsRes.ok) {
+        const d = await settingsRes.json();
         setPreferences({
-          currency: settingsData.settings.currency || 'USD',
-          dateFormat: settingsData.settings.dateFormat || 'MM/DD/YYYY',
-          numberFormat: settingsData.settings.numberFormat || 'en-US',
-          defaultAccountId: settingsData.settings.defaultAccountId || null,
-          firstDayOfWeek: settingsData.settings.firstDayOfWeek || 'sunday',
+          currency:         d.settings.currency         || 'USD',
+          dateFormat:       d.settings.dateFormat       || 'MM/DD/YYYY',
+          numberFormat:     d.settings.numberFormat     || 'en-US',
+          defaultAccountId: d.settings.defaultAccountId || null,
+          firstDayOfWeek:   d.settings.firstDayOfWeek  || 'sunday',
         });
       }
-
-      // Fetch accounts (requires household context)
       if (selectedHouseholdId) {
-        const accountsResponse = await fetchWithHousehold('/api/accounts');
-        if (accountsResponse.ok) {
-          const accountsData = await accountsResponse.json();
-          // Handle both array response and { accounts: [] } response
-          const accountsList = Array.isArray(accountsData) ? accountsData : (accountsData.accounts || []);
-          setAccounts(accountsList);
+        const accRes = await fetchWithHousehold('/api/accounts');
+        if (accRes.ok) {
+          const d = await accRes.json();
+          const list = Array.isArray(d) ? d : (d.accounts || []);
+          setAccounts(list);
         }
       }
-    } catch (error) {
-      console.error('Error fetching preferences:', error);
-      // Don't show error toast for household fetch issues
-      if (!(error instanceof Error && error.message === 'No household selected')) {
+    } catch (e) {
+      if (!(e instanceof Error && e.message === 'No household selected')) {
         toast.error('Failed to load preferences');
       }
     } finally {
@@ -99,197 +139,125 @@ export function PreferencesTab() {
     }
   }, [fetchWithHousehold, selectedHouseholdId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/user/settings', {
+      const res = await fetch('/api/user/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(preferences),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to save preferences');
-      }
-
-      toast.success('Preferences saved successfully');
-    } catch (error) {
-      console.error('Error saving preferences:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save preferences');
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
+      toast.success('Preferences saved');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save preferences');
     } finally {
       setSaving(false);
     }
   };
 
+  const sel = (id: string) => ({
+    id,
+    name: id,
+    className: 'h-9 text-[13px]',
+    style: { backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' },
+  });
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-4">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-40 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', animationDelay: `${i * 80}ms` }} />
+        ))}
       </div>
     );
   }
 
+  const saveFooter = (
+    <Button onClick={handleSave} disabled={saving} size="sm" className="text-[12px] h-8 px-4 font-medium" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+      {saving
+        ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving…</>
+        : <><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Save Preferences</>
+      }
+    </Button>
+  );
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">Preferences</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Your global display preferences that apply across all households
-        </p>
-      </div>
+    <div className="space-y-4">
 
-      <div className="space-y-6">
-        {/* Currency */}
-        <div className="space-y-2">
-          <Label htmlFor="currency" className="text-foreground">Default Currency</Label>
-          <Select
-            value={preferences.currency}
-            onValueChange={(value) => setPreferences({ ...preferences, currency: value })}
-          >
-            <SelectTrigger
-              id="currency"
-              name="currency"
-              aria-label="Select default currency"
-              className="bg-background border-border text-foreground"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CURRENCIES.map((currency) => (
-                <SelectItem key={currency.value} value={currency.value}>
-                  {currency.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            Currency used for displaying amounts throughout the app
-          </p>
+      {/* ── Regional & Format ────────────────────────────────────────── */}
+      <Section icon={Globe} label="Regional & Format" footer={saveFooter}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Default Currency" helper="Currency used for displaying amounts throughout the app." id="currency">
+            <Select value={preferences.currency} onValueChange={v => setPreferences({ ...preferences, currency: v })}>
+              <SelectTrigger {...sel('currency')} aria-label="Select default currency">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Number Format" id="numberFormat">
+            <Select value={preferences.numberFormat} onValueChange={(v: PreferencesData['numberFormat']) => setPreferences({ ...preferences, numberFormat: v })}>
+              <SelectTrigger {...sel('numberFormat')} aria-label="Select number format">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {NUMBER_FORMATS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Date Format" id="dateFormat">
+            <Select value={preferences.dateFormat} onValueChange={(v: PreferencesData['dateFormat']) => setPreferences({ ...preferences, dateFormat: v })}>
+              <SelectTrigger {...sel('dateFormat')} aria-label="Select date format">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_FORMATS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Start of Week" helper="First day of week for calendar views." id="firstDayOfWeek">
+            <Select value={preferences.firstDayOfWeek} onValueChange={(v: PreferencesData['firstDayOfWeek']) => setPreferences({ ...preferences, firstDayOfWeek: v })}>
+              <SelectTrigger {...sel('firstDayOfWeek')} aria-label="Select first day of week">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sunday">Sunday</SelectItem>
+                <SelectItem value="monday">Monday</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
         </div>
+      </Section>
 
-        {/* Date Format */}
-        <div className="space-y-2">
-          <Label htmlFor="dateFormat" className="text-foreground">Date Format</Label>
-          <Select
-            value={preferences.dateFormat}
-            onValueChange={(value: PreferencesData['dateFormat']) => setPreferences({ ...preferences, dateFormat: value })}
-          >
-            <SelectTrigger
-              id="dateFormat"
-              name="dateFormat"
-              aria-label="Select date format"
-              className="bg-background border-border text-foreground"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DATE_FORMATS.map((format) => (
-                <SelectItem key={format.value} value={format.value}>
-                  {format.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Number Format */}
-        <div className="space-y-2">
-          <Label htmlFor="numberFormat" className="text-foreground">Number Format</Label>
-          <Select
-            value={preferences.numberFormat}
-            onValueChange={(value: PreferencesData['numberFormat']) => setPreferences({ ...preferences, numberFormat: value })}
-          >
-            <SelectTrigger
-              id="numberFormat"
-              name="numberFormat"
-              aria-label="Select number format"
-              className="bg-background border-border text-foreground"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {NUMBER_FORMATS.map((format) => (
-                <SelectItem key={format.value} value={format.value}>
-                  {format.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Default Account */}
-        <div className="space-y-2">
-          <Label htmlFor="defaultAccount" className="text-foreground">Default Account</Label>
-          <Select
-            value={preferences.defaultAccountId || 'none'}
-            onValueChange={(value) =>
-              setPreferences({ ...preferences, defaultAccountId: value === 'none' ? null : value })
-            }
-          >
-            <SelectTrigger
-              id="defaultAccount"
-              name="defaultAccount"
-              aria-label="Select default account"
-              className="bg-background border-border text-foreground"
-            >
+      {/* ── Defaults ─────────────────────────────────────────────────── */}
+      <Section icon={Landmark} label="Defaults" footer={saveFooter}>
+        <Field label="Default Account" helper="Account pre-selected when creating transactions." id="defaultAccount">
+          <Select value={preferences.defaultAccountId || 'none'} onValueChange={v => setPreferences({ ...preferences, defaultAccountId: v === 'none' ? null : v })}>
+            <SelectTrigger {...sel('defaultAccount')} aria-label="Select default account">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">No default account</SelectItem>
-              {accounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.name} ({account.type})
+              {accounts.map(a => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name} <span style={{ opacity: 0.6 }}>· {a.type}</span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            Account pre-selected when creating transactions
-          </p>
-        </div>
+        </Field>
+      </Section>
 
-        {/* Start of Week */}
-        <div className="space-y-2">
-          <Label htmlFor="firstDayOfWeek" className="text-foreground">Start of Week</Label>
-          <Select
-            value={preferences.firstDayOfWeek}
-            onValueChange={(value: PreferencesData['firstDayOfWeek']) =>
-              setPreferences({ ...preferences, firstDayOfWeek: value })
-            }
-          >
-            <SelectTrigger
-              id="firstDayOfWeek"
-              name="firstDayOfWeek"
-              aria-label="Select first day of week"
-              className="bg-background border-border text-foreground"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sunday">Sunday</SelectItem>
-              <SelectItem value="monday">Monday</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">First day of week for calendar views</p>
-        </div>
-
-        {/* Save Button */}
-        <div className="pt-4">
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-primary hover:bg-primary/90"
-          >
-            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save Preferences
-          </Button>
-        </div>
-      </div>
+      {/* Suppress unused icon imports */}
+      <span className="hidden"><Hash /><CalendarDays /></span>
     </div>
   );
 }

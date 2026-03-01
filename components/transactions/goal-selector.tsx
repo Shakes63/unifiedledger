@@ -213,8 +213,8 @@ export function GoalSelector({
   if (loading) {
     return (
       <div className="space-y-2">
-        <Label className="text-muted-foreground text-sm">Savings Goal</Label>
-        <div className="h-10 bg-elevated border border-border rounded-md animate-pulse" />
+        <Label className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Savings Goal</Label>
+        <div className="h-10 rounded-md animate-pulse" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }} />
       </div>
     );
   }
@@ -227,11 +227,11 @@ export function GoalSelector({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-primary" />
-          <Label className="text-muted-foreground text-sm">
+          <Target className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+          <Label className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
             Link to Savings Goal
             {hasLinkedGoals && (
-              <span className="ml-2 text-xs text-primary">
+              <span className="ml-2 text-xs" style={{ color: 'var(--color-primary)' }}>
                 (Account has linked goal{linkedGoals.length > 1 ? 's' : ''})
               </span>
             )}
@@ -239,7 +239,7 @@ export function GoalSelector({
         </div>
         {multiSelect && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Split</span>
+            <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Split</span>
             <Switch
               checked={isSplitMode}
               onCheckedChange={handleToggleSplitMode}
@@ -256,23 +256,23 @@ export function GoalSelector({
           onValueChange={handleSingleSelect}
           disabled={disabled}
         >
-          <SelectTrigger className="bg-elevated border-border text-foreground">
+          <SelectTrigger style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
             <SelectValue placeholder="Select a goal (optional)" />
           </SelectTrigger>
-          <SelectContent className="bg-card border-border">
-            <SelectItem value="none" className="text-muted-foreground">
+          <SelectContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+            <SelectItem value="none" style={{ color: 'var(--color-muted-foreground)' }}>
               No goal
             </SelectItem>
             {hasLinkedGoals && (
               <>
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-elevated">
+                <div className="px-2 py-1.5 text-xs font-semibold" style={{ color: 'var(--color-muted-foreground)', backgroundColor: 'var(--color-elevated)' }}>
                   Linked to this account
                 </div>
                 {linkedGoals.map((goal) => (
                   <GoalSelectItem key={goal.id} goal={goal} />
                 ))}
                 {goals.filter((g) => !linkedGoals.includes(g)).length > 0 && (
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-elevated">
+                  <div className="px-2 py-1.5 text-xs font-semibold" style={{ color: 'var(--color-muted-foreground)', backgroundColor: 'var(--color-elevated)' }}>
                     Other goals
                   </div>
                 )}
@@ -287,9 +287,9 @@ export function GoalSelector({
         </Select>
       ) : (
         // Split mode - multiple goals
-        <div className="space-y-3 bg-elevated/50 border border-border rounded-lg p-3">
+        <div className="space-y-3 rounded-lg p-3" style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 50%, transparent)', border: '1px solid var(--color-border)' }}>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground flex items-center gap-2">
+            <span className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
               <Split className="w-4 h-4" />
               Split contribution across goals
             </span>
@@ -299,7 +299,8 @@ export function GoalSelector({
                 size="sm"
                 variant="ghost"
                 onClick={handleDistributeEqually}
-                className="text-xs text-primary hover:text-primary"
+                className="text-xs"
+                style={{ color: 'var(--color-primary)' }}
               >
                 Split Equally
               </Button>
@@ -314,13 +315,13 @@ export function GoalSelector({
               return (
                 <div
                   key={goalId}
-                  className="flex items-center gap-2 bg-card border border-border rounded-md p-2"
+                  className="flex items-center gap-2 rounded-md p-2" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
                 >
                   <div
                     className="w-3 h-3 rounded-full shrink-0"
                     style={{ backgroundColor: goal.color }}
                   />
-                  <span className="text-sm text-foreground flex-1 truncate">
+                  <span className="text-sm flex-1 truncate" style={{ color: 'var(--color-foreground)' }}>
                     {goal.name}
                   </span>
                   <Input
@@ -330,7 +331,7 @@ export function GoalSelector({
                     placeholder="0.00"
                     step="0.01"
                     min="0"
-                    className="w-24 h-8 text-sm bg-elevated border-border text-foreground"
+                    className="w-24 h-8 text-sm" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                     disabled={disabled}
                   />
                   <Button
@@ -338,7 +339,8 @@ export function GoalSelector({
                     size="icon"
                     variant="ghost"
                     onClick={() => handleRemoveGoalFromSplit(goalId)}
-                    className="h-8 w-8 text-muted-foreground hover:text-error"
+                    className="h-8 w-8 hover:opacity-80"
+                    style={{ color: 'var(--color-muted-foreground)' }}
                     disabled={disabled}
                   >
                     <X className="w-4 h-4" />
@@ -354,13 +356,13 @@ export function GoalSelector({
             onValueChange={handleAddGoalToSplit}
             disabled={disabled || Object.keys(splitAmounts).length >= goals.length}
           >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
+            <SelectTrigger style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                <span className="text-muted-foreground">Add goal</span>
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Add goal</span>
               </div>
             </SelectTrigger>
-            <SelectContent className="bg-card border-border">
+            <SelectContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
               {goals
                 .filter((g) => !splitAmounts[g.id])
                 .map((goal) => (
@@ -371,16 +373,18 @@ export function GoalSelector({
 
           {/* Total indicator */}
           {transactionAmount && Object.keys(splitAmounts).length > 0 && (
-            <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
-              <span className="text-muted-foreground">Total allocated:</span>
+            <div className="flex items-center justify-between text-sm pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>Total allocated:</span>
               <span
-                className={
-                  Math.abs(totalContribution - transactionAmount) < 0.01
-                    ? 'text-income font-medium'
-                    : totalContribution > transactionAmount
-                      ? 'text-error font-medium'
-                      : 'text-foreground'
-                }
+                className="font-medium"
+                style={{
+                  color:
+                    Math.abs(totalContribution - transactionAmount) < 0.01
+                      ? 'var(--color-income)'
+                      : totalContribution > transactionAmount
+                        ? 'var(--color-destructive)'
+                        : 'var(--color-foreground)',
+                }}
               >
                 ${totalContribution.toFixed(2)} of ${transactionAmount.toFixed(2)}
               </span>
@@ -397,7 +401,7 @@ function GoalSelectItem({ goal }: { goal: SavingsGoal }) {
   const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
   
   return (
-    <SelectItem value={goal.id} className="text-foreground">
+    <SelectItem value={goal.id} style={{ color: 'var(--color-foreground)' }}>
       <div className="flex items-center gap-2 w-full">
         <div
           className="w-3 h-3 rounded-full shrink-0"
@@ -405,8 +409,8 @@ function GoalSelectItem({ goal }: { goal: SavingsGoal }) {
         />
         <span className="flex-1 truncate">{goal.name}</span>
         <div className="flex items-center gap-2">
-          <Progress value={progress} className="w-16 h-1.5 bg-elevated" />
-          <span className="text-xs text-muted-foreground w-8 text-right">
+          <Progress value={progress} className="w-16 h-1.5" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          <span className="text-xs w-8 text-right" style={{ color: 'var(--color-muted-foreground)' }}>
             {Math.round(progress)}%
           </span>
         </div>

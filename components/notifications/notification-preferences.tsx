@@ -112,7 +112,7 @@ export function NotificationPreferences() {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin">
-          <div className="h-8 w-8 border-4 border-border border-t-primary rounded-full" />
+          <div className="h-8 w-8 border-4 rounded-full" style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-primary)' }} />
         </div>
       </div>
     );
@@ -120,9 +120,9 @@ export function NotificationPreferences() {
 
   if (!preferences) {
     return (
-      <Card className="bg-background border-border">
+      <Card style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">Failed to load preferences</p>
+          <p className="text-center" style={{ color: 'var(--color-muted-foreground)' }}>Failed to load preferences</p>
         </CardContent>
       </Card>
     );
@@ -131,16 +131,16 @@ export function NotificationPreferences() {
   return (
     <div className="space-y-6">
       {/* Push Notifications */}
-      <Card className="bg-background border-border">
+      <Card style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader>
           <CardTitle>Push Notifications</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Control how and where you receive notifications
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="push-enabled" className="text-muted-foreground">
+            <Label htmlFor="push-enabled" style={{ color: 'var(--color-muted-foreground)' }}>
               Enable push notifications
             </Label>
             <Switch
@@ -156,7 +156,7 @@ export function NotificationPreferences() {
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="email-enabled" className="text-muted-foreground">
+            <Label htmlFor="email-enabled" style={{ color: 'var(--color-muted-foreground)' }}>
               Enable email notifications
             </Label>
             <Switch
@@ -173,7 +173,7 @@ export function NotificationPreferences() {
 
           {preferences.emailNotificationsEnabled && (
             <div>
-              <Label htmlFor="email" className="text-muted-foreground block mb-2">
+              <Label htmlFor="email" className="block mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
                 Email Address
               </Label>
               <Input
@@ -187,7 +187,8 @@ export function NotificationPreferences() {
                   })
                 }
                 placeholder="you@example.com"
-                className="bg-card border-border text-foreground"
+                className="border"
+                style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               />
             </div>
           )}
@@ -195,16 +196,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Bill Reminders */}
-      <Card className="bg-background border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader>
           <CardTitle>Bill Reminders</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Get reminded about upcoming bill payments
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="bill-reminder" className="text-muted-foreground">
+            <Label htmlFor="bill-reminder" style={{ color: 'var(--color-muted-foreground)' }}>
               Enable bill reminders
             </Label>
             <Switch
@@ -222,7 +223,7 @@ export function NotificationPreferences() {
           {preferences.billReminderEnabled && (
             <>
               <div>
-                <Label htmlFor="days-before" className="text-muted-foreground block mb-2">
+                <Label htmlFor="days-before" className="block mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
                   Days before due date
                 </Label>
                 <Input
@@ -237,16 +238,17 @@ export function NotificationPreferences() {
                       billReminderDaysBefore: parseInt(e.target.value, 10),
                     })
                   }
-                  className="bg-card border-border text-foreground"
+                  className="border"
+                  style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                   You&apos;ll receive a reminder {preferences.billReminderDaysBefore} day
                   {preferences.billReminderDaysBefore !== 1 ? 's' : ''} before each bill is due
                 </p>
               </div>
 
               <div className="flex items-center justify-between">
-                <Label htmlFor="bill-due-date" className="text-muted-foreground">
+                <Label htmlFor="bill-due-date" style={{ color: 'var(--color-muted-foreground)' }}>
                   Remind on due date
                 </Label>
                 <Switch
@@ -262,7 +264,7 @@ export function NotificationPreferences() {
               </div>
 
               <div className="flex items-center justify-between">
-                <Label htmlFor="bill-overdue" className="text-muted-foreground">
+                <Label htmlFor="bill-overdue" style={{ color: 'var(--color-muted-foreground)' }}>
                   Remind for overdue bills
                 </Label>
                 <Switch
@@ -282,16 +284,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Budget Alerts */}
-      <Card className="bg-background border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader>
           <CardTitle>Budget Alerts</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Get notified about budget warnings and limits
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="budget-warning" className="text-muted-foreground">
+            <Label htmlFor="budget-warning" style={{ color: 'var(--color-muted-foreground)' }}>
               Enable budget warnings
             </Label>
             <Switch
@@ -308,7 +310,7 @@ export function NotificationPreferences() {
 
           {preferences.budgetWarningEnabled && (
             <div>
-              <Label htmlFor="warning-threshold" className="text-muted-foreground block mb-2">
+              <Label htmlFor="warning-threshold" className="block mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
                 Warning threshold
               </Label>
               <Input
@@ -323,9 +325,10 @@ export function NotificationPreferences() {
                     budgetWarningThreshold: parseInt(e.target.value, 10),
                   })
                 }
-                className="bg-card border-border text-foreground"
+                className="border"
+                style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                 You&apos;ll be warned when spending reaches {preferences.budgetWarningThreshold}%
                 of your budget
               </p>
@@ -333,7 +336,7 @@ export function NotificationPreferences() {
           )}
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="budget-exceeded" className="text-muted-foreground">
+            <Label htmlFor="budget-exceeded" style={{ color: 'var(--color-muted-foreground)' }}>
               Budget exceeded alerts
             </Label>
             <Switch
@@ -350,10 +353,10 @@ export function NotificationPreferences() {
 
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="budget-review" className="text-muted-foreground">
+              <Label htmlFor="budget-review" style={{ color: 'var(--color-muted-foreground)' }}>
                 Monthly budget review
               </Label>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                 Receive a summary of your budget performance at the end of each month
               </p>
             </div>
@@ -372,16 +375,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Low Balance Alerts */}
-      <Card className="bg-background border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader>
           <CardTitle>Low Balance Alerts</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Get notified when account balance drops below threshold
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="low-balance" className="text-muted-foreground">
+            <Label htmlFor="low-balance" style={{ color: 'var(--color-muted-foreground)' }}>
               Enable low balance alerts
             </Label>
             <Switch
@@ -398,7 +401,7 @@ export function NotificationPreferences() {
 
           {preferences.lowBalanceAlertEnabled && (
             <div>
-              <Label htmlFor="balance-threshold" className="text-muted-foreground block mb-2">
+              <Label htmlFor="balance-threshold" className="block mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
                 Alert threshold ($)
               </Label>
               <Input
@@ -413,9 +416,10 @@ export function NotificationPreferences() {
                     lowBalanceThreshold: parseFloat(e.target.value),
                   })
                 }
-                className="bg-card border-border text-foreground"
+                className="border"
+                style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                 You&apos;ll be alerted when balance drops below $
                 {preferences.lowBalanceThreshold.toFixed(2)}
               </p>
@@ -425,16 +429,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Goals & Milestones */}
-      <Card className="bg-background border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader>
           <CardTitle>Goals & Milestones</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Get notified when you reach financial milestones
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="savings-milestone" className="text-muted-foreground">
+            <Label htmlFor="savings-milestone" style={{ color: 'var(--color-muted-foreground)' }}>
               Savings milestone notifications
             </Label>
             <Switch
@@ -450,7 +454,7 @@ export function NotificationPreferences() {
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="debt-milestone" className="text-muted-foreground">
+            <Label htmlFor="debt-milestone" style={{ color: 'var(--color-muted-foreground)' }}>
               Debt payoff milestone notifications
             </Label>
             <Switch
@@ -468,16 +472,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Summary Reports */}
-      <Card className="bg-background border-border">
+      <Card className="border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <CardHeader>
           <CardTitle>Summary Reports</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Regular spending summaries
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="weekly-summary" className="text-muted-foreground">
+            <Label htmlFor="weekly-summary" style={{ color: 'var(--color-muted-foreground)' }}>
               Weekly summary
             </Label>
             <Switch
@@ -494,7 +498,7 @@ export function NotificationPreferences() {
 
           {preferences.weeklySummaryEnabled && (
             <div>
-              <Label htmlFor="weekly-day" className="text-muted-foreground block mb-2">
+              <Label htmlFor="weekly-day" className="block mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
                 Day to send
               </Label>
               <select
@@ -506,7 +510,8 @@ export function NotificationPreferences() {
                     weeklySummaryDay: e.target.value,
                   })
                 }
-                className="w-full bg-card border border-border text-foreground rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2"
+                style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               >
                 <option value="sunday">Sunday</option>
                 <option value="monday">Monday</option>
@@ -520,7 +525,7 @@ export function NotificationPreferences() {
           )}
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="monthly-summary" className="text-muted-foreground">
+            <Label htmlFor="monthly-summary" style={{ color: 'var(--color-muted-foreground)' }}>
               Monthly summary
             </Label>
             <Switch
@@ -537,7 +542,7 @@ export function NotificationPreferences() {
 
           {preferences.monthlySummaryEnabled && (
             <div>
-              <Label htmlFor="monthly-day" className="text-muted-foreground block mb-2">
+              <Label htmlFor="monthly-day" className="block mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
                 Day of month
               </Label>
               <Input
@@ -552,7 +557,8 @@ export function NotificationPreferences() {
                     monthlySummaryDay: parseInt(e.target.value, 10),
                   })
                 }
-                className="bg-card border-border text-foreground"
+                className="border"
+                style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               />
             </div>
           )}
@@ -564,14 +570,18 @@ export function NotificationPreferences() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-primary hover:opacity-90 text-white"
+          className="hover:opacity-90"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
         >
           {saving ? 'Saving...' : 'Save Preferences'}
         </Button>
         <Button
           onClick={fetchPreferences}
           variant="outline"
-          className="border-border text-muted-foreground hover:text-foreground"
+          className="transition-colors"
+          style={{ border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
         >
           Reset
         </Button>

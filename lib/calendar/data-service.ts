@@ -1,4 +1,4 @@
-import { addMonths, format, subDays } from 'date-fns';
+import { addDays, addMonths, format, subDays } from 'date-fns';
 import { and, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -15,7 +15,7 @@ import {
   savingsGoals,
   transactions,
 } from '@/lib/db/schema';
-import { toLocalDateString } from '@/lib/utils/local-date';
+import { parseLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export interface GoalSummary {
@@ -634,6 +634,11 @@ export async function getDayCalendarDetails(params: {
   dateKey: string;
 }) {
   const { userId, householdId, dateKey } = params;
+  // Milestones are stored as UTC timestamps, but calendar day selection is local-date based.
+  // Query a small surrounding window and then filter by local date to avoid day-boundary mismatches.
+  const selectedLocalDate = parseLocalDateString(dateKey);
+  const milestoneWindowStart = format(subDays(selectedLocalDate, 1), 'yyyy-MM-dd');
+  const milestoneWindowEnd = format(addDays(selectedLocalDate, 1), 'yyyy-MM-dd');
 
   const [dayTransactions, dayOccurrencesRows, dayGoals, dayDebts, dayMilestones, dayBillMilestones] = await Promise.all([
     db
@@ -676,8 +681,8 @@ export async function getDayCalendarDetails(params: {
           eq(debts.userId, userId),
           eq(debts.householdId, householdId),
           isNotNull(debtPayoffMilestones.achievedAt),
-          gte(debtPayoffMilestones.achievedAt, `${dateKey}T00:00:00`),
-          lte(debtPayoffMilestones.achievedAt, `${dateKey}T23:59:59`)
+          gte(debtPayoffMilestones.achievedAt, `${milestoneWindowStart}T00:00:00`),
+          lte(debtPayoffMilestones.achievedAt, `${milestoneWindowEnd}T23:59:59`)
         )
       ),
     db
@@ -688,8 +693,8 @@ export async function getDayCalendarDetails(params: {
           eq(billMilestones.userId, userId),
           eq(billMilestones.householdId, householdId),
           isNotNull(billMilestones.achievedAt),
-          gte(billMilestones.achievedAt, `${dateKey}T00:00:00`),
-          lte(billMilestones.achievedAt, `${dateKey}T23:59:59`)
+          gte(billMilestones.achievedAt, `${milestoneWindowStart}T00:00:00`),
+          lte(billMilestones.achievedAt, `${milestoneWindowEnd}T23:59:59`)
         )
       ),
   ]);
@@ -848,6 +853,9 @@ export async function getDayCalendarDetails(params: {
   });
 
   for (const { milestone, debt } of dayMilestones) {
+    if (!milestone.achievedAt || toLocalDateString(new Date(milestone.achievedAt)) !== dateKey) {
+      continue;
+    }
     enrichedDebts.push({
       id: `${debt.id}-milestone-${milestone.percentage}`,
       name: debt.name,
@@ -952,7 +960,11 @@ export async function getDayCalendarDetails(params: {
   const milestoneAccountMap = new Map(milestoneAccounts.map((account) => [account.id, account]));
 
   const billMilestoneEvents: CalendarBillMilestoneDetail[] = dayBillMilestones
-    .filter((milestone) => Boolean(milestone.achievedAt))
+    .filter(
+      (milestone) =>
+        Boolean(milestone.achievedAt) &&
+        toLocalDateString(new Date(milestone.achievedAt!)) === dateKey
+    )
     .map((milestone) => {
       const source: 'account' | 'bill' = milestone.accountId ? 'account' : 'bill';
       let name = 'Unknown';

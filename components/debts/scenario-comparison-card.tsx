@@ -28,14 +28,14 @@ export function ScenarioComparisonCard({
     if (!isBest) return null;
 
     const badges = {
-      time: { text: 'Fastest', color: 'bg-success/20 text-success border-success/30' },
-      money: { text: 'Saves Most $', color: 'bg-primary/20 text-primary border-primary/30' },
-      balanced: { text: 'Most Balanced', color: 'bg-transfer/20 text-transfer border-transfer/30' },
+      time: { text: 'Fastest', style: { backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)', color: 'var(--color-success)', borderColor: 'color-mix(in oklch, var(--color-success) 30%, transparent)' } },
+      money: { text: 'Saves Most $', style: { backgroundColor: 'color-mix(in oklch, var(--color-primary) 20%, transparent)', color: 'var(--color-primary)', borderColor: 'color-mix(in oklch, var(--color-primary) 30%, transparent)' } },
+      balanced: { text: 'Most Balanced', style: { backgroundColor: 'color-mix(in oklch, var(--color-transfer) 20%, transparent)', color: 'var(--color-transfer)', borderColor: 'color-mix(in oklch, var(--color-transfer) 30%, transparent)' } },
     };
 
     const badge = badges[isBest];
     return (
-      <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border ${badge.color}`}>
+      <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border" style={badge.style}>
         <Trophy className="w-3 h-3" />
         {badge.text}
       </div>
@@ -43,19 +43,23 @@ export function ScenarioComparisonCard({
   };
 
   return (
-    <div className={`bg-card rounded-xl border transition-all ${
-      isBest ? 'border-success/50 shadow-lg shadow-success/10' : 'border-border'
-    }`}>
+    <div
+      className="rounded-xl border transition-all"
+      style={{
+        backgroundColor: 'var(--color-background)',
+        borderColor: isBest ? 'color-mix(in oklch, var(--color-success) 50%, transparent)' : 'var(--color-border)',
+      }}
+    >
       {/* Main Content */}
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-1">
+            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>
               {scenario.name}
             </h3>
             {isBaseline && (
-              <span className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">
+              <span className="text-xs px-2 py-1 rounded" style={{ color: 'var(--color-primary)', backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)' }}>
                 Baseline
               </span>
             )}
@@ -66,33 +70,32 @@ export function ScenarioComparisonCard({
         {/* Key Metrics */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">Time to Debt-Free:</span>
-            <span className="text-foreground font-semibold">{scenario.totalMonths} months</span>
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Time to Debt-Free:</span>
+            <span className="font-semibold" style={{ color: 'var(--color-foreground)' }}>{scenario.totalMonths} months</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">Debt-Free Date:</span>
-            <span className="text-foreground font-semibold">{formatDate(scenario.debtFreeDate)}</span>
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Debt-Free Date:</span>
+            <span className="font-semibold" style={{ color: 'var(--color-foreground)' }}>{formatDate(scenario.debtFreeDate)}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">Total Interest:</span>
-            <span className="text-foreground font-mono font-semibold">
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Total Interest:</span>
+            <span className="font-mono font-semibold" style={{ color: 'var(--color-foreground)' }}>
               ${scenario.totalInterestPaid.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </span>
           </div>
 
           {/* Savings vs Baseline */}
           {!isBaseline && scenario.savingsVsBaseline && (
-            <div className="pt-3 mt-3 border-t border-border space-y-2">
+            <div className="pt-3 mt-3 space-y-2" style={{ borderTop: '1px solid var(--color-border)' }}>
               {scenario.savingsVsBaseline.monthsSaved !== 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">Time Savings:</span>
-                  <span className={`font-semibold ${
-                    scenario.savingsVsBaseline.monthsSaved > 0
-                      ? 'text-success'
-                      : 'text-error'
-                  }`}>
+                  <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Time Savings:</span>
+                  <span
+                    className="font-semibold"
+                    style={{ color: scenario.savingsVsBaseline.monthsSaved > 0 ? 'var(--color-success)' : 'var(--color-destructive)' }}
+                  >
                     {scenario.savingsVsBaseline.monthsSaved > 0 ? '+' : ''}
                     {Math.abs(scenario.savingsVsBaseline.monthsSaved)} months
                   </span>
@@ -101,12 +104,11 @@ export function ScenarioComparisonCard({
 
               {scenario.savingsVsBaseline.interestSaved !== 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">Interest Savings:</span>
-                  <span className={`font-mono font-semibold ${
-                    scenario.savingsVsBaseline.interestSaved > 0
-                      ? 'text-success'
-                      : 'text-error'
-                  }`}>
+                  <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Interest Savings:</span>
+                  <span
+                    className="font-mono font-semibold"
+                    style={{ color: scenario.savingsVsBaseline.interestSaved > 0 ? 'var(--color-success)' : 'var(--color-destructive)' }}
+                  >
                     {scenario.savingsVsBaseline.interestSaved > 0 ? '+' : ''}
                     ${Math.abs(scenario.savingsVsBaseline.interestSaved).toLocaleString('en-US', {
                       maximumFractionDigits: 2,
@@ -121,7 +123,8 @@ export function ScenarioComparisonCard({
         {/* Expand/Collapse Button */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full mt-4 py-2 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
+          className="w-full mt-4 py-2 flex items-center justify-center gap-2 transition-colors text-sm [&:hover]:text-[var(--color-foreground)]"
+          style={{ color: 'var(--color-muted-foreground)' }}
         >
           {expanded ? (
             <>
@@ -140,24 +143,25 @@ export function ScenarioComparisonCard({
       {/* Expanded Content */}
       {expanded && (
         <div className="px-6 pb-6 pt-0">
-          <div className="border-t border-border pt-4">
-            <h4 className="text-sm font-semibold text-foreground mb-3">Payoff Order</h4>
+          <div className="pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-foreground)' }}>Payoff Order</h4>
             <div className="space-y-2">
               {scenario.payoffOrder.map((debt) => (
                 <div
                   key={debt.debtId}
-                  className="flex items-center gap-3 p-3 bg-elevated rounded-lg"
+                  className="flex items-center gap-3 p-3 rounded-lg"
+                  style={{ backgroundColor: 'var(--color-elevated)' }}
                 >
-                  <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center text-foreground text-xs font-semibold">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-foreground)' }}>
                     {debt.order}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-foreground font-medium truncate">{debt.debtName}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="font-medium truncate" style={{ color: 'var(--color-foreground)' }}>{debt.debtName}</div>
+                    <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       ${debt.remainingBalance.toLocaleString()} @ {debt.interestRate}% APR
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground whitespace-nowrap">
+                  <div className="text-xs whitespace-nowrap" style={{ color: 'var(--color-muted-foreground)' }}>
                     ${debt.minimumPayment.toFixed(2)}/mo
                   </div>
                 </div>

@@ -445,19 +445,22 @@ export function BillInstanceActionsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] bg-card border-border max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto border"
+        style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
+      >
         <DialogHeader>
-          <DialogTitle className="text-foreground">Manage Bill Instance</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogTitle style={{ color: 'var(--color-foreground)' }}>Manage Bill Instance</DialogTitle>
+          <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
             {bill.name} - Due {format(parseISO(instance.dueDate), 'MMMM d, yyyy')}
             {isPartiallyPaid && (
-              <span className="ml-2 text-warning">(Partially Paid)</span>
+              <span className="ml-2" style={{ color: 'var(--color-warning)' }}>(Partially Paid)</span>
             )}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-          <TabsList className="grid w-full grid-cols-5 bg-elevated">
+          <TabsList className="grid w-full grid-cols-5" style={{ backgroundColor: 'var(--color-elevated)' }}>
             <TabsTrigger value="actions">Actions</TabsTrigger>
             <TabsTrigger value="link">Link</TabsTrigger>
             <TabsTrigger value="allocations">Split</TabsTrigger>
@@ -467,21 +470,21 @@ export function BillInstanceActionsModal({
 
           <TabsContent value="actions" className="space-y-4 mt-4">
             {/* Instance Info */}
-            <div className="grid grid-cols-2 gap-4 p-4 bg-elevated rounded-lg">
+            <div className="grid grid-cols-2 gap-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <Calendar className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
                 <div>
-                  <p className="text-xs text-muted-foreground">Due Date</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Due Date</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                     {format(parseISO(instance.dueDate), 'MMM d, yyyy')}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                <DollarSign className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
                 <div>
-                  <p className="text-xs text-muted-foreground">Expected Amount</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Expected Amount</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                     ${instance.expectedAmount.toFixed(2)}
                   </p>
                 </div>
@@ -490,15 +493,16 @@ export function BillInstanceActionsModal({
 
             {/* Partial Payment Progress */}
             {isPartiallyPaid && (
-              <div className="p-3 bg-elevated rounded-lg">
-                <div className="flex justify-between text-xs text-muted-foreground mb-2">
+              <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
                   <span>Paid: ${new Decimal(instance.paidAmount || 0).toFixed(2)}</span>
                   <span>Remaining: ${new Decimal(instance.remainingAmount || 0).toFixed(2)}</span>
                 </div>
-                <div className="h-2 bg-background rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-success transition-all duration-300"
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-background)' }}>
+<div
+                    className="h-full transition-all duration-300"
                     style={{ 
+                      backgroundColor: 'var(--color-success)',
                       width: `${((instance.paidAmount || 0) / instance.expectedAmount) * 100}%` 
                     }}
                   />
@@ -509,11 +513,11 @@ export function BillInstanceActionsModal({
             {/* Actual Amount Input (for marking as paid) */}
             {(isPending || isOverdue || isPartiallyPaid) && (
               <div className="space-y-2">
-                <Label htmlFor="actualAmount" className="text-foreground">
+                <Label htmlFor="actualAmount" style={{ color: 'var(--color-foreground)' }}>
                   {isPartiallyPaid ? 'Additional Payment Amount' : 'Actual Amount (optional)'}
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-muted-foreground)' }}>
                     $
                   </span>
                   <Input
@@ -522,7 +526,8 @@ export function BillInstanceActionsModal({
                     step="0.01"
                     value={actualAmount}
                     onChange={(e) => setActualAmount(e.target.value)}
-                    className="pl-7 bg-background border-border"
+                    className="pl-7"
+                    style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
                     placeholder={isPartiallyPaid 
                       ? (instance.remainingAmount || 0).toFixed(2)
                       : instance.expectedAmount.toFixed(2)
@@ -534,14 +539,15 @@ export function BillInstanceActionsModal({
 
             {/* Notes Input */}
             <div className="space-y-2">
-              <Label htmlFor="notes" className="text-foreground">
+              <Label htmlFor="notes" style={{ color: 'var(--color-foreground)' }}>
                 Notes
               </Label>
               <Textarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="bg-background border-border resize-none"
+                className="resize-none"
+                style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
                 placeholder="Add a note..."
                 rows={2}
               />
@@ -554,7 +560,8 @@ export function BillInstanceActionsModal({
                   <Button
                     onClick={() => handleAction('paid')}
                     disabled={loading}
-                    className="flex-1 bg-success hover:bg-success/90 text-white"
+                    className="flex-1 hover:opacity-90"
+                    style={{ backgroundColor: 'var(--color-success)', color: 'white' }}
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -568,7 +575,8 @@ export function BillInstanceActionsModal({
                       onClick={() => handleAction('skipped')}
                       disabled={loading}
                       variant="outline"
-                      className="flex-1 border-border hover:bg-elevated"
+                      className="flex-1 border hover:bg-[var(--color-elevated)]"
+                    style={{ borderColor: 'var(--color-border)' }}
                     >
                       <SkipForward className="w-4 h-4 mr-2" />
                       Skip
@@ -582,7 +590,8 @@ export function BillInstanceActionsModal({
                   onClick={() => handleAction('pending')}
                   disabled={loading}
                   variant="outline"
-                  className="flex-1 border-border hover:bg-elevated"
+                  className="flex-1 border hover:bg-[var(--color-elevated)]"
+                    style={{ borderColor: 'var(--color-border)' }}
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -598,7 +607,8 @@ export function BillInstanceActionsModal({
                   onClick={() => handleAction('pending')}
                   disabled={loading}
                   variant="outline"
-                  className="flex-1 border-border hover:bg-elevated"
+                  className="flex-1 border hover:bg-[var(--color-elevated)]"
+                    style={{ borderColor: 'var(--color-border)' }}
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -612,7 +622,7 @@ export function BillInstanceActionsModal({
           </TabsContent>
 
           <TabsContent value="link" className="space-y-4 mt-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
               Link an existing expense transaction to this bill instance.
             </p>
 
@@ -628,7 +638,8 @@ export function BillInstanceActionsModal({
             <Button
               onClick={handleLinkTransaction}
               disabled={loading || (selectedTransactionId === instance.transactionId)}
-              className="w-full bg-primary hover:bg-primary/90"
+              className="w-full hover:opacity-90"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -641,32 +652,32 @@ export function BillInstanceActionsModal({
 
           <TabsContent value="allocations" className="space-y-4 mt-4">
             <div className="flex items-center gap-2 mb-2">
-              <Split className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+              <Split className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 Split this bill across budget periods for partial payments.
               </p>
             </div>
 
             {loadingAllocations ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
               </div>
             ) : (
               <>
                 {/* Current Allocations Display */}
                 {allocations.length > 0 && !editingAllocations && (
-                  <div className="space-y-2 p-4 bg-elevated rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-2">Current Split:</p>
+                  <div className="space-y-2 p-4 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                    <p className="text-xs mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Current Split:</p>
                     {allocations.map(a => (
                       <div 
                         key={a.id}
                         className="flex justify-between items-center text-sm"
                       >
-                        <span className="text-foreground">Period {a.periodNumber}</span>
-                        <span className="text-foreground font-mono">
+                        <span style={{ color: 'var(--color-foreground)' }}>Period {a.periodNumber}</span>
+                        <span className="font-mono" style={{ color: 'var(--color-foreground)' }}>
                           ${new Decimal(a.paidAmount || 0).toFixed(2)} / ${new Decimal(a.allocatedAmount).toFixed(2)}
                           {a.isPaid && (
-                            <CheckCircle2 className="w-4 h-4 ml-2 inline text-success" />
+                            <CheckCircle2 className="w-4 h-4 ml-2 inline" style={{ color: 'var(--color-success)' }} />
                           )}
                         </span>
                       </div>
@@ -676,17 +687,17 @@ export function BillInstanceActionsModal({
 
                 {/* Edit Allocations Form */}
                 {(allocations.length === 0 || editingAllocations) && (
-                  <div className="space-y-3 p-4 bg-elevated rounded-lg">
-                    <p className="text-xs text-muted-foreground">
+                  <div className="space-y-3 p-4 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                    <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       Set amount for each period (must equal ${instance.expectedAmount.toFixed(2)}):
                     </p>
                     {allocationInputs.map((input, index) => (
                       <div key={input.periodNumber} className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground w-20">
+                        <span className="text-sm w-20" style={{ color: 'var(--color-muted-foreground)' }}>
                           Period {input.periodNumber}
                         </span>
                         <div className="relative flex-1">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-muted-foreground)' }}>
                             $
                           </span>
                           <Input
@@ -698,14 +709,15 @@ export function BillInstanceActionsModal({
                               newInputs[index].amount = e.target.value;
                               setAllocationInputs(newInputs);
                             }}
-                            className="pl-7 bg-background border-border"
+                            className="pl-7"
+                    style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
                           />
                         </div>
                       </div>
                     ))}
                     
                     {/* Validation Message */}
-                    <div className={`text-xs ${isAllocationValid ? 'text-success' : 'text-error'}`}>
+                    <div className="text-xs" style={{ color: isAllocationValid ? 'var(--color-success)' : 'var(--color-destructive)' }}>
                       Total: ${allocationTotal.toFixed(2)}
                       {!isAllocationValid && (
                         <span className="ml-2">
@@ -723,7 +735,8 @@ export function BillInstanceActionsModal({
                       <Button
                         onClick={() => setEditingAllocations(true)}
                         variant="outline"
-                        className="flex-1 border-border"
+                        className="flex-1 border"
+                    style={{ borderColor: 'var(--color-border)' }}
                       >
                         Edit Split
                       </Button>
@@ -731,7 +744,8 @@ export function BillInstanceActionsModal({
                         onClick={handleRemoveAllocations}
                         disabled={loading || allocations.some(a => a.isPaid)}
                         variant="outline"
-                        className="flex-1 border-border text-error hover:text-error"
+                        className="flex-1 border hover:opacity-80"
+                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-destructive)' }}
                       >
                         Remove Split
                       </Button>
@@ -741,7 +755,8 @@ export function BillInstanceActionsModal({
                       <Button
                         onClick={handleSaveAllocations}
                         disabled={loading || !isAllocationValid}
-                        className="flex-1 bg-primary hover:bg-primary/90"
+                        className="flex-1 hover:opacity-90"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
                       >
                         {loading ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -757,7 +772,8 @@ export function BillInstanceActionsModal({
                             fetchAllocations();
                           }}
                           variant="outline"
-                          className="border-border"
+                          className="border"
+                    style={{ borderColor: 'var(--color-border)' }}
                         >
                           Cancel
                         </Button>
@@ -771,18 +787,18 @@ export function BillInstanceActionsModal({
 
           <TabsContent value="payments" className="space-y-4 mt-4">
             <div className="flex items-center gap-2 mb-2">
-              <Receipt className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+              <Receipt className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 Payment history for this bill instance.
               </p>
             </div>
 
             {loadingPayments ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
               </div>
             ) : payments.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
+              <div className="p-8 text-center" style={{ color: 'var(--color-muted-foreground)' }}>
                 <Receipt className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No payments recorded yet</p>
               </div>
@@ -791,22 +807,23 @@ export function BillInstanceActionsModal({
                 {payments.map(payment => (
                   <div 
                     key={payment.id}
-                    className="p-3 bg-elevated rounded-lg"
+                    className="p-3 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-elevated)' }}
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                           ${new Decimal(payment.amount).toFixed(2)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                           {format(parseISO(payment.paymentDate), 'MMM d, yyyy')}
                           {payment.paymentMethod && ` - ${payment.paymentMethod}`}
                         </p>
                       </div>
-                      <CheckCircle2 className="w-4 h-4 text-success" />
+                      <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-success)' }} />
                     </div>
                     {payment.notes && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                         {payment.notes}
                       </p>
                     )}
@@ -814,16 +831,16 @@ export function BillInstanceActionsModal({
                 ))}
                 
                 {/* Summary */}
-                <div className="p-3 bg-background rounded-lg border border-border">
+                <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Paid</span>
-                    <span className="text-foreground font-mono">
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Total Paid</span>
+                    <span className="font-mono" style={{ color: 'var(--color-foreground)' }}>
                       ${payments.reduce((sum, p) => new Decimal(sum).plus(p.amount).toNumber(), 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm mt-1">
-                    <span className="text-muted-foreground">Expected</span>
-                    <span className="text-foreground font-mono">
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Expected</span>
+                    <span className="font-mono" style={{ color: 'var(--color-foreground)' }}>
                       ${instance.expectedAmount.toFixed(2)}
                     </span>
                   </div>
@@ -834,19 +851,19 @@ export function BillInstanceActionsModal({
 
           <TabsContent value="period" className="space-y-4 mt-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarClock className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+              <CalendarClock className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+              <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 Override which budget period this instance appears in.
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-foreground">Period Assignment</Label>
+              <Label style={{ color: 'var(--color-foreground)' }}>Period Assignment</Label>
               <Select value={periodOverride} onValueChange={setPeriodOverride}>
-                <SelectTrigger className="bg-background border-border">
+                <SelectTrigger style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                   <SelectValue placeholder="Use bill default or due date" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                   <SelectItem value="">Use bill default or due date</SelectItem>
                   {Array.from({ length: periodOptionCount }, (_, index) => {
                     const periodNumber = index + 1;
@@ -858,7 +875,7 @@ export function BillInstanceActionsModal({
                   })}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 This override only affects this specific instance.
               </p>
             </div>
@@ -866,7 +883,8 @@ export function BillInstanceActionsModal({
             <Button
               onClick={handlePeriodOverride}
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90"
+              className="w-full hover:opacity-90"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

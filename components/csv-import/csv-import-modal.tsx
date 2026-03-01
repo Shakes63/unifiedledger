@@ -427,10 +427,10 @@ export function CSVImportModal({
             <>
               <Card>
                 <CardContent className="pt-6">
-                  <label className="flex items-center justify-center w-full p-8 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-elevated transition-colors">
+                  <label className="flex items-center justify-center w-full p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors" style={{ borderColor: 'var(--color-border)' }}>
                     <div className="text-center">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
+                      <Upload className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--color-muted-foreground)' }} />
+                      <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                         Click to select a CSV file
                       </p>
                     </div>
@@ -446,7 +446,7 @@ export function CSVImportModal({
               </Card>
 
               {file && (
-                <div className="p-3 bg-elevated rounded text-sm text-muted-foreground mt-4">
+                <div className="p-3 rounded text-sm mt-4" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)' }}>
                   Selected: {fileName}
                 </div>
               )}
@@ -458,26 +458,28 @@ export function CSVImportModal({
             <div className="space-y-4">
               {/* Phase 12: Source type detection banner */}
               {detectedSourceType && detectionConfidence >= 50 && (
-                <div className={`p-3 rounded-lg border ${
-                  detectedSourceType === 'credit_card' 
-                    ? 'bg-primary/10 border-primary/30' 
-                    : 'bg-elevated border-border'
-                }`}>
+                <div
+                  className="p-3 rounded-lg border"
+                  style={{
+                    backgroundColor: detectedSourceType === 'credit_card' ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'var(--color-elevated)',
+                    borderColor: detectedSourceType === 'credit_card' ? 'color-mix(in oklch, var(--color-primary) 30%, transparent)' : 'var(--color-border)',
+                  }}
+                >
                   <div className="flex items-center gap-2">
                     {detectedSourceType === 'credit_card' ? (
-                      <CreditCard className="w-4 h-4 text-primary" />
+                      <CreditCard className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
                     ) : (
-                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                      <Building2 className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
                     )}
-                    <span className="text-sm font-medium text-foreground">
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                       {detectedSourceType === 'credit_card' ? 'Credit Card Statement' : 'Bank Statement'} Detected
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       ({detectionConfidence}% confidence)
                     </span>
                   </div>
                   {detectedIssuer && detectedIssuer !== 'other' && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                       Detected issuer: {detectedIssuer.replace('_', ' ')}
                     </p>
                   )}
@@ -651,8 +653,8 @@ export function CSVImportModal({
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-center space-y-2">
-                      <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
+                      <AlertCircle className="w-8 h-8 mx-auto" style={{ color: 'var(--color-muted-foreground)' }} />
+                      <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                         No preview data available. Please try again.
                       </p>
                       <Button
@@ -671,11 +673,11 @@ export function CSVImportModal({
 
           {/* Complete Step */}
           {step === 'complete' && (
-            <Card className="border-success">
+            <Card style={{ border: '1px solid var(--color-success)' }}>
               <CardContent className="pt-6">
                 <div className="text-center space-y-2">
-                  <div className="text-sm text-success">✓ Import completed</div>
-                  <p className="text-sm text-muted-foreground">
+                  <div className="text-sm" style={{ color: 'var(--color-success)' }}>✓ Import completed</div>
+                  <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     Transactions have been imported successfully.
                   </p>
                 </div>
@@ -686,7 +688,7 @@ export function CSVImportModal({
 
         {/* Sticky Footer with Buttons */}
         {step !== 'preview' && (
-          <div className="border-t border-border px-6 py-4 shrink-0 bg-background">
+          <div className="px-6 py-4 shrink-0" style={{ borderTop: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
             <div className="flex gap-2 justify-end">
               {step === 'upload' && (
                 <>

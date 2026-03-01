@@ -85,21 +85,21 @@ interface ImportPreviewProps {
 function getCCTypeIcon(type: CCTransactionType | undefined): React.ReactNode {
   switch (type) {
     case 'payment':
-      return <DollarSign className="w-3 h-3 text-success" />;
+      return <DollarSign className="w-3 h-3" style={{ color: 'var(--color-success)' }} />;
     case 'refund':
-      return <RefreshCw className="w-3 h-3 text-income" />;
+      return <RefreshCw className="w-3 h-3" style={{ color: 'var(--color-income)' }} />;
     case 'interest':
-      return <Percent className="w-3 h-3 text-warning" />;
+      return <Percent className="w-3 h-3" style={{ color: 'var(--color-warning)' }} />;
     case 'fee':
-      return <Receipt className="w-3 h-3 text-error" />;
+      return <Receipt className="w-3 h-3" style={{ color: 'var(--color-destructive)' }} />;
     case 'balance_transfer':
-      return <ArrowLeftRight className="w-3 h-3 text-primary" />;
+      return <ArrowLeftRight className="w-3 h-3" style={{ color: 'var(--color-primary)' }} />;
     case 'reward':
-      return <Gift className="w-3 h-3 text-success" />;
+      return <Gift className="w-3 h-3" style={{ color: 'var(--color-success)' }} />;
     case 'cash_advance':
-      return <DollarSign className="w-3 h-3 text-warning" />;
+      return <DollarSign className="w-3 h-3" style={{ color: 'var(--color-warning)' }} />;
     default:
-      return <CreditCard className="w-3 h-3 text-muted-foreground" />;
+      return <CreditCard className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />;
   }
 }
 
@@ -144,7 +144,11 @@ function RecordRow({
 }) {
   return (
     <div
-      className="p-3 bg-card rounded border border-border hover:border-primary/30 cursor-pointer transition-colors"
+      className="p-3 rounded border cursor-pointer transition-colors"
+      style={{
+        backgroundColor: 'var(--color-background)',
+        borderColor: 'var(--color-border)',
+      }}
       onClick={onToggle}
     >
       <div className="flex items-start gap-3">
@@ -159,36 +163,42 @@ function RecordRow({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-foreground">
+          <div className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
             Row {record.rowNumber}
           </div>
 
           {record.data && (
-            <div className="text-xs text-muted-foreground mt-1 space-y-1">
+            <div className="text-xs mt-1 space-y-1" style={{ color: 'var(--color-muted-foreground)' }}>
               <div className="truncate">
-                <span className="text-muted-foreground">Description:</span> {record.data.description || 'N/A'}
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Description:</span> {record.data.description || 'N/A'}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Amount:</span> ${record.data.amount || '0.00'}
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Amount:</span> ${record.data.amount || '0.00'}
                 {record.data.type && (
-                  <span className="ml-2 text-muted-foreground">({record.data.type})</span>
+                  <span className="ml-2" style={{ color: 'var(--color-muted-foreground)' }}>({record.data.type})</span>
                 )}
                 {/* Show CC transaction type badge */}
                 {record.ccTransactionType && record.ccTransactionType !== 'purchase' && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded">
+                  <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded"
+                  style={{
+                    backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)',
+                    color: 'var(--color-primary)',
+                  }}
+                >
                     {getCCTypeIcon(record.ccTransactionType)}
                     {getCCTypeLabel(record.ccTransactionType)}
                   </span>
                 )}
               </div>
               <div className="truncate">
-                <span className="text-muted-foreground">Date:</span> {record.data.date || 'N/A'}
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Date:</span> {record.data.date || 'N/A'}
               </div>
             </div>
           )}
 
           {record.validationErrors && record.validationErrors.length > 0 && (
-            <div className="text-xs text-error mt-2 space-y-1">
+            <div className="text-xs mt-2 space-y-1" style={{ color: 'var(--color-destructive)' }}>
               {record.validationErrors.map((error, i) => (
                 <div key={`error-${record.rowNumber}-${i}`}>{error}</div>
               ))}
@@ -197,20 +207,26 @@ function RecordRow({
 
           {/* Show duplicate with matched transaction details */}
           {record.duplicateOf && (
-            <div className="mt-2 p-2 bg-warning/10 border border-warning/30 rounded text-xs">
-              <div className="flex items-center gap-2 text-warning font-medium">
+            <div
+              className="mt-2 p-2 rounded text-xs"
+              style={{
+                backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)',
+                border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)',
+              }}
+            >
+              <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--color-warning)' }}>
                 <AlertTriangle className="w-3 h-3" />
                 <span>
                   Possible duplicate ({record.duplicateScore?.toFixed(0)}% match)
                   {record.duplicateMatchReason === 'merchant_name' && record.duplicateMerchantName && (
-                    <span className="ml-1 font-normal text-muted-foreground">
+                    <span className="ml-1 font-normal" style={{ color: 'var(--color-muted-foreground)' }}>
                       - Merchant &quot;{record.duplicateMerchantName}&quot; found in description
                     </span>
                   )}
                 </span>
               </div>
               {record.matchedTransaction && (
-                <div className="mt-1 pl-5 text-muted-foreground">
+                <div className="mt-1 pl-5" style={{ color: 'var(--color-muted-foreground)' }}>
                   <div className="truncate">
                     Matches: {record.matchedTransaction.description}
                   </div>
@@ -229,12 +245,18 @@ function RecordRow({
 
           {/* Show account number transfer detection with import choice */}
           {record.accountNumberTransfer && (
-            <div className="mt-2 p-3 bg-primary/10 border border-primary/30 rounded text-xs">
-              <div className="flex items-center gap-2 text-primary font-medium mb-2">
+            <div
+              className="mt-2 p-3 rounded text-xs"
+              style={{
+                backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)',
+                border: '1px solid color-mix(in oklch, var(--color-primary) 30%, transparent)',
+              }}
+            >
+              <div className="flex items-center gap-2 font-medium mb-2" style={{ color: 'var(--color-primary)' }}>
                 <ArrowLeftRight className="w-3 h-3" />
                 <span>Possible transfer detected</span>
               </div>
-              <div className="pl-5 text-muted-foreground mb-3">
+              <div className="pl-5 mb-3" style={{ color: 'var(--color-muted-foreground)' }}>
                 <div>
                   {record.accountNumberTransfer.matchReason}
                 </div>
@@ -245,12 +267,18 @@ function RecordRow({
 
               {/* Show existing match if found */}
               {record.accountNumberTransfer.existingMatch && (
-                <div className="pl-5 mb-3 p-2 bg-success/10 border border-success/30 rounded">
-                  <div className="flex items-center gap-2 text-success font-medium">
+                <div
+                  className="pl-5 mb-3 p-2 rounded"
+                  style={{
+                    backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)',
+                    border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)',
+                  }}
+                >
+                  <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--color-success)' }}>
                     <CheckCircle2 className="w-3 h-3" />
                     <span>Matching transaction found in target account</span>
                   </div>
-                  <div className="mt-1 text-muted-foreground">
+                    <div className="mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                     <div className="truncate">
                       {record.accountNumberTransfer.existingMatch.description}
                     </div>
@@ -259,7 +287,7 @@ function RecordRow({
                       <span className="ml-1">({record.accountNumberTransfer.existingMatch.type})</span>
                     </div>
                     {record.accountNumberTransfer.existingMatch.hasTransferLink && (
-                      <div className="text-warning mt-1">
+                      <div className="mt-1" style={{ color: 'var(--color-warning)' }}>
                         Already linked to another transfer
                       </div>
                     )}
@@ -268,8 +296,8 @@ function RecordRow({
               )}
 
               {/* Import type selection */}
-              <div className="pl-5 pt-2 border-t border-primary/20">
-                <div className="text-foreground font-medium mb-2">How should this be imported?</div>
+              <div className="pl-5 pt-2 border-t" style={{ borderColor: 'color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
+                <div className="font-medium mb-2" style={{ color: 'var(--color-foreground)' }}>How should this be imported?</div>
                 <RadioGroup
                   value={transferDecision || 'transfer'}
                   onValueChange={(value) => onTransferDecisionChange(value as 'transfer' | 'link_existing' | 'regular')}
@@ -285,8 +313,8 @@ function RecordRow({
                         className="text-xs cursor-pointer"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="font-medium text-success">Link to existing transaction</span>
-                        <span className="text-muted-foreground ml-1">
+                        <span className="font-medium" style={{ color: 'var(--color-success)' }}>Link to existing transaction</span>
+                        <span className="ml-1" style={{ color: 'var(--color-muted-foreground)' }}>
                           (recommended - connects this to the matching transaction)
                         </span>
                       </Label>
@@ -299,8 +327,8 @@ function RecordRow({
                       className="text-xs cursor-pointer"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <span className="font-medium text-primary">Create new transfer pair</span>
-                      <span className="text-muted-foreground ml-1">
+                      <span className="font-medium" style={{ color: 'var(--color-primary)' }}>Create new transfer pair</span>
+                      <span className="ml-1" style={{ color: 'var(--color-muted-foreground)' }}>
                         (creates linked transfer_out/transfer_in transactions)
                       </span>
                     </Label>
@@ -313,7 +341,7 @@ function RecordRow({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span className="font-medium">Import as regular transaction</span>
-                      <span className="text-muted-foreground ml-1">
+                      <span className="ml-1" style={{ color: 'var(--color-muted-foreground)' }}>
                         (expense from source account only)
                       </span>
                     </Label>
@@ -325,7 +353,7 @@ function RecordRow({
 
           {/* Show potential transfer match warning (existing behavior) */}
           {record.potentialTransferId && !record.accountNumberTransfer && (
-            <div className="flex items-center gap-2 text-xs text-primary mt-2">
+            <div className="flex items-center gap-2 text-xs mt-2" style={{ color: 'var(--color-primary)' }}>
               <ArrowLeftRight className="w-3 h-3" />
               <span>
                 Potential transfer match ({record.transferMatchConfidence?.toFixed(0)}% confidence)
@@ -418,16 +446,16 @@ export function ImportPreview({
   const getStatusIcon = (status: string, errors?: string[]) => {
     if (errors && errors.length > 0) {
       return (
-        <AlertCircle className="w-4 h-4 text-error" />
+        <AlertCircle className="w-4 h-4" style={{ color: 'var(--color-destructive)' }} />
       );
     }
     if (status === 'approved') {
       return (
-        <CheckCircle2 className="w-4 h-4 text-success" />
+        <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-success)' }} />
       );
     }
     return (
-      <AlertTriangle className="w-4 h-4 text-warning" />
+      <AlertTriangle className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />
     );
   };
 
@@ -477,13 +505,19 @@ export function ImportPreview({
           <CardDescription className="flex items-center gap-2">
             {fileName}
             {sourceType === 'credit_card' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full"
+                style={{
+                  backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)',
+                  color: 'var(--color-primary)',
+                }}
+              >
                 <CreditCard className="w-3 h-3" />
                 Credit Card
               </span>
             )}
             {detectedIssuer && detectedIssuer !== 'other' && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 ({detectedIssuer.replace('_', ' ')})
               </span>
             )}
@@ -491,32 +525,38 @@ export function ImportPreview({
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-2 bg-elevated rounded">
-              <div className="text-xs text-muted-foreground">Total Rows</div>
-              <div className="text-lg font-semibold text-foreground">{totalRows}</div>
+            <div className="p-2 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}>
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Total Rows</div>
+              <div className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>{totalRows}</div>
             </div>
-            <div className="p-2 bg-elevated rounded">
-              <div className="text-xs text-muted-foreground">Valid</div>
-              <div className="text-lg font-semibold text-success">{validRows}</div>
+            <div className="p-2 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}>
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Valid</div>
+              <div className="text-lg font-semibold" style={{ color: 'var(--color-success)' }}>{validRows}</div>
             </div>
-            <div className="p-2 bg-elevated rounded">
-              <div className="text-xs text-muted-foreground">Need Review</div>
-              <div className="text-lg font-semibold text-warning">{reviewRows}</div>
+            <div className="p-2 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}>
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Need Review</div>
+              <div className="text-lg font-semibold" style={{ color: 'var(--color-warning)' }}>{reviewRows}</div>
             </div>
-            <div className="p-2 bg-elevated rounded">
-              <div className="text-xs text-muted-foreground">Duplicates</div>
-              <div className="text-lg font-semibold text-error">{duplicateRows}</div>
+            <div className="p-2 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}>
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Duplicates</div>
+              <div className="text-lg font-semibold" style={{ color: 'var(--color-destructive)' }}>{duplicateRows}</div>
             </div>
           </div>
 
           {/* Transfer matches warning */}
           {transferMatches > 0 && (
-            <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-warning">
+            <div
+              className="p-3 rounded-lg"
+              style={{
+                backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)',
+                border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)',
+              }}
+            >
+              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-warning)' }}>
                 <ArrowLeftRight className="w-4 h-4" />
                 <span className="font-medium">{transferMatches} potential transfer match{transferMatches > 1 ? 'es' : ''}</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                 Some transactions may be the other side of existing transfers. 
                 Review these to avoid duplicates.
               </p>
@@ -525,30 +565,33 @@ export function ImportPreview({
 
           {/* Statement info for credit cards */}
           {statementInfo && (statementInfo.statementBalance !== undefined || statementInfo.minimumPayment !== undefined) && (
-            <div className="p-3 bg-card border border-border rounded-lg">
-              <div className="text-xs font-medium text-foreground mb-2">Statement Information</div>
+            <div
+              className="p-3 rounded-lg border"
+              style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}
+            >
+              <div className="text-xs font-medium mb-2" style={{ color: 'var(--color-foreground)' }}>Statement Information</div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {statementInfo.statementBalance !== undefined && (
                   <div>
-                    <span className="text-muted-foreground">Balance:</span>{' '}
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Balance:</span>{' '}
                     <span className="font-mono">${statementInfo.statementBalance.toFixed(2)}</span>
                   </div>
                 )}
                 {statementInfo.minimumPayment !== undefined && (
                   <div>
-                    <span className="text-muted-foreground">Min Payment:</span>{' '}
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Min Payment:</span>{' '}
                     <span className="font-mono">${statementInfo.minimumPayment.toFixed(2)}</span>
                   </div>
                 )}
                 {statementInfo.dueDate && (
                   <div>
-                    <span className="text-muted-foreground">Due Date:</span>{' '}
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Due Date:</span>{' '}
                     <span>{statementInfo.dueDate}</span>
                   </div>
                 )}
                 {statementInfo.creditLimit !== undefined && (
                   <div>
-                    <span className="text-muted-foreground">Credit Limit:</span>{' '}
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>Credit Limit:</span>{' '}
                     <span className="font-mono">${statementInfo.creditLimit.toFixed(2)}</span>
                   </div>
                 )}
@@ -575,29 +618,33 @@ export function ImportPreview({
         </CardHeader>
         <CardContent>
           {staging.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-center border border-border rounded-lg">
+            <div className="flex items-center justify-center h-40 text-center border rounded-lg" style={{ borderColor: 'var(--color-border)' }}>
               <div className="space-y-2">
-                <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No records found in CSV file</p>
+                <AlertCircle className="w-12 h-12 mx-auto" style={{ color: 'var(--color-muted-foreground)' }} />
+                <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No records found in CSV file</p>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Flagged Records Section */}
               {flaggedRecords.length > 0 && (
-                <div className="border border-warning/30 rounded-lg overflow-hidden">
+                <div
+                  className="rounded-lg overflow-hidden border"
+                  style={{ borderColor: 'color-mix(in oklch, var(--color-warning) 30%, transparent)' }}
+                >
                   <button
-                    className="w-full flex items-center justify-between p-3 bg-warning/10 hover:bg-warning/15 transition-colors"
+                    className="w-full flex items-center justify-between p-3 transition-colors"
+                    style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)' }}
                     onClick={() => setFlaggedExpanded(!flaggedExpanded)}
                   >
                     <div className="flex items-center gap-2">
                       {flaggedExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-warning" />
+                        <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-warning" />
+                        <ChevronRight className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />
                       )}
-                      <AlertTriangle className="w-4 h-4 text-warning" />
-                      <span className="font-medium text-warning">
+                      <AlertTriangle className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />
+                      <span className="font-medium" style={{ color: 'var(--color-warning)' }}>
                         Needs Review ({flaggedRecords.length})
                       </span>
                     </div>
@@ -605,24 +652,27 @@ export function ImportPreview({
                   {flaggedExpanded && (
                     <>
                       {/* Filter buttons */}
-                      <div className="flex flex-wrap gap-2 px-3 py-2 border-b border-warning/20 bg-warning/5">
+                      <div
+                        className="flex flex-wrap gap-2 px-3 py-2 border-b"
+                        style={{ borderColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-warning) 5%, transparent)' }}
+                      >
                         <button
-                          className={`px-2 py-1 text-xs rounded transition-colors ${
-                            flagFilter === 'all'
-                              ? 'bg-warning text-warning-foreground'
-                              : 'bg-card hover:bg-elevated text-muted-foreground'
-                          }`}
+                          className="px-2 py-1 text-xs rounded transition-colors"
+                          style={{
+                            backgroundColor: flagFilter === 'all' ? 'var(--color-warning)' : 'var(--color-elevated)',
+                            color: flagFilter === 'all' ? 'var(--color-warning-foreground)' : 'var(--color-muted-foreground)',
+                          }}
                           onClick={() => setFlagFilter('all')}
                         >
                           All ({flaggedRecords.length})
                         </button>
                         {duplicateCount > 0 && (
                           <button
-                            className={`px-2 py-1 text-xs rounded transition-colors ${
-                              flagFilter === 'duplicates'
-                                ? 'bg-warning text-warning-foreground'
-                                : 'bg-card hover:bg-elevated text-muted-foreground'
-                            }`}
+                            className="px-2 py-1 text-xs rounded transition-colors"
+                            style={{
+                              backgroundColor: flagFilter === 'duplicates' ? 'var(--color-warning)' : 'var(--color-elevated)',
+                              color: flagFilter === 'duplicates' ? 'var(--color-warning-foreground)' : 'var(--color-muted-foreground)',
+                            }}
                             onClick={() => setFlagFilter('duplicates')}
                           >
                             Duplicates ({duplicateCount})
@@ -630,11 +680,11 @@ export function ImportPreview({
                         )}
                         {transferCount > 0 && (
                           <button
-                            className={`px-2 py-1 text-xs rounded transition-colors ${
-                              flagFilter === 'transfers'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-card hover:bg-elevated text-muted-foreground'
-                            }`}
+                            className="px-2 py-1 text-xs rounded transition-colors"
+                            style={{
+                              backgroundColor: flagFilter === 'transfers' ? 'var(--color-primary)' : 'var(--color-elevated)',
+                              color: flagFilter === 'transfers' ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)',
+                            }}
                             onClick={() => setFlagFilter('transfers')}
                           >
                             <span className="inline-flex items-center gap-1">
@@ -645,11 +695,11 @@ export function ImportPreview({
                         )}
                         {errorCount > 0 && (
                           <button
-                            className={`px-2 py-1 text-xs rounded transition-colors ${
-                              flagFilter === 'errors'
-                                ? 'bg-error text-error-foreground'
-                                : 'bg-card hover:bg-elevated text-muted-foreground'
-                            }`}
+                            className="px-2 py-1 text-xs rounded transition-colors"
+                            style={{
+                              backgroundColor: flagFilter === 'errors' ? 'var(--color-destructive)' : 'var(--color-elevated)',
+                              color: flagFilter === 'errors' ? 'var(--color-destructive-foreground)' : 'var(--color-muted-foreground)',
+                            }}
                             onClick={() => setFlagFilter('errors')}
                           >
                             <span className="inline-flex items-center gap-1">
@@ -662,7 +712,7 @@ export function ImportPreview({
                       <div className="max-h-80 overflow-y-auto">
                         <div className="space-y-2 p-3">
                           {filteredFlaggedRecords.length === 0 ? (
-                            <div className="text-center py-4 text-sm text-muted-foreground">
+                            <div className="text-center py-4 text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                               No records match the selected filter
                             </div>
                           ) : (
@@ -689,23 +739,24 @@ export function ImportPreview({
 
               {/* Regular Records Section */}
               {regularRecords.length > 0 && (
-                <div className="border border-border rounded-lg overflow-hidden">
+                <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
                   <button
-                    className="w-full flex items-center justify-between p-3 bg-elevated hover:bg-elevated/80 transition-colors"
+                    className="w-full flex items-center justify-between p-3 transition-colors"
+                    style={{ backgroundColor: 'var(--color-elevated)' }}
                     onClick={() => setRegularExpanded(!regularExpanded)}
                   >
                     <div className="flex items-center gap-2">
                       {regularExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        <ChevronRight className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
                       )}
-                      <CheckCircle2 className="w-4 h-4 text-success" />
-                      <span className="font-medium text-foreground">
+                      <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-success)' }} />
+                      <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                         Ready to Import ({regularRecords.length})
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       {regularRecords.filter(r => selectedRows.has(r.rowNumber)).length} selected
                     </span>
                   </button>

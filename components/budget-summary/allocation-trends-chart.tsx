@@ -65,8 +65,8 @@ function TrendsTooltip({
       : labelStr;
 
     return (
-      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-        <p className="font-semibold text-foreground mb-2">{fullMonth}</p>
+      <div className="rounded-lg p-3 shadow-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <p className="font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>{fullMonth}</p>
         {payload.map((entry: TrendsTooltipPayloadItem, index: number) => (
           <div key={index} className="flex items-center justify-between gap-4 text-sm">
             <div className="flex items-center gap-2">
@@ -74,7 +74,7 @@ function TrendsTooltip({
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-muted-foreground">{entry.name}</span>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>{entry.name}</span>
             </div>
             <span className="font-mono" style={{ color: entry.color }}>
               {new Intl.NumberFormat('en-US', {
@@ -178,10 +178,10 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
 
   if (!hasData) {
     return (
-      <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="font-semibold text-foreground mb-4">6-Month Trends</h3>
+      <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <h3 className="font-semibold mb-4" style={{ color: 'var(--color-foreground)' }}>6-Month Trends</h3>
         <div className="flex items-center justify-center h-48">
-          <p className="text-muted-foreground">
+          <p style={{ color: 'var(--color-muted-foreground)' }}>
             Not enough historical data to show trends
           </p>
         </div>
@@ -190,9 +190,9 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
+    <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-foreground">6-Month Trends</h3>
+        <h3 className="font-semibold" style={{ color: 'var(--color-foreground)' }}>6-Month Trends</h3>
         
         {/* Series Toggles */}
         <div className="flex flex-wrap gap-2">
@@ -200,11 +200,13 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
             <button
               key={series.key}
               onClick={() => toggleSeries(series.key as keyof typeof visibleSeries)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors ${
-                visibleSeries[series.key as keyof typeof visibleSeries]
-                  ? 'bg-elevated'
-                  : 'bg-transparent opacity-50'
-              }`}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors"
+              style={{
+                backgroundColor: visibleSeries[series.key as keyof typeof visibleSeries]
+                  ? 'var(--color-elevated)'
+                  : 'transparent',
+                opacity: visibleSeries[series.key as keyof typeof visibleSeries] ? 1 : 0.5,
+              }}
             >
               <div 
                 className={`w-2 h-2 rounded-full ${
@@ -214,7 +216,7 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
                 }`}
                 style={{ backgroundColor: series.color }}
               />
-              <span className="text-muted-foreground">{series.name}</span>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>{series.name}</span>
             </button>
           ))}
         </div>
@@ -278,7 +280,7 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
       </ResponsiveContainer>
 
       {/* Quick Summary */}
-      <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
+      <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
         {seriesConfig.map((series) => {
           const values = chartData.map(d => d[series.key as keyof typeof d] as number);
           const avg = values.reduce((a, b) => a + b, 0) / values.length;
@@ -290,14 +292,14 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
 
           return (
             <div key={series.key} className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">{series.name}</p>
+              <p className="text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>{series.name}</p>
               <p 
                 className="text-sm font-mono font-semibold"
                 style={{ color: series.color }}
               >
                 {formatCurrency(avg)}
               </p>
-              <p className={`text-xs ${change >= 0 ? 'text-success' : 'text-error'}`}>
+              <p className="text-xs" style={{ color: change >= 0 ? 'var(--color-success)' : 'var(--color-destructive)' }}>
                 {change >= 0 ? '+' : ''}{change.toFixed(1)}%
               </p>
             </div>

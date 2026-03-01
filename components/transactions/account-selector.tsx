@@ -42,9 +42,9 @@ export function AccountSelector({
 
   return (
     <div className="space-y-2">
-      {!hideLabel && <label className="text-sm font-medium text-foreground">{label}</label>}
+      {!hideLabel && <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{label}</label>}
       <Select value={selectedAccountId || ''} onValueChange={onAccountChange}>
-        <SelectTrigger className="bg-card border border-border text-foreground rounded-lg">
+        <SelectTrigger className="border rounded-lg" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}>
           <SelectValue placeholder="Select account" />
         </SelectTrigger>
         <SelectContent>
@@ -53,7 +53,7 @@ export function AccountSelector({
               <div className="flex items-center gap-2 w-full">
                 <DollarSign className="w-4 h-4 shrink-0" />
                 <span className="flex-1 truncate">{account.name}</span>
-                <span className="text-xs text-muted-foreground shrink-0">
+                <span className="text-xs shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
                   ${account.currentBalance?.toFixed(2) || '0.00'}
                 </span>
               </div>
@@ -63,9 +63,9 @@ export function AccountSelector({
       </Select>
 
       {selectedAccount && (
-        <div className="p-3 bg-elevated rounded-lg border border-border">
-          <p className="text-xs text-muted-foreground">Available Balance</p>
-          <p className="text-lg font-semibold text-foreground">
+        <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Available Balance</p>
+          <p className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
             ${selectedAccount.currentBalance?.toFixed(2) || '0.00'}
           </p>
         </div>

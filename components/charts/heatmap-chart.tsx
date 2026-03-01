@@ -76,7 +76,8 @@ export function HeatmapChart({
                 {months.map(month => (
                   <div
                     key={month}
-                    className="text-xs text-center text-muted-foreground font-medium px-1"
+                    className="text-xs text-center font-medium px-1"
+                    style={{ color: 'var(--color-muted-foreground)' }}
                   >
                     {month}
                   </div>
@@ -90,7 +91,7 @@ export function HeatmapChart({
                 <div key={category} className="flex items-center">
                   {/* Category label */}
                   <div className="w-32 shrink-0 pr-2">
-                    <span className="text-xs text-foreground truncate block">
+                    <span className="text-xs truncate block" style={{ color: 'var(--color-foreground)' }}>
                       {category}
                     </span>
                   </div>
@@ -105,17 +106,18 @@ export function HeatmapChart({
                           className="relative group"
                         >
                           <div
-                            className="aspect-square rounded border border-border cursor-pointer transition-transform hover:scale-105"
+                            className="aspect-square rounded cursor-pointer transition-transform hover:scale-105"
                             style={{
                               backgroundColor: value > 0 ? getColorIntensity(value) : 'var(--color-elevated)',
+                              border: '1px solid var(--color-border)',
                             }}
                           />
                           {/* Tooltip on hover */}
-                          <div className="absolute z-10 hidden group-hover:block bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-card border border-border rounded shadow-lg whitespace-nowrap">
+                          <div className="absolute z-10 hidden group-hover:block bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 rounded shadow-lg whitespace-nowrap" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
                             <div className="text-xs">
-                              <div className="font-medium text-foreground">{category}</div>
-                              <div className="text-muted-foreground">{month}</div>
-                              <div className="text-expense font-semibold">
+                              <div className="font-medium" style={{ color: 'var(--color-foreground)' }}>{category}</div>
+                              <div style={{ color: 'var(--color-muted-foreground)' }}>{month}</div>
+                              <div className="font-semibold" style={{ color: 'var(--color-expense)' }}>
                                 ${value.toFixed(2)}
                               </div>
                             </div>
@@ -129,14 +131,15 @@ export function HeatmapChart({
             </div>
 
             {/* Legend */}
-            <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               <span>Low</span>
               <div className="flex gap-1">
                 {[0.2, 0.4, 0.6, 0.8, 1.0].map(intensity => (
                   <div
                     key={intensity}
-                    className="w-6 h-4 rounded border border-border"
+                    className="w-6 h-4 rounded"
                     style={{
+                      border: '1px solid var(--color-border)',
                       backgroundColor: `rgba(var(--color-expense-rgb, 239, 68, 68), ${intensity})`,
                     }}
                   />
@@ -147,7 +150,7 @@ export function HeatmapChart({
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-center h-[320px] text-muted-foreground">
+        <div className="flex items-center justify-center h-[320px]" style={{ color: 'var(--color-muted-foreground)' }}>
           No data available for heatmap
         </div>
       )}

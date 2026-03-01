@@ -82,15 +82,15 @@ export function DebtReductionSummary({ summary, isLoading }: DebtReductionSummar
       <div
         className="p-4 rounded-lg border"
         style={{
-          backgroundColor: 'var(--color-card)',
+          backgroundColor: 'var(--color-background)',
           borderColor: 'var(--color-border)',
         }}
       >
-        <p className="text-muted-foreground text-xs mb-2">Total Paid</p>
-        <p className="text-2xl font-bold text-foreground">
+        <p className="text-xs mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Total Paid</p>
+        <p className="text-2xl font-bold" style={{ color: 'var(--color-foreground)' }}>
           {formatCurrency(summary.totalPaid)}
         </p>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
           of {formatCurrency(summary.totalOriginalDebt)}
         </p>
       </div>
@@ -99,7 +99,7 @@ export function DebtReductionSummary({ summary, isLoading }: DebtReductionSummar
       <div
         className="p-4 rounded-lg border flex flex-col items-center justify-center"
         style={{
-          backgroundColor: 'var(--color-card)',
+          backgroundColor: 'var(--color-background)',
           borderColor: 'var(--color-border)',
         }}
       >
@@ -111,12 +111,12 @@ export function DebtReductionSummary({ summary, isLoading }: DebtReductionSummar
             color={getProgressColor(summary.percentageComplete)}
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm font-bold text-foreground">
+            <span className="text-sm font-bold" style={{ color: 'var(--color-foreground)' }}>
               {Math.round(summary.percentageComplete)}%
             </span>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-xs text-center" style={{ color: 'var(--color-muted-foreground)' }}>
           Complete
         </p>
       </div>
@@ -125,15 +125,15 @@ export function DebtReductionSummary({ summary, isLoading }: DebtReductionSummar
       <div
         className="p-4 rounded-lg border"
         style={{
-          backgroundColor: 'var(--color-card)',
+          backgroundColor: 'var(--color-background)',
           borderColor: 'var(--color-border)',
         }}
       >
-        <p className="text-muted-foreground text-xs mb-2">Remaining Debt</p>
-        <p className="text-2xl font-bold text-foreground">
+        <p className="text-xs mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Remaining Debt</p>
+        <p className="text-2xl font-bold" style={{ color: 'var(--color-foreground)' }}>
           {formatCurrency(summary.totalCurrentDebt)}
         </p>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
           {formatCurrency(summary.totalOriginalDebt - summary.totalCurrentDebt)} paid
         </p>
       </div>
@@ -142,21 +142,21 @@ export function DebtReductionSummary({ summary, isLoading }: DebtReductionSummar
       <div
         className="p-4 rounded-lg border"
         style={{
-          backgroundColor: 'var(--color-card)',
+          backgroundColor: 'var(--color-background)',
           borderColor: 'var(--color-border)',
         }}
       >
-        <p className="text-muted-foreground text-xs mb-2">Debt-Free Date</p>
-        <p className="text-xl font-bold text-foreground">
+        <p className="text-xs mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Debt-Free Date</p>
+        <p className="text-xl font-bold" style={{ color: 'var(--color-foreground)' }}>
           {debtFreeLabel}
         </p>
         {monthsRemaining !== null && monthsRemaining > 0 && (
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
             {monthsRemaining} month{monthsRemaining !== 1 ? 's' : ''} away
           </p>
         )}
         {monthsRemaining === 0 && (
-          <p className="text-xs text-success mt-2 font-semibold flex items-center gap-1 justify-center">
+          <p className="text-xs mt-2 font-semibold flex items-center gap-1 justify-center" style={{ color: 'var(--color-success)' }}>
             This month! <PartyPopper className="w-3 h-3" />
           </p>
         )}

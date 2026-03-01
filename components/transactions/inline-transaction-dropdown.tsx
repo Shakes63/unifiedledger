@@ -184,11 +184,12 @@ export function InlineTransactionDropdown({
           "text-xs cursor-pointer inline-flex items-center px-1.5 py-0.5 rounded",
           "transition-colors duration-150",
           isMissing
-            ? "border border-warning text-muted-foreground bg-transparent hover:bg-elevated"
-            : "text-foreground hover:bg-elevated hover:underline",
+            ? "border border-[var(--color-warning)] bg-transparent hover:bg-[var(--color-elevated)]"
+            : "hover:bg-[var(--color-elevated)] hover:underline",
           disabled && "cursor-not-allowed opacity-60",
           className
         )}
+        style={{ color: isMissing ? 'var(--color-muted-foreground)' : 'var(--color-foreground)' }}
         onClick={handleClick}
         title={`${displayName} (click to edit)`}
       >
@@ -213,7 +214,8 @@ export function InlineTransactionDropdown({
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isCreatingNew}
-          className="h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[120px] bg-elevated border-primary"
+          className="h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[120px]"
+          style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-primary)' }}
           onClick={(e) => e.stopPropagation()}
         />
         <Button
@@ -225,7 +227,8 @@ export function InlineTransactionDropdown({
             handleCreate();
           }}
           disabled={isCreatingNew || !newName.trim()}
-          className="h-6 w-6 p-0 bg-primary hover:opacity-90"
+          className="h-6 w-6 p-0 hover:opacity-90"
+          style={{ backgroundColor: 'var(--color-primary)' }}
         >
           {isCreatingNew ? (
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -246,7 +249,8 @@ export function InlineTransactionDropdown({
             setNewName('');
           }}
           disabled={isCreatingNew}
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          className="h-6 w-6 p-0 hover:opacity-90"
+          style={{ color: 'var(--color-muted-foreground)' }}
         >
           <X className="w-3 h-3" />
         </Button>
@@ -283,11 +287,11 @@ export function InlineTransactionDropdown({
       >
         <SelectTrigger
           className={cn(
-            "h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[140px] bg-elevated rounded",
+            "h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[140px] rounded",
             "focus:ring-1 focus:ring-offset-0",
-            "border border-primary text-foreground",
             isUpdating && "opacity-60"
           )}
+          style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-primary)', color: 'var(--color-foreground)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {isUpdating ? (
@@ -296,7 +300,8 @@ export function InlineTransactionDropdown({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent
-          className="bg-card border-border max-h-[200px]"
+          className="max-h-[200px]"
+          style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
           onClick={(e) => e.stopPropagation()}
         >
           <SelectItem 

@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
@@ -125,31 +123,37 @@ export function GoalContributionsList({
 
   if (loading) {
     return (
-      <Card className="bg-card border-border p-6">
+      <div
+        className="p-6"
+        style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
+      >
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Loading contributions...</p>
+          <p style={{ color: 'var(--color-muted-foreground)' }}>Loading contributions...</p>
         </div>
-      </Card>
+      </div>
     );
   }
 
   if (!goal) {
     return (
-      <Card className="bg-card border-border p-6">
+      <div
+        className="p-6"
+        style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
+      >
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Goal not found</p>
+          <p style={{ color: 'var(--color-muted-foreground)' }}>Goal not found</p>
         </div>
-      </Card>
+      </div>
     );
   }
 
   const progressPercent = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
 
   return (
-    <Card className="bg-card border-border">
+    <div style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
       {/* Header */}
       {showHeader && (
-        <div className="p-6 border-b border-border">
+        <div className="p-6" style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
@@ -159,14 +163,14 @@ export function GoalContributionsList({
                 <Target className="w-5 h-5" style={{ color: goal.color }} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-foreground">{goal.name}</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>{goal.name}</h3>
+                <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                   {contributions.length} contribution{contributions.length !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
             <Link href="/dashboard/goals">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" className="hover:text-[var(--color-foreground)]" style={{ color: 'var(--color-muted-foreground)' }}>
                 View Goal <ExternalLink className="w-3 h-3 ml-1" />
               </Button>
             </Link>
@@ -175,15 +179,15 @@ export function GoalContributionsList({
           {/* Progress */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
+              <span style={{ color: 'var(--color-muted-foreground)' }}>
                 ${goal.currentAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </span>
-              <span className="text-foreground font-medium">
+              <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                 {Math.round(progressPercent)}%
               </span>
             </div>
-            <Progress value={progressPercent} className="h-2 bg-elevated" />
-            <p className="text-xs text-muted-foreground text-right">
+            <Progress value={progressPercent} className="h-2" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            <p className="text-xs text-right" style={{ color: 'var(--color-muted-foreground)' }}>
               of ${goal.targetAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })} target
             </p>
           </div>
@@ -197,31 +201,32 @@ export function GoalContributionsList({
       >
         {contributions.length === 0 ? (
           <div className="p-6 text-center">
-            <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No contributions yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <TrendingUp className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-muted-foreground)' }} />
+            <p style={{ color: 'var(--color-muted-foreground)' }}>No contributions yet</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
               Transfers to this goal will appear here
             </p>
           </div>
         ) : (
           <div className="relative">
             {/* Timeline line */}
-            <div 
-              className="absolute left-9 top-0 bottom-0 w-0.5 bg-border"
+            <div
+              className="absolute left-9 top-0 bottom-0 w-0.5"
+              style={{ backgroundColor: 'var(--color-border)' }}
               aria-hidden="true"
             />
 
             {/* Contribution items */}
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-[var(--color-border)]">
               {contributions.map((contribution, index) => (
                 <div
                   key={contribution.id}
-                  className="relative p-4 pl-16 hover:bg-elevated/50 transition-colors"
+                  className="relative p-4 pl-16 transition-colors hover:bg-[color-mix(in_oklch,var(--color-elevated)_50%,transparent)]"
                 >
                   {/* Timeline dot */}
                   <div
-                    className="absolute left-[30px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-card z-10"
-                    style={{ backgroundColor: goal.color }}
+                    className="absolute left-[30px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 z-10"
+                    style={{ backgroundColor: goal.color, borderColor: 'var(--color-background)' }}
                   />
 
                   <div className="flex items-start justify-between gap-4">
@@ -235,14 +240,14 @@ export function GoalContributionsList({
                           +${contribution.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         {contribution.transactionDescription && (
-                          <span className="text-sm text-muted-foreground truncate">
+                          <span className="text-sm truncate" style={{ color: 'var(--color-muted-foreground)' }}>
                             {contribution.transactionDescription}
                           </span>
                         )}
                       </div>
 
                       {/* Metadata */}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {formatDistanceToNow(parseISO(contribution.createdAt), { addSuffix: true })}
@@ -254,17 +259,20 @@ export function GoalContributionsList({
                           </span>
                         )}
                         {contribution.transactionDate && (
-                          <Badge variant="outline" className="text-xs py-0">
+                          <span
+                            className="text-xs py-0 px-2 rounded-md border"
+                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
+                          >
                             {format(parseISO(contribution.transactionDate), 'MMM d, yyyy')}
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </div>
 
                     {/* Running total */}
                     <div className="text-right shrink-0">
-                      <p className="text-xs text-muted-foreground">Running total</p>
-                      <p className="text-sm font-medium text-foreground">
+                      <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Running total</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                         ${calculateRunningTotal(index).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -277,12 +285,13 @@ export function GoalContributionsList({
 
         {/* Load More */}
         {hasMore && (
-          <div className="p-4 border-t border-border">
+          <div className="p-4" style={{ borderTop: '1px solid var(--color-border)' }}>
             <Button
               onClick={handleLoadMore}
               disabled={loadingMore}
               variant="ghost"
-              className="w-full text-muted-foreground hover:text-foreground"
+              className="w-full hover:text-[var(--color-foreground)]"
+              style={{ color: 'var(--color-muted-foreground)' }}
             >
               {loadingMore ? (
                 'Loading...'
@@ -296,7 +305,7 @@ export function GoalContributionsList({
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }
 

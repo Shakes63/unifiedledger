@@ -3,7 +3,6 @@
 import { useCallback, useState, Suspense } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -107,44 +106,38 @@ function TransactionsContent() {
     : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header
-        className="border-b backdrop-blur-sm sticky top-0 z-50"
-        style={{
-          borderColor: 'var(--color-border)',
-          backgroundColor: 'color-mix(in oklch, var(--color-elevated) 50%, transparent)',
-        }}
-      >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <div className="relative w-6 h-6">
-              <Image
-                src="/logo.png"
-                alt="UnifiedLedger Logo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+      <header className="sticky top-0 z-50">
+        <div
+          className="backdrop-blur-xl"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-background) 82%, transparent)' }}
+        >
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
                 {accountNameFromUrl ? `${accountNameFromUrl} Transactions` : 'Transactions'}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {totalResults} transaction{totalResults !== 1 ? 's' : ''}
-                {accountIdFromUrl && ' for this account'}
-              </p>
             </div>
+            <span className="font-mono text-xs tabular-nums tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>
+              {totalResults.toLocaleString()} record{totalResults !== 1 ? 's' : ''}
+              {accountIdFromUrl && ' \u00b7 filtered'}
+            </span>
           </div>
         </div>
+        <div
+          className="h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent 5%, var(--color-border) 20%, color-mix(in oklch, var(--color-primary) 45%, var(--color-border)) 50%, var(--color-border) 80%, transparent 95%)',
+          }}
+        />
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <TransactionsToolbar
           categories={categories}
           accounts={accounts}
@@ -213,8 +206,14 @@ export default function TransactionsPage() {
   return (
     <Suspense
       fallback={(
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <p className="text-muted-foreground">Loading transactions...</p>
+        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)' }}>
+          <div className="text-center space-y-2">
+            <div
+              className="mx-auto h-8 w-8 rounded-full animate-pulse"
+              style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 20%, transparent)' }}
+            />
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading transactions...</p>
+          </div>
         </div>
       )}
     >

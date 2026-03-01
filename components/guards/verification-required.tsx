@@ -57,7 +57,7 @@ export function VerificationRequired({
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-muted-foreground">Loading...</div>
+        <div style={{ color: 'var(--color-muted-foreground)' }}>Loading...</div>
       </div>
     );
   }
@@ -68,23 +68,25 @@ export function VerificationRequired({
     }
 
     return (
-      <div className="rounded-lg border border-warning bg-warning/10 p-6">
+      <div className="rounded-lg border p-6" style={{ borderColor: 'var(--color-warning)', backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)' }}>
         <div className="flex items-start gap-4">
-          <div className="rounded-full bg-warning/20 p-2">
-            <AlertCircle className="w-6 h-6 text-warning" />
+          <div className="rounded-full p-2" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)' }}>
+            <AlertCircle className="w-6 h-6" style={{ color: 'var(--color-warning)' }} />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground mb-2">
+            <h3 className="font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>
               Email Verification Required
             </h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
               This feature requires a verified email address. Please verify your
               email to continue.
             </p>
             <Button
               onClick={handleResendVerification}
               size="sm"
-              className="bg-warning hover:bg-warning/90 text-white"
+              style={{ backgroundColor: 'var(--color-warning)', color: 'white' }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-warning) 90%, transparent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--color-warning)'; }}
             >
               <Mail className="w-4 h-4 mr-2" />
               Send Verification Email

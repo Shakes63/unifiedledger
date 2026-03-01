@@ -38,20 +38,21 @@ export function EntityIdBadge({ id, label = 'ID', className = '' }: EntityIdBadg
   return (
     <button
       onClick={handleCopy}
-      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-elevated border border-border hover:bg-elevated/80 transition-colors group ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors group ${className}`}
+      style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}
       title={`${label}: ${id}\nClick to copy`}
       aria-label={`Copy ${label}: ${id}`}
     >
-      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+      <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>
         {label}
       </span>
-      <span className="text-xs font-mono text-foreground">
+      <span className="text-xs font-mono" style={{ color: 'var(--color-foreground)' }}>
         {truncatedId}
       </span>
       {copied ? (
-        <Check className="h-3 w-3 text-success" />
+        <Check className="h-3 w-3" style={{ color: 'var(--color-success)' }} />
       ) : (
-        <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--color-muted-foreground)' }} />
       )}
     </button>
   );

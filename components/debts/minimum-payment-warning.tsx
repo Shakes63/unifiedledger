@@ -99,7 +99,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
   if (loading) {
     return (
       <div className={className}>
-        <div className="text-center py-8 text-muted-foreground">Loading comparison...</div>
+        <div className="text-center py-8" style={{ color: 'var(--color-muted-foreground)' }}>Loading comparison...</div>
       </div>
     );
   }
@@ -116,32 +116,38 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
   if (!data.comparison.hasExtraPayment) {
     return (
       <div className={className}>
-        <div className="bg-gradient-to-r from-warning/30 to-warning/20 border border-warning/50 rounded-xl p-6">
+        <div
+          className="rounded-xl p-6"
+          style={{
+            background: 'linear-gradient(to right, color-mix(in oklch, var(--color-warning) 30%, transparent), color-mix(in oklch, var(--color-warning) 20%, transparent))',
+            border: '1px solid color-mix(in oklch, var(--color-warning) 50%, transparent)',
+          }}
+        >
           <div className="flex items-start gap-4">
-            <AlertTriangle className="w-10 h-10 text-warning" />
+            <AlertTriangle className="w-10 h-10" style={{ color: 'var(--color-warning)' }} />
             <div>
-              <h3 className="text-xl font-bold text-warning mb-2">
+              <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-warning)' }}>
                 Only Paying Minimums?
               </h3>
-              <p className="text-muted-foreground mb-3">
+              <p className="mb-3" style={{ color: 'var(--color-muted-foreground)' }}>
                 You&apos;re currently set to pay only the minimum payments. This will cost you significantly more in interest and keep you in debt much longer.
               </p>
-              <div className="bg-elevated/60 rounded-lg p-4 space-y-2">
+              <div className="rounded-lg p-4 space-y-2" style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 60%, transparent)' }}>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Time to debt-free:</span>
-                  <span className="text-xl font-bold text-foreground">
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Time to debt-free:</span>
+                  <span className="text-xl font-bold" style={{ color: 'var(--color-foreground)' }}>
                     {formatTimespan(data.minimumOnlyScenario.totalYears, data.minimumOnlyScenario.remainingMonths)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Total interest you&apos;ll pay:</span>
-                  <span className="text-xl font-bold font-mono text-error">
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Total interest you&apos;ll pay:</span>
+                  <span className="text-xl font-bold font-mono" style={{ color: 'var(--color-destructive)' }}>
                     ${data.minimumOnlyScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
-              <div className="mt-4 text-sm text-muted-foreground flex items-start gap-2">
-                <Zap className="w-4 h-4 text-success mt-0.5 shrink-0" />
+              <div className="mt-4 text-sm flex items-start gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
+                <Zap className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-success)' }} />
                 <p>
                   <strong>Tip:</strong> Add even a small extra payment in the Payoff Strategy section below to see how much faster you can become debt-free and how much you can save!
                 </p>
@@ -159,13 +165,19 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
   return (
     <div className={className}>
-      <div className="bg-gradient-to-r from-warning/30 to-warning/20 border border-warning/50 rounded-xl p-6 space-y-6">
+      <div
+        className="rounded-xl p-6 space-y-6"
+        style={{
+          background: 'linear-gradient(to right, color-mix(in oklch, var(--color-warning) 30%, transparent), color-mix(in oklch, var(--color-warning) 20%, transparent))',
+          border: '1px solid color-mix(in oklch, var(--color-warning) 50%, transparent)',
+        }}
+      >
         {/* Header */}
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-8 h-8 text-warning" />
+          <AlertTriangle className="w-8 h-8" style={{ color: 'var(--color-warning)' }} />
           <div>
-            <h3 className="text-xl font-bold text-warning">The True Cost of Minimum Payments</h3>
-            <p className="text-muted-foreground text-sm mt-1">
+            <h3 className="text-xl font-bold" style={{ color: 'var(--color-warning)' }}>The True Cost of Minimum Payments</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
               See how much your extra ${data.currentPlanScenario.extraPayment.toLocaleString()} payment is saving you
             </p>
           </div>
@@ -174,43 +186,49 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         {/* Comparison Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Minimum Only Column */}
-          <div className="bg-gradient-to-br from-error/20 to-error/10 border border-error/30 rounded-lg p-5">
+          <div
+            className="rounded-lg p-5"
+            style={{
+              background: 'linear-gradient(to bottom right, color-mix(in oklch, var(--color-destructive) 20%, transparent), color-mix(in oklch, var(--color-destructive) 10%, transparent))',
+              border: '1px solid color-mix(in oklch, var(--color-destructive) 25%, transparent)',
+            }}
+          >
             <div className="flex items-center gap-2 mb-4">
-              <Turtle className="w-6 h-6 text-error" />
-              <h4 className="text-lg font-semibold text-error">Minimum Payments Only</h4>
+              <Turtle className="w-6 h-6" style={{ color: 'var(--color-destructive)' }} />
+              <h4 className="text-lg font-semibold" style={{ color: 'var(--color-destructive)' }}>Minimum Payments Only</h4>
             </div>
 
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Time to debt-free</div>
-                <div className="text-3xl font-bold text-error">
+                <div className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Time to debt-free</div>
+                <div className="text-3xl font-bold" style={{ color: 'var(--color-destructive)' }}>
                   {data.minimumOnlyScenario.totalYears} years
                 </div>
                 {data.minimumOnlyScenario.remainingMonths > 0 && (
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     and {data.minimumOnlyScenario.remainingMonths} months
                   </div>
                 )}
               </div>
 
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Total interest paid</div>
-                <div className="text-2xl font-bold font-mono text-error">
+                <div className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total interest paid</div>
+                <div className="text-2xl font-bold font-mono" style={{ color: 'var(--color-destructive)' }}>
                   ${data.minimumOnlyScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
 
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Monthly payment</div>
-                <div className="text-xl font-mono text-error">
+                <div className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Monthly payment</div>
+                <div className="text-xl font-mono" style={{ color: 'var(--color-destructive)' }}>
                   ${data.minimumOnlyScenario.monthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="text-xs text-muted-foreground">(minimums only)</div>
+                <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>(minimums only)</div>
               </div>
 
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Debt-free date</div>
-                <div className="text-lg text-error">
+                <div className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Debt-free date</div>
+                <div className="text-lg" style={{ color: 'var(--color-destructive)' }}>
                   {formatDate(data.minimumOnlyScenario.debtFreeDate)}
                 </div>
               </div>
@@ -218,45 +236,51 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
           </div>
 
           {/* Current Plan Column */}
-          <div className="bg-gradient-to-br from-income/20 to-income/10 border border-income/30 rounded-lg p-5">
+          <div
+            className="rounded-lg p-5"
+            style={{
+              background: 'linear-gradient(to bottom right, color-mix(in oklch, var(--color-income) 20%, transparent), color-mix(in oklch, var(--color-income) 10%, transparent))',
+              border: '1px solid color-mix(in oklch, var(--color-income) 25%, transparent)',
+            }}
+          >
             <div className="flex items-center gap-2 mb-4">
-              <Zap className="w-6 h-6 text-income" />
-              <h4 className="text-lg font-semibold text-income">Your Current Plan</h4>
+              <Zap className="w-6 h-6" style={{ color: 'var(--color-income)' }} />
+              <h4 className="text-lg font-semibold" style={{ color: 'var(--color-income)' }}>Your Current Plan</h4>
             </div>
 
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Time to debt-free</div>
-                <div className="text-3xl font-bold text-income">
+                <div className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Time to debt-free</div>
+                <div className="text-3xl font-bold" style={{ color: 'var(--color-income)' }}>
                   {data.currentPlanScenario.totalYears} years
                 </div>
                 {data.currentPlanScenario.remainingMonths > 0 && (
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     and {data.currentPlanScenario.remainingMonths} months
                   </div>
                 )}
               </div>
 
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Total interest paid</div>
-                <div className="text-2xl font-bold font-mono text-income">
+                <div className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Total interest paid</div>
+                <div className="text-2xl font-bold font-mono" style={{ color: 'var(--color-income)' }}>
                   ${data.currentPlanScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
 
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Monthly payment</div>
-                <div className="text-xl font-mono text-income">
+                <div className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Monthly payment</div>
+                <div className="text-xl font-mono" style={{ color: 'var(--color-income)' }}>
                   ${data.currentPlanScenario.monthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                   (+${data.currentPlanScenario.extraPayment.toLocaleString()} extra)
                 </div>
               </div>
 
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Debt-free date</div>
-                <div className="text-lg text-income">
+                <div className="text-sm mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Debt-free date</div>
+                <div className="text-lg" style={{ color: 'var(--color-income)' }}>
                   {formatDate(data.currentPlanScenario.debtFreeDate)}
                 </div>
               </div>
@@ -265,55 +289,61 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         </div>
 
         {/* Savings Highlight */}
-        <div className="bg-gradient-to-r from-primary/30 to-primary/20 border border-primary/40 rounded-lg p-5">
+        <div
+          className="rounded-lg p-5"
+          style={{
+            background: 'linear-gradient(to right, color-mix(in oklch, var(--color-primary) 30%, transparent), color-mix(in oklch, var(--color-primary) 20%, transparent))',
+            border: '1px solid color-mix(in oklch, var(--color-primary) 40%, transparent)',
+          }}
+        >
           <div className="flex items-start gap-3">
-            <Target className="w-8 h-8 text-primary" />
+            <Target className="w-8 h-8" style={{ color: 'var(--color-primary)' }} />
             <div className="flex-1">
-              <h4 className="text-lg font-semibold text-primary mb-3">
+              <h4 className="text-lg font-semibold mb-3" style={{ color: 'var(--color-primary)' }}>
                 By paying ${data.currentPlanScenario.extraPayment.toLocaleString()} extra per month, you will:
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-elevated/40 rounded-lg p-4">
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 40%, transparent)' }}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-primary" />
-                    <div className="text-sm text-muted-foreground">Time Saved</div>
+                    <Clock className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+                    <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Time Saved</div>
                   </div>
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
                     {data.comparison.yearsSaved > 0
                       ? `${data.comparison.yearsSaved} year${data.comparison.yearsSaved !== 1 ? 's' : ''}`
                       : `${data.comparison.monthsSaved} months`
                     }
                   </div>
                   {data.comparison.yearsSaved > 0 && data.comparison.remainingMonthsSaved > 0 && (
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                       {data.comparison.remainingMonthsSaved} months
                     </div>
                   )}
                 </div>
 
-                <div className="bg-elevated/40 rounded-lg p-4">
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 40%, transparent)' }}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Banknote className="w-5 h-5 text-primary" />
-                    <div className="text-sm text-muted-foreground">Interest Saved</div>
+                    <Banknote className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+                    <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Interest Saved</div>
                   </div>
-                  <div className="text-2xl font-bold font-mono text-primary">
+                  <div className="text-2xl font-bold font-mono" style={{ color: 'var(--color-primary)' }}>
                     ${data.comparison.interestSaved.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     ({Math.round(data.comparison.percentageReduction)}% less!)
                   </div>
                 </div>
 
-                <div className="bg-elevated/40 rounded-lg p-4">
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 40%, transparent)' }}>
                   <div className="flex items-center gap-2 mb-2">
-                    <PartyPopper className="w-5 h-5 text-primary" />
-                    <div className="text-sm text-muted-foreground">Debt-Free Sooner</div>
+                    <PartyPopper className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+                    <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Debt-Free Sooner</div>
                   </div>
-                  <div className="text-lg font-semibold text-primary">
+                  <div className="text-lg font-semibold" style={{ color: 'var(--color-primary)' }}>
                     {formatDate(data.currentPlanScenario.debtFreeDate)}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     instead of {formatDate(data.minimumOnlyScenario.debtFreeDate)}
                   </div>
                 </div>
@@ -323,19 +353,25 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         </div>
 
         {/* Warning Message */}
-        <div className="bg-error/20 border border-error/30 rounded-lg p-4">
+        <div
+          className="rounded-lg p-4"
+          style={{
+            backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)',
+            border: '1px solid color-mix(in oklch, var(--color-destructive) 25%, transparent)',
+          }}
+        >
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-error mt-0.5 shrink-0" />
-            <p className="text-error text-sm font-medium">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-destructive)' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--color-destructive)' }}>
               <strong>WARNING:</strong> If you only pay minimums, you&apos;ll pay{' '}
-            <span className="text-error font-bold">
+            <span className="font-bold" style={{ color: 'var(--color-destructive)' }}>
               {interestMultiplier >= 2
                 ? `${Math.round(interestMultiplier)}x more`
                 : `${Math.round((interestMultiplier - 1) * 100)}% more`
               }
             </span>{' '}
             in interest and stay in debt for{' '}
-            <span className="text-error font-bold">
+            <span className="font-bold" style={{ color: 'var(--color-destructive)' }}>
               {timeMultiplier >= 2
                 ? `${Math.round(timeMultiplier)}x longer`
                 : `${Math.round((timeMultiplier - 1) * 100)}% longer`

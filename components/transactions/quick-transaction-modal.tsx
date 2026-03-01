@@ -481,20 +481,20 @@ export function QuickTransactionModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto bg-elevated border-border">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-warning" />
-              <DialogTitle className="text-foreground">Quick Entry</DialogTitle>
+              <Zap className="w-5 h-5" style={{ color: 'var(--color-warning)' }} />
+              <DialogTitle style={{ color: 'var(--color-foreground)' }}>Quick Entry</DialogTitle>
             </div>
             <ExperimentalBadge />
           </div>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Rapid transaction entry. Tab to navigate, Ctrl+Enter to save, ESC to close. Press 1-5 for transaction type, T/Y for date, N for notes.
           </DialogDescription>
-          <p className="text-xs text-muted-foreground mt-2">
-            Fields marked with <span className="text-error">*</span> are required
+          <p className="text-xs mt-2" style={{ color: 'var(--color-muted-foreground)' }}>
+            Fields marked with <span style={{ color: 'var(--color-destructive)' }}>*</span> are required
           </p>
         </DialogHeader>
 
@@ -502,28 +502,28 @@ export function QuickTransactionModal({
           {(!initialized || householdLoading) && (
             <div className="flex items-center justify-center py-8">
               <div className="text-center">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                <p className="text-muted-foreground text-sm">Loading household data...</p>
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" style={{ color: 'var(--color-primary)' }} />
+                <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading household data...</p>
               </div>
             </div>
           )}
           
           {initialized && !householdLoading && (!selectedHouseholdId || !householdId) && (
-            <div className="p-3 bg-warning/20 border border-warning/40 rounded-lg text-warning text-sm">
+            <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 40%, transparent)', color: 'var(--color-warning)' }}>
               Please select a household to create transactions.
             </div>
           )}
 
           {error && (
-            <div className="p-3 bg-error/20 border border-error/40 rounded-lg text-error text-sm">
+            <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 40%, transparent)', color: 'var(--color-destructive)' }}>
               {error}
             </div>
           )}
 
           {/* Type */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Type <span className="text-error">*</span>
+            <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+              Type <span style={{ color: 'var(--color-destructive)' }}>*</span>
             </label>
             <Select value={type} onValueChange={(value) => handleTypeChange(value as TransactionType)}>
               <SelectTrigger>
@@ -542,14 +542,14 @@ export function QuickTransactionModal({
           {/* Bill Selector (for bill payments) */}
           {type === 'bill' && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Select Bill to Pay <span className="text-error">*</span>
+              <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+                Select Bill to Pay <span style={{ color: 'var(--color-destructive)' }}>*</span>
               </label>
               <Select value={selectedBillInstanceId || 'none'} onValueChange={handleBillSelect}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a bill to pay" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
                   <SelectItem value="none">Select a bill</SelectItem>
                   {billsLoading ? (
                     <SelectItem value="loading" disabled>Loading bills...</SelectItem>
@@ -558,7 +558,7 @@ export function QuickTransactionModal({
                   ) : (
                     unpaidBills.map((item: UnpaidBillWithInstance) => (
                       <SelectItem key={item.instance.id} value={item.instance.id}>
-                        <div className={item.instance.status === 'overdue' ? 'text-error' : 'text-foreground'}>
+                        <div style={{ color: item.instance.status === 'overdue' ? 'var(--color-destructive)' : 'var(--color-foreground)' }}>
                           {item.instance.status === 'overdue' && (
                             <span className="font-semibold">OVERDUE - </span>
                           )}
@@ -569,7 +569,7 @@ export function QuickTransactionModal({
                   )}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 Selecting a bill will pre-fill the form. You can still edit any field before submitting.
               </p>
             </div>
@@ -577,12 +577,22 @@ export function QuickTransactionModal({
 
           {/* Account */}
           <div className="space-y-2">
-            <label className={`text-sm font-medium ${fieldErrors.accountId ? 'text-error' : 'text-foreground'}`}>
+            <label
+              className="text-sm font-medium"
+              style={{ color: fieldErrors.accountId ? 'var(--color-destructive)' : 'var(--color-foreground)' }}
+            >
               {type === 'transfer_out' || type === 'transfer_in' ? 'From Account' : 'Account'}
-              <span className="text-error">*</span>
+              <span style={{ color: 'var(--color-destructive)' }}>*</span>
             </label>
             {accountsError && (
-              <div className="p-2 bg-error/20 border border-error/40 rounded-lg text-error text-xs mb-2">
+              <div
+                className="p-2 rounded-lg text-xs mb-2"
+                style={{
+                  backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)',
+                  border: '1px solid color-mix(in oklch, var(--color-destructive) 40%, transparent)',
+                  color: 'var(--color-destructive)',
+                }}
+              >
                 {accountsError}
               </div>
             )}
@@ -594,7 +604,7 @@ export function QuickTransactionModal({
               }}
               disabled={accountsLoading || !initialized || householdLoading || !selectedHouseholdId || !householdId}
             >
-              <SelectTrigger className={fieldErrors.accountId ? 'border-error' : ''}>
+              <SelectTrigger style={fieldErrors.accountId ? { borderColor: 'var(--color-destructive)' } : undefined}>
                 <SelectValue 
                   placeholder={
                     accountsLoading 
@@ -608,12 +618,12 @@ export function QuickTransactionModal({
               <SelectContent>
                 {accountsLoading ? (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary mr-2" />
-                    <span className="text-muted-foreground text-sm">Loading accounts...</span>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" style={{ color: 'var(--color-primary)' }} />
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading accounts...</span>
                   </div>
                 ) : accounts.length === 0 ? (
                   <div className="py-4 px-2 text-center">
-                    <p className="text-muted-foreground text-sm">No accounts found. Please create an account first.</p>
+                    <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No accounts found. Please create an account first.</p>
                   </div>
                 ) : (
                   accounts.map((account) => (
@@ -625,15 +635,18 @@ export function QuickTransactionModal({
               </SelectContent>
             </Select>
             {fieldErrors.accountId && (
-              <p className="text-error text-xs">{fieldErrors.accountId}</p>
+              <p className="text-xs" style={{ color: 'var(--color-destructive)' }}>{fieldErrors.accountId}</p>
             )}
           </div>
 
           {/* To Account (for transfers) */}
           {(type === 'transfer_out' || type === 'transfer_in') && (
             <div className="space-y-2">
-              <label className={`text-sm font-medium ${fieldErrors.toAccountId ? 'text-error' : 'text-foreground'}`}>
-                To Account <span className="text-error">*</span>
+              <label
+                className="text-sm font-medium"
+                style={{ color: fieldErrors.toAccountId ? 'var(--color-destructive)' : 'var(--color-foreground)' }}
+              >
+                To Account <span style={{ color: 'var(--color-destructive)' }}>*</span>
               </label>
               <Select 
                 value={toAccountId} 
@@ -643,7 +656,7 @@ export function QuickTransactionModal({
                 }}
                 disabled={accountsLoading || !initialized || householdLoading || !selectedHouseholdId || !householdId || accounts.length === 0}
               >
-                <SelectTrigger className={fieldErrors.toAccountId ? 'border-error' : ''}>
+                <SelectTrigger style={fieldErrors.toAccountId ? { borderColor: 'var(--color-destructive)' } : undefined}>
                   <SelectValue 
                     placeholder={
                       accountsLoading 
@@ -657,12 +670,12 @@ export function QuickTransactionModal({
                 <SelectContent>
                   {accountsLoading ? (
                     <div className="flex items-center justify-center py-4">
-                      <Loader2 className="w-4 h-4 animate-spin text-primary mr-2" />
-                      <span className="text-muted-foreground text-sm">Loading accounts...</span>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" style={{ color: 'var(--color-primary)' }} />
+                      <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Loading accounts...</span>
                     </div>
                   ) : accounts.filter((account) => account.id !== accountId).length === 0 ? (
                     <div className="py-4 px-2 text-center">
-                      <p className="text-muted-foreground text-sm">No other accounts available for transfer.</p>
+                      <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No other accounts available for transfer.</p>
                     </div>
                   ) : (
                     accounts
@@ -676,18 +689,18 @@ export function QuickTransactionModal({
                 </SelectContent>
               </Select>
               {fieldErrors.toAccountId && (
-                <p className="text-error text-xs">{fieldErrors.toAccountId}</p>
+                <p className="text-xs" style={{ color: 'var(--color-destructive)' }}>{fieldErrors.toAccountId}</p>
               )}
             </div>
           )}
 
           {/* Amount */}
           <div className="space-y-2">
-            <label className={`text-sm font-medium ${fieldErrors.amount ? 'text-error' : 'text-foreground'}`}>
-              Amount <span className="text-error">*</span>
+            <label className="text-sm font-medium" style={{ color: fieldErrors.amount ? 'var(--color-destructive)' : 'var(--color-foreground)' }}>
+              Amount <span style={{ color: 'var(--color-destructive)' }}>*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+              <span className="absolute left-3 top-2.5" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
               <Input
                 type="number"
                 step="0.01"
@@ -698,21 +711,22 @@ export function QuickTransactionModal({
                   setAmount(e.target.value);
                   if (fieldErrors.amount) setFieldErrors(prev => ({ ...prev, amount: '' }));
                 }}
-                className={`pl-7 placeholder:text-muted-foreground/50 placeholder:italic ${
-                  fieldErrors.amount ? 'border-error' : ''
-                }`}
+                className="pl-7 placeholder:italic"
+                style={{
+                  ...(fieldErrors.amount && { borderColor: 'var(--color-destructive)' }),
+                }}
                 autoFocus
               />
             </div>
             {fieldErrors.amount && (
-              <p className="text-error text-xs">{fieldErrors.amount}</p>
+              <p className="text-xs" style={{ color: 'var(--color-destructive)' }}>{fieldErrors.amount}</p>
             )}
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <label className={`text-sm font-medium ${fieldErrors.description ? 'text-error' : 'text-foreground'}`}>
-              Description <span className="text-error">*</span>
+            <label className="text-sm font-medium" style={{ color: fieldErrors.description ? 'var(--color-destructive)' : 'var(--color-foreground)' }}>
+              Description <span style={{ color: 'var(--color-destructive)' }}>*</span>
             </label>
             <Input
               placeholder="e.g., Coffee, Gas, Salary"
@@ -721,12 +735,13 @@ export function QuickTransactionModal({
                 setDescription(e.target.value);
                 if (fieldErrors.description) setFieldErrors(prev => ({ ...prev, description: '' }));
               }}
-              className={`placeholder:text-muted-foreground/50 placeholder:italic ${
-                fieldErrors.description ? 'border-error' : ''
-              }`}
+              className="placeholder:italic"
+              style={{
+                ...(fieldErrors.description && { borderColor: 'var(--color-destructive)' }),
+              }}
             />
             {fieldErrors.description && (
-              <p className="text-error text-xs">{fieldErrors.description}</p>
+              <p className="text-xs" style={{ color: 'var(--color-destructive)' }}>{fieldErrors.description}</p>
             )}
           </div>
 
@@ -751,12 +766,12 @@ export function QuickTransactionModal({
 
           {/* Date */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Date</label>
+            <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Date</label>
             <Input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="bg-elevated border-border text-foreground"
+              style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
             />
           </div>
 
@@ -765,7 +780,8 @@ export function QuickTransactionModal({
             <button
               type="button"
               onClick={() => setShowNotes(!showNotes)}
-              className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+              className="flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-90"
+              style={{ color: 'var(--color-foreground)' }}
             >
               Notes (Optional)
               {showNotes ? (
@@ -780,20 +796,32 @@ export function QuickTransactionModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full bg-elevated border-border text-foreground rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+                style={{
+                  backgroundColor: 'var(--color-elevated)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-foreground)',
+                }}
               />
             )}
           </div>
 
           {/* Sales Tax (Only for income transactions) */}
           {type === 'income' && (
-            <div className="border-t border-border pt-4 space-y-2">
+            <div className="border-t pt-4 space-y-2" style={{ borderColor: 'var(--color-border)' }}>
               {merchantIsSalesTaxExempt ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-0.5 bg-success/10 text-success border border-success/30 rounded">
+                  <span
+                    className="text-xs px-2 py-0.5 rounded"
+                    style={{
+                      backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)',
+                      color: 'var(--color-success)',
+                      border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)',
+                    }}
+                  >
                     Tax Exempt Merchant
                   </span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     Excluded from sales tax
                   </span>
                 </div>
@@ -805,17 +833,23 @@ export function QuickTransactionModal({
                       id="quickSalesTax"
                       checked={salesTaxEnabled}
                       onChange={(e) => setSalesTaxEnabled(e.target.checked)}
-                      className="h-4 w-4 rounded border-border bg-input text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+                      className="h-4 w-4 rounded focus:ring-2 focus:ring-offset-0"
+                      style={{
+                        borderColor: 'var(--color-border)',
+                        backgroundColor: 'var(--color-input)',
+                        accentColor: 'var(--color-primary)',
+                      }}
                     />
                     <label
                       htmlFor="quickSalesTax"
-                      className="text-sm text-muted-foreground cursor-pointer"
+                      className="text-sm cursor-pointer"
+                      style={{ color: 'var(--color-muted-foreground)' }}
                     >
                       Subject to sales tax
                     </label>
                   </div>
                   {!salesTaxEnabled && (
-                    <p className="text-xs text-muted-foreground ml-6">
+                    <p className="text-xs ml-6" style={{ color: 'var(--color-muted-foreground)' }}>
                       This income will be excluded from sales tax calculations (tax exempt)
                     </p>
                   )}
@@ -829,7 +863,8 @@ export function QuickTransactionModal({
             <Button
               type="submit"
               disabled={loading || !initialized || householdLoading || !selectedHouseholdId || !householdId}
-              className="flex-1 bg-primary hover:bg-primary/90"
+              className="flex-1"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {loading ? 'Creating...' : 'Add Transaction'}
             </Button>
@@ -838,7 +873,7 @@ export function QuickTransactionModal({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="border-border text-foreground"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
             >
               Cancel
             </Button>

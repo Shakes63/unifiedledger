@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import Link from 'next/link';
-import { ChevronRight, Receipt, CreditCard, Zap, Home, Shield, Banknote, Users, Wrench, MoreHorizontal } from 'lucide-react';
+import { ChevronRight, Receipt } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface ClassificationSummaryItem {
@@ -27,18 +26,6 @@ interface ClassificationSummaryResponse {
     totalUpcomingAmount: number;
   };
 }
-
-// Icon mapping for classifications
-const CLASSIFICATION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  subscription: CreditCard,
-  utility: Zap,
-  housing: Home,
-  insurance: Shield,
-  loan_payment: Banknote,
-  membership: Users,
-  service: Wrench,
-  other: MoreHorizontal,
-};
 
 export function BillsByClassificationWidget() {
   const { selectedHouseholdId } = useHousehold();
@@ -71,48 +58,47 @@ export function BillsByClassificationWidget() {
 
   if (loading) {
     return (
-      <Card className="bg-background border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2 text-foreground">
-            <Receipt className="w-5 h-5" />
-            Bills by Category
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-3">
-            <div className="h-[180px] bg-card rounded-lg" />
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-8 bg-card rounded" />
-              ))}
-            </div>
+      <div
+        className="rounded-xl border p-4"
+        style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <Receipt className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+          <span className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Bills by Category</span>
+        </div>
+        <div className="animate-pulse space-y-3">
+          <div className="h-[160px] rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-8 rounded" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (!data || data.data.length === 0) {
     return (
-      <Card className="bg-background border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2 text-foreground">
-            <Receipt className="w-5 h-5" />
-            Bills by Category
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-6">
-            <p className="text-muted-foreground text-sm">No active bills</p>
-            <Link
-              href="/dashboard/bills/new"
-              className="text-primary text-sm hover:underline mt-2 inline-block"
-            >
-              Add your first bill
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      <div
+        className="rounded-xl border p-4"
+        style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <Receipt className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+          <span className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Bills by Category</span>
+        </div>
+        <div className="text-center py-6">
+          <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>No active bills</p>
+          <Link
+            href="/dashboard/bills/new"
+            className="text-sm hover:underline mt-2 inline-block"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            Add your first bill
+          </Link>
+        </div>
+      </div>
     );
   }
 
@@ -131,9 +117,9 @@ export function BillsByClassificationWidget() {
     if (active && payload && payload.length) {
       const item = payload[0].payload;
       return (
-        <div className="bg-card border border-border rounded-lg p-2 shadow-lg">
-          <p className="text-sm font-medium text-foreground">{item.name}</p>
-          <p className="text-sm text-muted-foreground">
+        <div className="rounded-lg p-2 shadow-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+          <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{item.name}</p>
+          <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
             ${item.value.toFixed(2)}/month
           </p>
         </div>
@@ -143,110 +129,132 @@ export function BillsByClassificationWidget() {
   };
 
   return (
-    <Card className="bg-background border-border">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2 text-foreground">
-            <Receipt className="w-5 h-5" />
-            Bills by Category
-          </CardTitle>
-          <Link
-            href="/dashboard/bills"
-            className="text-muted-foreground hover:text-foreground transition-colors"
+    <div
+      className="rounded-xl border p-4"
+      style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
+    >
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Receipt className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+          <span className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Bills by Category</span>
+          <span
+            className="text-[10px] uppercase tracking-[0.08em]"
+            style={{ color: 'var(--color-muted-foreground)', fontVariantNumeric: 'tabular-nums' }}
           >
-            <ChevronRight className="w-5 h-5" />
-          </Link>
+            ${data.totals.totalMonthly.toFixed(0)}/mo
+          </span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          ${data.totals.totalMonthly.toFixed(2)}/month total
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Pie Chart (hide for single-category to avoid excess empty space) */}
-        {showChart && (
-          <div className="h-[180px]" data-testid="bills-by-category-chart">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={45}
-                  outerRadius={70}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        <Link
+          href="/dashboard/bills"
+          className="transition-colors hover:opacity-80"
+          style={{ color: 'var(--color-muted-foreground)' }}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
 
-        {/* Category List */}
-        <div className="space-y-2">
-          {data.data.slice(0, 5).map((item) => {
-            const Icon = CLASSIFICATION_ICONS[item.classification] || MoreHorizontal;
-            const percentage = data.totals.totalMonthly > 0 
-              ? (item.totalMonthly / data.totals.totalMonthly) * 100 
-              : 0;
-            
-            return (
-              <Link
-                key={item.classification}
-                href={`/dashboard/bills?classification=${item.classification}`}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-elevated transition-colors group"
+      {/* Pie Chart with center label */}
+      {showChart && (
+        <div className="relative h-[160px] mb-4" data-testid="bills-by-category-chart">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                innerRadius={40}
+                outerRadius={65}
+                paddingAngle={2}
+                dataKey="value"
               >
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${item.color}20` }}
-                  >
-                    <span style={{ color: item.color }}>
-                      <Icon className="w-4 h-4" />
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.count} bill{item.count !== 1 ? 's' : ''}
-                      {item.upcomingCount > 0 && (
-                        <span className="text-warning">
-                          {' '}&bull; {item.upcomingCount} upcoming
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">
-                    ${item.totalMonthly.toFixed(2)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {percentage.toFixed(0)}%
-                  </p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Summary Footer */}
-        {data.totals.totalUpcomingCount > 0 && (
-          <div className="pt-3 border-t border-border">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Upcoming (30 days)</span>
-              <span className="text-warning font-medium">
-                {data.totals.totalUpcomingCount} bills &bull; ${data.totals.totalUpcomingAmount.toFixed(2)}
-              </span>
-            </div>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+          {/* Center label */}
+          <div
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            style={{ left: 0, right: 0, top: 0, bottom: 0 }}
+          >
+            <span
+              className="text-sm font-bold"
+              style={{ color: 'var(--color-foreground)', fontVariantNumeric: 'tabular-nums' }}
+            >
+              ${data.totals.totalMonthly.toFixed(0)}/mo
+            </span>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+
+      {/* Category List */}
+      <div className="space-y-0.5">
+        {data.data.slice(0, 5).map((item) => {
+          const percentage = data.totals.totalMonthly > 0
+            ? (item.totalMonthly / data.totals.totalMonthly) * 100
+            : 0;
+
+          return (
+            <Link
+              key={item.classification}
+              href={`/dashboard/bills?classification=${item.classification}`}
+              className="flex items-center justify-between rounded-lg py-1.5 px-3 transition-colors hover:bg-(--color-elevated)"
+            >
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: item.color }}
+                />
+                <div className="min-w-0">
+                  <span className="text-sm font-medium truncate block" style={{ color: 'var(--color-foreground)' }}>
+                    {item.label}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--color-muted-foreground)' }}>
+                    {item.count} bill{item.count !== 1 ? 's' : ''}
+                    {item.upcomingCount > 0 && (
+                      <span style={{ color: 'var(--color-warning)', textTransform: 'none' }}>
+                        {' \u2022 '}{item.upcomingCount} upcoming
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right shrink-0 pl-2">
+                <span
+                  className="text-sm font-medium block"
+                  style={{ color: 'var(--color-foreground)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  ${item.totalMonthly.toFixed(2)}
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.08em] block" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {percentage.toFixed(0)}%
+                </span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Summary Footer */}
+      {data.totals.totalUpcomingCount > 0 && (
+        <div
+          className="mt-3 pt-3"
+          style={{ borderTop: '1px solid var(--color-border)' }}
+        >
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--color-muted-foreground)' }}>
+              Upcoming (30 days)
+            </span>
+            <span className="font-medium" style={{ color: 'var(--color-warning)', fontVariantNumeric: 'tabular-nums' }}>
+              {data.totals.totalUpcomingCount} bills \u2022 ${data.totals.totalUpcomingAmount.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

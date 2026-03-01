@@ -118,13 +118,14 @@ export function PaymentHistoryList({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="flex items-center justify-between p-3 bg-elevated rounded-lg animate-pulse"
+            className="flex items-center justify-between p-3 rounded-lg animate-pulse"
+            style={{ backgroundColor: 'var(--color-elevated)' }}
           >
             <div className="space-y-2 flex-1">
-              <div className="h-4 bg-border rounded w-24"></div>
-              <div className="h-3 bg-border rounded w-32"></div>
+              <div className="h-4 rounded w-24" style={{ backgroundColor: 'var(--color-border)' }}></div>
+              <div className="h-3 rounded w-32" style={{ backgroundColor: 'var(--color-border)' }}></div>
             </div>
-            <div className="h-4 bg-border rounded w-20"></div>
+            <div className="h-4 rounded w-20" style={{ backgroundColor: 'var(--color-border)' }}></div>
           </div>
         ))}
       </div>
@@ -134,8 +135,9 @@ export function PaymentHistoryList({
   // Error state
   if (error) {
     return (
-      <div className={`p-4 bg-error/10 border border-error/30 rounded-lg ${className}`}>
-        <p className="text-sm text-error">
+      <div className={`p-4 rounded-lg ${className}`}
+        style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 30%, transparent)' }}>
+        <p className="text-sm" style={{ color: 'var(--color-destructive)' }}>
           {error}
         </p>
       </div>
@@ -145,12 +147,13 @@ export function PaymentHistoryList({
   // Empty state
   if (payments.length === 0) {
     return (
-      <div className={`text-center p-6 bg-elevated border border-border rounded-lg ${className}`}>
-        <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-        <p className="text-sm text-muted-foreground">
+      <div className={`text-center p-6 rounded-lg ${className}`}
+        style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+        <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" style={{ color: 'var(--color-muted-foreground)' }} />
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
           No payments recorded yet
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           Payments will appear here as you record them
         </p>
       </div>
@@ -168,33 +171,30 @@ export function PaymentHistoryList({
           return (
             <div
               key={payment.id}
-              className={`
-                flex items-start justify-between p-3 rounded-lg transition-colors
-                ${isLarge
-                  ? 'bg-accent/10 border border-accent/30'
-                  : 'bg-elevated border border-border'
-                }
-                hover:bg-border/20
-              `}
+              className="flex items-start justify-between p-3 rounded-lg transition-colors"
+              style={{
+                backgroundColor: isLarge ? 'color-mix(in oklch, var(--color-accent) 10%, transparent)' : 'var(--color-elevated)',
+                border: `1px solid ${isLarge ? 'color-mix(in oklch, var(--color-accent) 30%, transparent)' : 'var(--color-border)'}`,
+              }}
             >
               {/* Left side: Date and amount */}
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                  <div className="text-sm font-semibold text-foreground">
+                  <Calendar className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />
+                  <div className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>
                     {formatDate(payment.paymentDate)}
                   </div>
                   {isLarge && (
-                    <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded">
+                    <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-accent) 20%, transparent)', color: 'var(--color-accent)' }}>
                       Large Payment
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-muted-foreground ml-5">
+                <div className="text-xs ml-5" style={{ color: 'var(--color-muted-foreground)' }}>
                   {getRelativeTime(payment.paymentDate)}
                 </div>
                 {payment.notes && (
-                  <div className="text-xs text-muted-foreground ml-5 mt-1 italic">
+                  <div className="text-xs ml-5 mt-1 italic" style={{ color: 'var(--color-muted-foreground)' }}>
                     {payment.notes}
                   </div>
                 )}
@@ -202,32 +202,32 @@ export function PaymentHistoryList({
 
               {/* Right side: Amount and breakdown */}
               <div className="text-right ml-4">
-                <div className="text-base font-bold text-foreground font-mono">
+                <div className="text-base font-bold font-mono" style={{ color: 'var(--color-foreground)' }}>
                   ${payment.amount.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
                 </div>
                 {hasPrincipalInterest && (
-                  <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                  <div className="text-xs mt-1 space-y-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
                     <div className="flex items-center justify-end gap-1">
-                      <TrendingDown className="w-3 h-3 text-chart-principal" />
-                      <span className="text-chart-principal">
+                      <TrendingDown className="w-3 h-3" style={{ color: 'var(--color-chart-principal)' }} />
+                      <span style={{ color: 'var(--color-chart-principal)' }}>
                         ${payment.principalAmount!.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </span>
-                      <span className="text-muted-foreground">principal</span>
+                      <span style={{ color: 'var(--color-muted-foreground)' }}>principal</span>
                     </div>
                     <div className="flex items-center justify-end gap-1">
-                      <span className="text-chart-interest">
+                      <span style={{ color: 'var(--color-chart-interest)' }}>
                         ${payment.interestAmount!.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </span>
-                      <span className="text-muted-foreground">interest</span>
+                      <span style={{ color: 'var(--color-muted-foreground)' }}>interest</span>
                     </div>
                   </div>
                 )}
@@ -241,7 +241,8 @@ export function PaymentHistoryList({
       {payments.length > initialLimit && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="w-full p-2 text-sm text-accent hover:text-accent-foreground hover:bg-accent/10 rounded-lg transition-colors"
+          className="w-full p-2 text-sm rounded-lg transition-colors"
+          style={{ color: 'var(--color-accent)' }}
         >
           {showAll
             ? `Show Less (${initialLimit} of ${payments.length})`
@@ -251,16 +252,16 @@ export function PaymentHistoryList({
       )}
 
       {/* Summary */}
-      <div className="flex items-center justify-between p-3 bg-card border border-border rounded-lg mt-4">
-        <span className="text-sm text-muted-foreground">Total Payments</span>
+      <div className="flex items-center justify-between p-3 rounded-lg mt-4" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Total Payments</span>
         <div className="text-right">
-          <div className="text-base font-bold text-foreground font-mono">
+          <div className="text-base font-bold font-mono" style={{ color: 'var(--color-foreground)' }}>
             ${payments.reduce((sum, p) => sum + p.amount, 0).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
             {payments.length} {payments.length === 1 ? 'payment' : 'payments'}
           </div>
         </div>

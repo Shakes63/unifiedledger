@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ArrowRightLeft, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -143,33 +142,33 @@ export function TransferSuggestionsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
         <DialogHeader>
-          <DialogTitle className="text-foreground flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2 text-[15px]" style={{ color: 'var(--color-foreground)' }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 15%, transparent)' }}>
+              <ArrowRightLeft className="h-3.5 w-3.5" style={{ color: 'var(--color-primary)' }} />
+            </div>
             Transfer Match Suggestions
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
             Review potential transfer matches found by the smart matching algorithm
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="py-12 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground mt-3">Loading suggestions...</p>
+            <Loader2 className="h-7 w-7 animate-spin mx-auto" style={{ color: 'var(--color-muted-foreground)' }} />
+            <p className="text-[13px] mt-3" style={{ color: 'var(--color-muted-foreground)' }}>Loading suggestions…</p>
           </div>
         ) : suggestions.length === 0 ? (
-          <div className="py-12 text-center bg-elevated rounded-lg border border-border">
-            <ArrowRightLeft className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-            <p className="text-foreground font-medium">No pending suggestions</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Suggestions appear when rules find potential transfer matches
-            </p>
+          <div className="py-12 text-center rounded-xl" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+            <ArrowRightLeft className="h-10 w-10 mx-auto mb-3 opacity-30" style={{ color: 'var(--color-muted-foreground)' }} />
+            <p className="text-[14px] font-semibold" style={{ color: 'var(--color-foreground)' }}>No pending suggestions</p>
+            <p className="text-[12px] mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Suggestions appear when rules find potential transfer matches</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {suggestions.map((suggestion) => (
+          <div className="space-y-3 mt-1">
+            {suggestions.map(suggestion => (
               <SuggestionCard
                 key={suggestion.suggestion.id}
                 suggestion={suggestion}
@@ -221,124 +220,50 @@ function SuggestionCard({
     });
   };
 
-  const getConfidenceBadge = (confidence: string, totalScore: number) => {
-    if (confidence === 'high') {
-      return (
-        <Badge className="bg-success text-white border-none">
-          {totalScore.toFixed(0)}% Match
-        </Badge>
-      );
-    } else if (confidence === 'medium') {
-      return (
-        <Badge className="bg-warning text-white border-none">
-          {totalScore.toFixed(0)}% Match
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge className="bg-error text-white border-none">
-          {totalScore.toFixed(0)}% Match
-        </Badge>
-      );
-    }
-  };
+  const confidenceColor = score.confidence === 'high' ? 'var(--color-success)' : score.confidence === 'medium' ? 'var(--color-warning)' : 'var(--color-destructive)';
 
   return (
-    <div className="border border-border rounded-lg p-4 bg-elevated space-y-4">
-      {/* Header with confidence badge */}
+    <div className="rounded-xl p-4 space-y-3" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-foreground">Potential Transfer Match</h4>
-        {getConfidenceBadge(score.confidence, score.totalScore)}
+        <h4 className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Potential Transfer Match</h4>
+        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `color-mix(in oklch, ${confidenceColor} 12%, transparent)`, color: confidenceColor, border: `1px solid color-mix(in oklch, ${confidenceColor} 25%, transparent)` }}>
+          {score.totalScore.toFixed(0)}% Match
+        </span>
       </div>
 
-      {/* Transaction comparison */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-4">
-        {/* Source transaction */}
-        <div className="bg-card rounded-lg p-3 border border-border">
-          <p className="text-xs text-muted-foreground mb-2">Source Transaction</p>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground line-clamp-2">
-              {sourceTransaction.description}
-            </p>
-            <p className="text-lg font-mono text-expense">
-              {formatCurrency(sourceTransaction.amount)}
-            </p>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: sourceAccount.color }}
-              />
-              <p className="text-xs text-muted-foreground truncate">{sourceAccount.name}</p>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-3">
+        {[
+          { label: 'Source Transaction', tx: sourceTransaction, account: sourceAccount, color: 'var(--color-destructive)' },
+          { label: 'Suggested Match', tx: suggestedTransaction, account: suggestedAccount, color: 'var(--color-income)' },
+        ].map((side, i) => (
+          <div key={i} className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-muted-foreground)' }}>{side.label}</p>
+            <p className="text-[13px] font-medium line-clamp-2" style={{ color: 'var(--color-foreground)' }}>{side.tx.description}</p>
+            <p className="text-[15px] font-mono font-semibold tabular-nums" style={{ color: side.color }}>{formatCurrency(side.tx.amount)}</p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: side.account.color }} />
+              <p className="text-[11px] truncate" style={{ color: 'var(--color-muted-foreground)' }}>{side.account.name}</p>
             </div>
-            <p className="text-xs text-muted-foreground">{formatDate(sourceTransaction.date)}</p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>{formatDate(side.tx.date)}</p>
           </div>
-        </div>
-
-        {/* Arrow */}
-        <div className="flex items-center justify-center md:py-8">
-          <ArrowRightLeft className="h-6 w-6 text-muted-foreground" />
-        </div>
-
-        {/* Suggested transaction */}
-        <div className="bg-card rounded-lg p-3 border border-border">
-          <p className="text-xs text-muted-foreground mb-2">Suggested Match</p>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground line-clamp-2">
-              {suggestedTransaction.description}
-            </p>
-            <p className="text-lg font-mono text-income">
-              {formatCurrency(suggestedTransaction.amount)}
-            </p>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: suggestedAccount.color }}
-              />
-              <p className="text-xs text-muted-foreground truncate">{suggestedAccount.name}</p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {formatDate(suggestedTransaction.date)}
-            </p>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Score breakdown */}
-      <div className="bg-card rounded-lg p-3 space-y-2">
-        <p className="text-xs font-medium text-muted-foreground mb-2">Match Breakdown</p>
+      <div className="rounded-lg px-3 py-3 space-y-2" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-muted-foreground)' }}>Match Breakdown</p>
         <ScoreBar label="Amount" score={score.amountScore} max={40} />
         <ScoreBar label="Date" score={score.dateScore} max={30} />
         <ScoreBar label="Description" score={score.descriptionScore} max={20} />
-        {score.accountScore > 0 && (
-          <ScoreBar label="History" score={score.accountScore} max={10} />
-        )}
+        {score.accountScore > 0 && <ScoreBar label="History" score={score.accountScore} max={10} />}
       </div>
 
-      {/* Actions */}
       <div className="flex gap-2">
-        <Button
-          onClick={onAccept}
-          disabled={isProcessing}
-          className="flex-1 bg-success hover:opacity-90 text-white"
-        >
-          {isProcessing ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Check className="h-4 w-4 mr-2" />
-          )}
+        <Button onClick={onAccept} disabled={isProcessing} className="flex-1 h-9 text-[12px]" style={{ backgroundColor: 'var(--color-success)', color: 'white' }}>
+          {isProcessing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
           Link as Transfer
         </Button>
-        <Button
-          onClick={onReject}
-          disabled={isProcessing}
-          variant="outline"
-          className="flex-1 border-border hover:bg-elevated text-foreground"
-        >
-          {isProcessing ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <X className="h-4 w-4 mr-2" />
-          )}
+        <Button onClick={onReject} disabled={isProcessing} variant="outline" className="flex-1 h-9 text-[12px]">
+          {isProcessing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <X className="h-3.5 w-3.5 mr-1.5" />}
           Not a Match
         </Button>
       </div>
@@ -348,20 +273,14 @@ function SuggestionCard({
 
 function ScoreBar({ label, score, max }: { label: string; score: number; max: number }) {
   const percentage = (score / max) * 100;
-
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="text-foreground font-medium">
-          {score.toFixed(1)} / {max}
-        </span>
+      <div className="flex items-center justify-between">
+        <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>{label}</span>
+        <span className="text-[11px] font-medium tabular-nums" style={{ color: 'var(--color-foreground)' }}>{score.toFixed(1)} / {max}</span>
       </div>
-      <div className="h-2 bg-background rounded-full overflow-hidden">
-        <div
-          className="h-full bg-primary transition-all duration-300"
-          style={{ width: `${percentage}%` }}
-        />
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border)' }}>
+        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${percentage}%`, backgroundColor: 'var(--color-primary)' }} />
       </div>
     </div>
   );

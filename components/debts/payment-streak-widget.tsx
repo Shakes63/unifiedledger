@@ -58,12 +58,12 @@ export function PaymentStreakWidget() {
     fetchStreakData();
   }, [selectedHouseholdId, fetchStreakData]);
 
-  const getStreakColor = (streak: number) => {
-    if (streak >= 24) return 'from-purple-500 to-pink-500'; // 2+ years
-    if (streak >= 12) return 'from-yellow-500 to-orange-500'; // 1+ year
-    if (streak >= 6) return 'from-emerald-500 to-green-500'; // 6+ months
-    if (streak >= 3) return 'from-blue-500 to-cyan-500'; // 3+ months
-    return 'from-gray-500 to-gray-400'; // < 3 months
+  const getStreakGradient = (streak: number) => {
+    if (streak >= 24) return 'linear-gradient(to right, var(--color-transfer), var(--color-primary))'; // 2+ years
+    if (streak >= 12) return 'linear-gradient(to right, var(--color-warning), var(--color-expense))'; // 1+ year
+    if (streak >= 6) return 'linear-gradient(to right, var(--color-success), var(--color-primary))'; // 6+ months
+    if (streak >= 3) return 'linear-gradient(to right, var(--color-primary), var(--color-accent))'; // 3+ months
+    return 'linear-gradient(to right, var(--color-muted), var(--color-muted-foreground))'; // < 3 months
   };
 
   const getMotivationalMessage = (streak: number, isActive: boolean) => {
@@ -105,9 +105,9 @@ export function PaymentStreakWidget() {
   // Loading state
   if (loading) {
     return (
-      <Card className="p-6 border border-border bg-card rounded-xl">
+      <Card className="p-6 rounded-xl" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+          <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
         </div>
       </Card>
     );
@@ -116,14 +116,14 @@ export function PaymentStreakWidget() {
   // No debts or no payments
   if (!data?.hasDebts || !data.hasPayments) {
     return (
-      <Card className="p-6 border border-border bg-card rounded-xl">
+      <Card className="p-6 rounded-xl" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-warning/20 rounded-lg">
-            <Flame className="w-6 h-6 text-warning" />
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)' }}>
+            <Flame className="w-6 h-6" style={{ color: 'var(--color-warning)' }} />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-1">Payment Streak</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>Payment Streak</h3>
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
               {data?.message || 'Make consistent payments to build your streak!'}
             </p>
           </div>
@@ -141,22 +141,31 @@ export function PaymentStreakWidget() {
     : 100;
 
   return (
-    <Card className={`p-6 border border-border bg-gradient-to-br ${data.isActive ? streakGradient : 'from-muted to-muted'} bg-opacity-10 rounded-xl relative overflow-hidden`}>
+    <Card
+      className="p-6 rounded-xl relative overflow-hidden"
+      style={{
+        border: '1px solid var(--color-border)',
+        backgroundColor: 'var(--color-background)',
+        backgroundImage: data.isActive
+          ? 'linear-gradient(135deg, color-mix(in oklch, var(--color-transfer) 10%, transparent), color-mix(in oklch, var(--color-primary) 10%, transparent))'
+          : undefined,
+      }}
+    >
       {/* Decorative background pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-foreground rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-foreground rounded-full blur-2xl"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl" style={{ backgroundColor: 'var(--color-foreground)' }}></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full blur-2xl" style={{ backgroundColor: 'var(--color-foreground)' }}></div>
       </div>
 
       <div className="relative z-10">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-foreground mb-1">Payment Streak</h3>
-            <p className="text-xs text-muted-foreground">{motivationalMessage}</p>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>Payment Streak</h3>
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{motivationalMessage}</p>
           </div>
-          <div className={`p-3 bg-gradient-to-br ${streakGradient} rounded-lg shadow-lg`}>
-            <Flame className={`w-6 h-6 text-primary-foreground ${data.isActive ? 'animate-pulse' : 'opacity-50'}`} />
+          <div className="p-3 rounded-lg shadow-lg" style={{ background: data.isActive ? streakGradient : 'var(--color-muted)' }}>
+            <Flame className={`w-6 h-6 ${data.isActive ? 'animate-pulse' : 'opacity-50'}`} style={{ color: 'var(--color-primary-foreground)' }} />
           </div>
         </div>
 
@@ -164,14 +173,17 @@ export function PaymentStreakWidget() {
         <div className="flex items-center gap-6 mb-6">
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+              <span
+                className="text-5xl font-bold bg-clip-text text-transparent"
+                style={{ background: 'linear-gradient(to right, var(--color-foreground), var(--color-muted-foreground))', WebkitBackgroundClip: 'text' }}
+              >
                 {data.currentStreak}
               </span>
-              <span className="text-lg text-muted-foreground">
+              <span className="text-lg" style={{ color: 'var(--color-muted-foreground)' }}>
                 month{data.currentStreak !== 1 ? 's' : ''}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
               Longest: {data.longestStreak} month{data.longestStreak !== 1 ? 's' : ''}
             </p>
           </div>
@@ -180,17 +192,17 @@ export function PaymentStreakWidget() {
           {data.nextMilestone && (
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                   {data.nextMilestone.label}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                   {data.nextMilestone.remaining} to go
                 </span>
               </div>
-              <div className="h-2 bg-elevated rounded-full overflow-hidden">
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-elevated)' }}>
                 <div
-                  className={`h-full bg-gradient-to-r ${streakGradient} transition-all duration-500`}
-                  style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                  className="h-full transition-all duration-500"
+                  style={{ width: `${Math.min(progressPercentage, 100)}%`, background: streakGradient }}
                 ></div>
               </div>
             </div>
@@ -200,20 +212,21 @@ export function PaymentStreakWidget() {
         {/* Achievements */}
         {data.achievements.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground mb-2">Milestones</p>
+            <p className="text-xs mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Milestones</p>
             <div className="flex gap-2 flex-wrap">
               {data.achievements.map((achievement) => {
                 const IconComponent = getIconComponent(achievement.icon);
                 return (
                   <div
                     key={achievement.milestone}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shadow-lg"
+                    style={
                       achievement.currentlyActive
-                        ? `bg-gradient-to-r ${streakGradient} text-primary-foreground shadow-lg`
+                        ? { background: streakGradient, color: 'var(--color-primary-foreground)' }
                         : achievement.achieved
-                        ? 'bg-elevated border border-border text-muted-foreground'
-                        : 'bg-card border border-border text-muted-foreground'
-                    }`}
+                        ? { backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }
+                        : { backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-muted-foreground)' }
+                    }
                     title={achievement.label}
                   >
                     <IconComponent className="w-4 h-4" />
@@ -230,8 +243,14 @@ export function PaymentStreakWidget() {
 
         {/* Status Message */}
         {!data.isActive && data.currentStreak > 0 && (
-          <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-            <p className="text-xs text-amber-400">
+          <div
+            className="mt-4 p-3 rounded-lg"
+            style={{
+              backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)',
+              border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)',
+            }}
+          >
+            <p className="text-xs" style={{ color: 'var(--color-warning)' }}>
               Streak paused. Make a payment this month to continue!
             </p>
           </div>

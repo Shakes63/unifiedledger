@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, AlertCircle, ArrowRight, Calendar as CalendarIcon, Wallet } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Calendar as CalendarIcon, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { parseISO, format } from 'date-fns';
@@ -195,57 +194,82 @@ export function EnhancedBillsWidget() {
   const remainingAmount = new Decimal(totalAmount).minus(paidAmount).toNumber();
   const progressPercentage = totalCount > 0 ? (paidCount / totalCount) * 100 : 0;
 
-  const getStatusIcon = (status: string) => {
+  const getStatusAccentColor = (status: string) => {
     switch (status) {
       case 'paid':
-        return <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-success)' }} />;
+        return 'var(--color-success)';
       case 'overdue':
-        return <AlertCircle className="w-4 h-4" style={{ color: 'var(--color-error)' }} />;
+        return 'var(--color-destructive)';
       default:
-        return <Clock className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-success/20 text-success';
-      case 'overdue':
-        return 'bg-error/20 text-error';
-      default:
-        return 'bg-warning/20 text-warning';
+        return 'var(--color-warning)';
     }
   };
 
   if (loading) {
     return (
-      <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-        <div className="animate-pulse space-y-3">
-          <div className="h-5 rounded w-1/3" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
-          <div className="h-3 rounded w-full" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
-          <div className="space-y-2">
+      <div
+        className="relative overflow-hidden rounded-xl border p-4"
+        style={{
+          borderColor: 'var(--color-border)',
+          backgroundColor: 'var(--color-background)',
+          borderLeftWidth: 4,
+          borderLeftColor: 'var(--color-primary)',
+        }}
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-[0.03]" style={{ background: 'radial-gradient(circle, var(--color-primary) 0%, transparent 70%)' }} />
+        <div className="animate-pulse space-y-4 relative">
+          <div className="h-4 rounded w-1/3" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          <div className="h-1.5 rounded-full w-full" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          <div className="flex">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex-1 flex flex-col gap-1 py-1">
+                <div className="h-3 rounded w-2/3" style={{ backgroundColor: 'var(--color-elevated)' }} />
+                <div className="h-4 rounded w-1/2" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-0">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-12 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+              <div key={i} className="h-12 border-b flex items-center gap-3" style={{ borderColor: 'var(--color-border)' }}>
+                <div className="w-1 h-8 rounded" style={{ backgroundColor: 'var(--color-elevated)' }} />
+                <div className="flex-1">
+                  <div className="h-3 rounded w-1/3 mb-2" style={{ backgroundColor: 'var(--color-elevated)' }} />
+                  <div className="h-3 rounded w-1/4" style={{ backgroundColor: 'var(--color-elevated)' }} />
+                </div>
+                <div className="h-4 rounded w-16" style={{ backgroundColor: 'var(--color-elevated)' }} />
+              </div>
             ))}
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+    <div
+      className="relative overflow-hidden rounded-xl border p-4"
+      style={{
+        borderColor: 'var(--color-border)',
+        backgroundColor: 'var(--color-background)',
+        borderLeftWidth: 4,
+        borderLeftColor: 'var(--color-primary)',
+      }}
+    >
+      {/* Subtle radial gradient overlay top-right */}
+      <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-[0.03]" style={{ background: 'radial-gradient(circle, var(--color-primary) 0%, transparent 70%)' }} />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 relative">
         <div className="flex items-center gap-2">
           <CalendarIcon className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
-          <h3 className="text-base font-semibold text-foreground">This Month&apos;s Bills</h3>
+          <h3 className="text-[13px] font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>This Month&apos;s Bills</h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
             onClick={() => setBillPayModalOpen(true)}
-            className="bg-primary text-primary-foreground hover:opacity-90 h-8 text-xs"
+            className="hover:opacity-90 h-8 text-xs transition-all duration-150"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
           >
             <Wallet className="w-3.5 h-3.5 mr-1" />
             Pay Bills
@@ -254,7 +278,8 @@ export function EnhancedBillsWidget() {
             <Button
               variant="ghost"
               size="sm"
-              className="hover:bg-elevated text-primary h-8 text-xs"
+              className="hover:bg-[var(--color-elevated)] h-8 text-xs transition-all duration-150"
+              style={{ color: 'var(--color-primary)' }}
             >
               View All <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Button>
@@ -272,89 +297,76 @@ export function EnhancedBillsWidget() {
       {bills.length > 0 ? (
         <>
           {/* Progress Bar */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-foreground font-medium">
-                {paidCount} of {totalCount} bills paid
-              </span>
-              <span className="text-xs font-semibold" style={{ color: 'var(--color-success)' }}>
+          <div className="mb-4 relative">
+            <div className="flex items-center justify-end gap-2">
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${progressPercentage}%`,
+                    backgroundColor: 'var(--color-success)',
+                  }}
+                />
+              </div>
+              <span className="text-xs font-semibold tabular-nums w-8 text-right" style={{ color: 'var(--color-success)' }}>
                 {progressPercentage.toFixed(0)}%
               </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full transition-all duration-300"
-                style={{
-                  width: `${progressPercentage}%`,
-                  backgroundColor: 'var(--color-success)',
-                }}
-              />
+          </div>
+
+          {/* Summary stats - horizontal row with dividers */}
+          <div className="flex items-stretch mb-4 relative">
+            <div className="flex-1 flex flex-col justify-center py-1">
+              <p className="text-[10px] uppercase tracking-[0.08em] mb-0.5" style={{ color: 'var(--color-muted-foreground)' }}>Total</p>
+              <p className="text-sm font-bold tabular-nums" style={{ color: 'var(--color-foreground)', fontVariantNumeric: 'tabular-nums' }}>${totalAmount.toFixed(2)}</p>
+            </div>
+            <div className="w-px shrink-0" style={{ backgroundColor: 'var(--color-border)' }} />
+            <div className="flex-1 flex flex-col justify-center py-1">
+              <p className="text-[10px] uppercase tracking-[0.08em] mb-0.5" style={{ color: 'var(--color-muted-foreground)' }}>Paid</p>
+              <p className="text-sm font-bold tabular-nums" style={{ color: 'var(--color-success)', fontVariantNumeric: 'tabular-nums' }}>${paidAmount.toFixed(2)}</p>
+            </div>
+            <div className="w-px shrink-0" style={{ backgroundColor: 'var(--color-border)' }} />
+            <div className="flex-1 flex flex-col justify-center py-1">
+              <p className="text-[10px] uppercase tracking-[0.08em] mb-0.5" style={{ color: 'var(--color-muted-foreground)' }}>Remaining</p>
+              <p className="text-sm font-bold tabular-nums" style={{ color: overdueCount > 0 ? 'var(--color-destructive)' : 'var(--color-warning)', fontVariantNumeric: 'tabular-nums' }}>${remainingAmount.toFixed(2)}</p>
             </div>
           </div>
 
-          {/* Amount Summary - Inline on larger screens */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="px-2 py-1.5 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5">
-                <p className="text-muted-foreground text-xs">Total</p>
-                <p className="text-sm font-bold text-foreground">${totalAmount.toFixed(2)}</p>
-              </div>
-            </div>
-            <div className="px-2 py-1.5 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5">
-                <p className="text-muted-foreground text-xs">Paid</p>
-                <p className="text-sm font-bold" style={{ color: 'var(--color-success)' }}>
-                  ${paidAmount.toFixed(2)}
-                </p>
-              </div>
-            </div>
-            <div className="px-2 py-1.5 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5">
-                <p className="text-muted-foreground text-xs">Remaining</p>
-                <p className="text-sm font-bold" style={{ color: overdueCount > 0 ? 'var(--color-error)' : 'var(--color-warning)' }}>
-                  ${remainingAmount.toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Sort Toggle */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {/* Sort Toggle + Overdue/Pending count */}
+          <div className="flex items-center justify-between mb-3 relative">
+            <div className="flex items-center gap-2 text-xs">
               {overdueCount > 0 && (
-                <span className="px-2 py-1 rounded-md bg-error/20 text-error font-medium">
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)', color: 'var(--color-destructive)' }}>
                   {overdueCount} Overdue
                 </span>
               )}
               {pendingCount > 0 && (
-                <span className="text-muted-foreground">
-                  {pendingCount} Pending
-                </span>
+                <span style={{ color: 'var(--color-muted-foreground)' }}>{pendingCount} Pending</span>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`text-xs h-7 ${sortBy === 'date' ? 'bg-elevated' : ''}`}
+            <div className="flex gap-1 rounded-full p-0.5" style={{ backgroundColor: 'var(--color-elevated)' }}>
+              <button
+                type="button"
+                className="rounded-full px-2.5 py-1 text-xs font-medium transition-all duration-150"
+                style={sortBy === 'date' ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' } : { color: 'var(--color-muted-foreground)' }}
                 onClick={() => setSortBy('date')}
               >
                 By Date
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`text-xs h-7 ${sortBy === 'amount' ? 'bg-elevated' : ''}`}
+              </button>
+              <button
+                type="button"
+                className="rounded-full px-2.5 py-1 text-xs font-medium transition-all duration-150"
+                style={sortBy === 'amount' ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' } : { color: 'var(--color-muted-foreground)' }}
                 onClick={() => setSortBy('amount')}
               >
                 By Amount
-              </Button>
+              </button>
             </div>
           </div>
 
           {/* Bills List */}
-          <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
-            {bills.map((bill) => {
+          <div className="max-h-[400px] overflow-y-auto relative">
+            {bills.map((bill, i) => {
               const dueDate = parseISO(bill.dueDate);
               const formattedDate = format(dueDate, 'MMM d');
 
@@ -367,54 +379,49 @@ export function EnhancedBillsWidget() {
               return (
                 <div
                   key={bill.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg border transition-all hover:bg-elevated"
-                  style={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+                  className="flex items-center justify-between py-2 px-3 border-l-[3px] border-b last:border-b-0 transition-all duration-150 hover:opacity-90 dashboard-fade-in"
+                  style={{
+                    borderLeftColor: getStatusAccentColor(bill.status),
+                    borderBottomColor: 'var(--color-border)',
+                    animationDelay: `${i * 30}ms`,
+                  }}
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    {getStatusIcon(bill.status)}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{bill.bill?.name}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>Due {formattedDate}</span>
-                        {bill.status === 'pending' && daysUntilDue >= 0 && (
-                          <span className="text-muted-foreground">
-                            ({daysUntilDue === 0 ? 'Today' : daysUntilDue === 1 ? 'Tomorrow' : `${daysUntilDue} days`})
-                          </span>
-                        )}
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--color-foreground)' }}>{bill.bill?.name}</p>
+                    <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
+                      <span>Due {formattedDate}</span>
+                      {bill.status === 'pending' && daysUntilDue >= 0 && (
+                        <span>
+                          ({daysUntilDue === 0 ? 'Today' : daysUntilDue === 1 ? 'Tomorrow' : `${daysUntilDue} days`})
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <p className="text-sm font-bold text-foreground">
-                      ${(bill.actualAmount || bill.expectedAmount).toFixed(2)}
-                    </p>
-                    <span
-                      className={`px-2 py-0.5 rounded-md text-xs font-medium ${getStatusColor(
-                        bill.status
-                      )}`}
-                    >
-                      {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
-                    </span>
-                  </div>
+                  <p
+                    className="text-sm font-bold shrink-0 ml-2"
+                    style={{ color: 'var(--color-foreground)', fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    ${(bill.actualAmount || bill.expectedAmount).toFixed(2)}
+                  </p>
                 </div>
               );
             })}
           </div>
         </>
       ) : (
-        <div className="text-center py-12">
+        <div className="text-center py-12 relative">
           <CheckCircle2 className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-success)', opacity: 0.5 }} />
-          <p className="text-lg font-medium text-foreground mb-2">No bills this month</p>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-lg font-medium mb-2" style={{ color: 'var(--color-foreground)' }}>No bills this month</p>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
             You&apos;re all set! No bills are due this month.
           </p>
           <Link href="/dashboard/bills/new">
-            <Button size="sm" className="bg-primary text-primary-foreground">
+            <Button size="sm" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
               Add a Bill
             </Button>
           </Link>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

@@ -70,9 +70,9 @@ interface DayTransactionSummary {
   totalSpent: number;
   billDueCount: number;
   billOverdueCount: number;
-  bills?: Array<{ 
-    name: string; 
-    status: string; 
+  bills?: Array<{
+    name: string;
+    status: string;
     amount: number;
     isDebt?: boolean;
     isAutopayEnabled?: boolean;
@@ -96,63 +96,80 @@ interface CalendarMonthProps {
   onDayClick?: (date: Date) => void;
 }
 
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export function CalendarMonth({
   currentMonth,
   daySummaries = {},
   onDayClick,
 }: CalendarMonthProps) {
-  // Get the start of the first week and end of the last week
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const weekStart = startOfWeek(monthStart);
   const weekEnd = endOfWeek(monthEnd);
-
-  // Get all days to display
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  // Organize days into weeks
   const weeks: Date[][] = [];
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7));
   }
 
+  const borderStyle = '1px solid color-mix(in oklch, var(--color-border) 35%, transparent)';
+
   return (
-    <div className="space-y-4">
+    <div
+      className="rounded-xl border overflow-hidden"
+      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-background)' }}
+    >
       {/* Day names header */}
-      <div className="grid grid-cols-7 gap-2 mb-2">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
-          (day) => (
-            <div
-              key={day}
-              className="text-center text-muted-foreground font-semibold text-sm py-2"
-            >
-              {day}
-            </div>
-          )
-        )}
-      </div>
-
-      {/* Weeks */}
-      <div className="space-y-2">
-        {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="grid grid-cols-7 gap-2">
-            {week.map((day) => {
-              const dayKey = format(day, 'yyyy-MM-dd');
-              const summary = daySummaries[dayKey];
-
-              return (
-                <CalendarDay
-                  key={dayKey}
-                  date={day}
-                  currentMonth={currentMonth}
-                  summary={summary}
-                  onClick={onDayClick}
-                />
-              );
-            })}
+      <div
+        className="grid grid-cols-7"
+        style={{
+          borderBottom: '1px solid var(--color-border)',
+          backgroundColor: 'color-mix(in oklch, var(--color-elevated) 40%, transparent)',
+        }}
+      >
+        {DAY_NAMES.map((day, i) => (
+          <div
+            key={day}
+            className="text-center text-[11px] font-semibold uppercase tracking-widest py-2"
+            style={{
+              color: 'var(--color-muted-foreground)',
+              borderRight: i < 6 ? borderStyle : 'none',
+            }}
+          >
+            {day}
           </div>
         ))}
       </div>
+
+      {/* Week rows */}
+      {weeks.map((week, weekIndex) => (
+        <div
+          key={weekIndex}
+          className="grid grid-cols-7 calendar-row-enter"
+          style={{
+            animationDelay: `${weekIndex * 40}ms`,
+            borderBottom: weekIndex < weeks.length - 1 ? borderStyle : 'none',
+          }}
+        >
+          {week.map((day, dayIdx) => {
+            const dayKey = format(day, 'yyyy-MM-dd');
+            const summary = daySummaries[dayKey];
+
+            return (
+              <CalendarDay
+                key={dayKey}
+                date={day}
+                currentMonth={currentMonth}
+                summary={summary}
+                onClick={onDayClick}
+                cellBorderRight={dayIdx < 6 ? borderStyle : undefined}
+              />
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

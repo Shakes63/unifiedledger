@@ -1,14 +1,6 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { MoreVertical, Edit2, Trash2 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Edit2, Trash2 } from 'lucide-react';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
 interface CategoryData {
@@ -19,103 +11,137 @@ interface CategoryData {
   dueDate?: number | null;
   usageCount: number;
   isTaxDeductible?: boolean;
+  parentId?: string | null;
 }
 
-interface CategoryCardProps {
+interface CategoryRowProps {
   category: CategoryData;
+  color: string;
+  isChild?: boolean;
+  isLast?: boolean;
   onEdit?: (category: CategoryData) => void;
   onDelete?: (categoryId: string) => void;
 }
 
-const CATEGORY_TYPE_LABELS: Record<string, string> = {
-  income: 'Income',
-  expense: 'Expense',
-  savings: 'Savings',
-};
-
-const CATEGORY_TYPE_COLORS: Record<string, string> = {
-  income: 'bg-income/10 text-income',
-  expense: 'bg-expense/10 text-expense',
-  savings: 'bg-primary/10 text-primary',
-};
-
-export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) {
+export function CategoryRow({ category, color, isChild = false, isLast = false, onEdit, onDelete }: CategoryRowProps) {
   return (
-    <Card className="p-2 border border-border bg-card rounded-lg hover:border-border transition-all">
-      <div className="flex items-start justify-between mb-1">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <h3 className="text-foreground font-semibold text-sm truncate">{category.name}</h3>
-            <EntityIdBadge id={category.id} label="Cat" />
-          </div>
-          <p className="text-muted-foreground text-xs mt-0">{CATEGORY_TYPE_LABELS[category.type]}</p>
-        </div>
+    <div
+      className="group flex items-center gap-3 px-4 py-2.5 transition-colors"
+      style={{
+        paddingLeft: isChild ? '2.5rem' : '1rem',
+        borderBottom: !isLast ? '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' : 'none',
+      }}
+      onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 50%, transparent)')}
+      onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent')}
+    >
+      {/* Child indent indicator */}
+      {isChild && (
+        <div
+          className="absolute"
+          style={{
+            left: '1rem',
+            width: '0.75rem',
+            height: '1px',
+            backgroundColor: 'color-mix(in oklch, var(--color-border) 60%, transparent)',
+          }}
+        />
+      )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-elevated text-muted-foreground ml-1 shrink-0"
-            >
-              <MoreVertical className="h-3 w-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-elevated border-border">
-            {onEdit && (
-              <DropdownMenuItem
-                onClick={() => onEdit(category)}
-                className="text-foreground cursor-pointer hover:bg-elevated text-xs"
-              >
-                <Edit2 className="h-3 w-3 mr-2" />
-                Edit
-              </DropdownMenuItem>
-            )}
-            {onDelete && (
-              <DropdownMenuItem
-                onClick={() => onDelete(category.id)}
-                className="text-error cursor-pointer hover:bg-error/10 text-xs"
-              >
-                <Trash2 className="h-3 w-3 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {/* Type dot */}
+      <div
+        className="w-1.5 h-1.5 rounded-full shrink-0"
+        style={{ backgroundColor: color, opacity: isChild ? 0.7 : 1 }}
+      />
 
-      {/* Category Type Badge and Tax Deductible Badge */}
-      <div className="mb-1 flex gap-1 flex-wrap">
-        <span className={`text-xs font-medium px-1.5 py-0.5 rounded inline-block ${CATEGORY_TYPE_COLORS[category.type]}`}>
-          {CATEGORY_TYPE_LABELS[category.type]}
+      {/* Name + badges */}
+      <div className="flex-1 min-w-0 flex items-center gap-1.5">
+        <span
+          className="text-[13px] font-medium truncate"
+          style={{ color: 'var(--color-foreground)' }}
+        >
+          {category.name}
         </span>
         {category.isTaxDeductible && (
-          <span className="text-xs font-medium px-1.5 py-0.5 rounded inline-block bg-primary/10 text-primary">
-            Tax Deductible
+          <span
+            className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-px rounded shrink-0"
+            style={{
+              backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)',
+              color: 'var(--color-primary)',
+            }}
+          >
+            Tax
           </span>
         )}
+        <EntityIdBadge id={category.id} label="Cat" />
       </div>
 
-      {/* Budget and Usage Info */}
-      <div className="space-y-1 text-xs">
-        {category.monthlyBudget > 0 && (
-          <div className="pb-1 border-b border-border">
-            <p className="text-muted-foreground text-xs mb-0">Monthly Budget</p>
-            <p className="text-sm font-semibold text-foreground">${category.monthlyBudget.toFixed(2)}</p>
-          </div>
-        )}
+      {/* Due date */}
+      {category.dueDate && (
+        <span className="text-[11px] tabular-nums shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
+          Day {category.dueDate}
+        </span>
+      )}
 
-        {category.dueDate && (
-          <div>
-            <p className="text-muted-foreground text-xs mb-0">Due Date</p>
-            <p className="text-foreground font-medium text-xs">Day {category.dueDate}</p>
-          </div>
-        )}
+      {/* Monthly budget */}
+      {category.monthlyBudget > 0 ? (
+        <span
+          className="text-[12px] font-mono tabular-nums shrink-0 w-20 text-right"
+          style={{ color: 'var(--color-foreground)' }}
+        >
+          ${category.monthlyBudget.toFixed(0)}/mo
+        </span>
+      ) : (
+        <span className="w-20 shrink-0" />
+      )}
 
-        <div>
-          <p className="text-muted-foreground text-xs">Used {category.usageCount}x</p>
-        </div>
+      {/* Usage count */}
+      <span
+        className="text-[11px] font-mono tabular-nums shrink-0 w-12 text-right"
+        style={{ color: 'var(--color-muted-foreground)' }}
+      >
+        {category.usageCount}×
+      </span>
+
+      {/* Actions — revealed on hover */}
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        {onEdit && (
+          <button
+            onClick={() => onEdit(category)}
+            className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+            style={{ color: 'var(--color-muted-foreground)' }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-elevated)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-foreground)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)';
+            }}
+          >
+            <Edit2 className="w-3 h-3" />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            onClick={() => onDelete(category.id)}
+            className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+            style={{ color: 'var(--color-muted-foreground)' }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-error) 10%, transparent)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-error)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)';
+            }}
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
       </div>
-    </Card>
+    </div>
   );
 }
+
+// Keep legacy export for any remaining import
+export { CategoryRow as CategoryCard };

@@ -113,9 +113,9 @@ export function PaymentAdherenceCard() {
   // Loading state
   if (loading) {
     return (
-      <Card className="p-6 border border-border bg-card rounded-xl">
+      <Card className="p-6 rounded-xl" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+          <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
         </div>
       </Card>
     );
@@ -129,17 +129,17 @@ export function PaymentAdherenceCard() {
   // No payment history yet
   if (!data.hasHistory) {
     return (
-      <Card className="p-6 border border-border bg-card rounded-xl">
+      <Card className="p-6 rounded-xl" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-foreground mb-1">Payment Adherence</h3>
-            <p className="text-sm text-muted-foreground">Track your payment consistency</p>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>Payment Adherence</h3>
+            <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Track your payment consistency</p>
           </div>
-          <div className="p-3 bg-accent/20 rounded-lg">
-            <TrendingUp className="w-5 h-5 text-accent" />
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-accent) 20%, transparent)' }}>
+            <TrendingUp className="w-5 h-5" style={{ color: 'var(--color-accent)' }} />
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
           {data.message || 'Make your first payment to start tracking adherence!'}
         </p>
       </Card>
@@ -150,17 +150,17 @@ export function PaymentAdherenceCard() {
   const StatusIcon = statusColors.icon;
 
   return (
-    <Card className={`p-6 border ${statusColors.border} bg-card rounded-xl`}>
+    <Card className="p-6 rounded-xl" style={{ border: `1px solid ${statusColors.border}`, backgroundColor: 'var(--color-background)' }}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-foreground mb-1">Payment Adherence</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>Payment Adherence</h3>
+          <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
             {data.monthsOnTrack} of {data.monthsTracked} months on track
           </p>
         </div>
-        <div className={`p-3 ${statusColors.bg} rounded-lg`}>
-          <StatusIcon className={`w-5 h-5 ${statusColors.text}`} />
+        <div className="p-3 rounded-lg" style={{ backgroundColor: statusColors.bg }}>
+          <StatusIcon className="w-5 h-5" style={{ color: statusColors.text }} />
         </div>
       </div>
 
@@ -168,11 +168,14 @@ export function PaymentAdherenceCard() {
       <div className="flex items-end gap-4 mb-4">
         <div>
           <div className="flex items-baseline gap-2">
-            <span className={`text-4xl font-bold ${statusColors.text}`}>
+            <span className="text-4xl font-bold" style={{ color: statusColors.text }}>
               {data.overallAdherence}%
             </span>
           </div>
-          <span className={`text-xs px-2 py-1 rounded-full ${statusColors.bg} ${statusColors.text} border ${statusColors.border} inline-block mt-2`}>
+          <span
+            className="text-xs px-2 py-1 rounded-full inline-block mt-2"
+            style={{ backgroundColor: statusColors.bg, color: statusColors.text, border: `1px solid ${statusColors.border}` }}
+          >
             {getStatusLabel(data.overallStatus)}
           </span>
         </div>
@@ -180,19 +183,22 @@ export function PaymentAdherenceCard() {
         {/* Projection adjustment */}
         {data.projectionAdjustment && data.projectionAdjustment.monthsAheadOrBehind !== 0 && (
           <div className="flex-1">
-            <p className="text-xs text-muted-foreground">Impact</p>
-            <p className={`text-sm font-semibold ${data.projectionAdjustment.monthsAheadOrBehind > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Impact</p>
+            <p
+              className="text-sm font-semibold"
+              style={{ color: data.projectionAdjustment.monthsAheadOrBehind > 0 ? 'var(--color-success)' : 'var(--color-destructive)' }}
+            >
               {Math.abs(data.projectionAdjustment.monthsAheadOrBehind)} month
               {Math.abs(data.projectionAdjustment.monthsAheadOrBehind) !== 1 ? 's' : ''}{' '}
               {data.projectionAdjustment.monthsAheadOrBehind > 0 ? 'ahead' : 'behind'}
             </p>
             {data.projectionAdjustment.savingsFromBeingAhead && (
-              <p className="text-xs text-accent">
+              <p className="text-xs" style={{ color: 'var(--color-accent)' }}>
                 ${data.projectionAdjustment.savingsFromBeingAhead.toLocaleString()} saved
               </p>
             )}
             {data.projectionAdjustment.additionalCostFromBehind && (
-              <p className="text-xs text-red-400">
+              <p className="text-xs" style={{ color: 'var(--color-destructive)' }}>
                 ${data.projectionAdjustment.additionalCostFromBehind.toLocaleString()} more interest
               </p>
             )}
@@ -201,18 +207,18 @@ export function PaymentAdherenceCard() {
       </div>
 
       {/* Monthly breakdown summary */}
-      <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border">
+      <div className="grid grid-cols-3 gap-3 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
         <div>
-          <p className="text-xs text-muted-foreground">On Track</p>
-          <p className="text-lg font-semibold text-blue-400">{data.monthsOnTrack}</p>
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>On Track</p>
+          <p className="text-lg font-semibold" style={{ color: 'var(--color-primary)' }}>{data.monthsOnTrack}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Ahead</p>
-          <p className="text-lg font-semibold text-emerald-400">{data.monthsAhead}</p>
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Ahead</p>
+          <p className="text-lg font-semibold" style={{ color: 'var(--color-success)' }}>{data.monthsAhead}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Behind</p>
-          <p className="text-lg font-semibold text-amber-400">{data.monthsBehind}</p>
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Behind</p>
+          <p className="text-lg font-semibold" style={{ color: 'var(--color-warning)' }}>{data.monthsBehind}</p>
         </div>
       </div>
 
@@ -220,7 +226,8 @@ export function PaymentAdherenceCard() {
       <Button
         onClick={() => setExpanded(!expanded)}
         variant="ghost"
-        className="w-full mt-4 text-muted-foreground hover:text-foreground hover:bg-elevated"
+        className="w-full mt-4 [&:hover]:bg-[var(--color-elevated)]"
+        style={{ color: 'var(--color-muted-foreground)' }}
       >
         {expanded ? (
           <>
@@ -237,23 +244,23 @@ export function PaymentAdherenceCard() {
 
       {/* Expanded Details */}
       {expanded && (
-        <div className="mt-4 pt-4 border-t border-border space-y-2">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
             Your payment adherence tracks how consistently you meet your debt payment goals based on your current extra payment settings.
           </p>
-          <div className="bg-elevated rounded-lg p-3 space-y-1">
+          <div className="rounded-lg p-3 space-y-1" style={{ backgroundColor: 'var(--color-elevated)' }}>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Months Tracked:</span>
-              <span className="text-foreground">{data.monthsTracked}</span>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>Months Tracked:</span>
+              <span style={{ color: 'var(--color-foreground)' }}>{data.monthsTracked}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Average Adherence:</span>
-              <span className="text-foreground">{data.overallAdherence}%</span>
+              <span style={{ color: 'var(--color-muted-foreground)' }}>Average Adherence:</span>
+              <span style={{ color: 'var(--color-foreground)' }}>{data.overallAdherence}%</span>
             </div>
             {data.projectionAdjustment && (
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Projection Adjustment:</span>
-                <span className={data.projectionAdjustment.monthsAheadOrBehind > 0 ? 'text-emerald-400' : 'text-red-400'}>
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Projection Adjustment:</span>
+                <span style={{ color: data.projectionAdjustment.monthsAheadOrBehind > 0 ? 'var(--color-success)' : 'var(--color-destructive)' }}>
                   {data.projectionAdjustment.monthsAheadOrBehind > 0 ? '+' : ''}
                   {data.projectionAdjustment.monthsAheadOrBehind} months
                 </span>

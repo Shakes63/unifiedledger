@@ -150,10 +150,10 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
   if (loading) {
     return (
       <div className="animate-pulse">
-        <div className="h-6 bg-elevated rounded w-48 mb-4" />
+        <div className="h-6 rounded w-48 mb-4" style={{ backgroundColor: 'var(--color-elevated)' }} />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="h-40 bg-elevated rounded-xl" />
-          <div className="h-40 bg-elevated rounded-xl" />
+          <div className="h-40 rounded-xl" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          <div className="h-40 rounded-xl" style={{ backgroundColor: 'var(--color-elevated)' }} />
         </div>
       </div>
     );
@@ -187,15 +187,16 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 hover:text-foreground transition-colors"
+            className="flex items-center gap-2 transition-colors"
+            style={{ color: 'var(--color-muted-foreground)' }}
           >
             {isExpanded ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+              <ChevronUp className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
             ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
             )}
-            <CreditCard className="w-5 h-5 text-expense" />
-            <h2 className="text-lg font-semibold text-foreground">
+            <CreditCard className="w-5 h-5" style={{ color: 'var(--color-expense)' }} />
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
               Debt Payments
             </h2>
           </button>
@@ -203,7 +204,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                <button className="transition-colors" style={{ color: 'var(--color-muted-foreground)' }}>
                   <Info className="w-4 h-4" />
                 </button>
               </TooltipTrigger>
@@ -221,15 +222,17 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
         <div className="flex items-center gap-2">
           <Link
             href="/dashboard/settings?tab=household-financial"
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-sm transition-colors"
+            style={{ color: 'var(--color-muted-foreground)' }}
           >
             <Settings className="w-3 h-3" />
             Strategy
           </Link>
-          <span className="text-muted-foreground">|</span>
+          <span style={{ color: 'var(--color-muted-foreground)' }}>|</span>
           <Link
             href="/dashboard/debts"
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-sm transition-colors"
+            style={{ color: 'var(--color-muted-foreground)' }}
           >
             Manage Debts
             <ExternalLink className="w-3 h-3" />
@@ -241,17 +244,17 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
         <>
           {/* Strategy Mode Display */}
           {data.strategyEnabled && data.strategyDebts.items.length > 0 && (
-            <div className="mb-4 p-4 bg-primary/10 border border-primary/30 rounded-xl">
+            <div className="mb-4 p-4 rounded-xl" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 30%, transparent)' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">
+                  <Star className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                     Managed by{' '}
                     <span className="capitalize">{data.payoffMethod}</span>{' '}
                     Strategy
                   </span>
                 </div>
-                <span className="text-sm font-mono text-primary">
+                <span className="text-sm font-mono" style={{ color: 'var(--color-primary)' }}>
                   $
                   {data.strategyDebts.totalRecommended.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
@@ -261,12 +264,12 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
 
               {/* Focus Debt Highlight */}
               {data.strategyDebts.items.find((d) => d.isFocusDebt) && (
-                <div className="mb-3 pb-3 border-b border-primary/20">
+                <div className="mb-3 pb-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-3 h-3 text-income" />
-                    <span className="text-sm text-muted-foreground">
+                    <TrendingUp className="w-3 h-3" style={{ color: 'var(--color-income)' }} />
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                       Focus:{' '}
-                      <span className="text-foreground font-medium">
+                      <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                         {
                           data.strategyDebts.items.find((d) => d.isFocusDebt)
                             ?.name
@@ -274,7 +277,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
                       </span>
                     </span>
                     {data.extraMonthlyPayment > 0 && (
-                      <span className="text-xs text-income">
+                      <span className="text-xs" style={{ color: 'var(--color-income)' }}>
                         (+$
                         {data.extraMonthlyPayment.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
@@ -291,11 +294,11 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
                 {data.strategyDebts.items.map((debt) => (
                   <div
                     key={debt.id}
-                    className={`flex items-center gap-1 px-2 py-1 rounded ${
-                      debt.isFocusDebt
-                        ? 'bg-primary/20 text-primary'
-                        : 'bg-background/50 text-muted-foreground'
-                    }`}
+                    className="flex items-center gap-1 px-2 py-1 rounded"
+                    style={{
+                      backgroundColor: debt.isFocusDebt ? 'color-mix(in oklch, var(--color-primary) 20%, transparent)' : 'color-mix(in oklch, var(--color-background) 50%, transparent)',
+                      color: debt.isFocusDebt ? 'var(--color-primary)' : 'var(--color-muted-foreground)',
+                    }}
                   >
                     <span
                       className="w-2 h-2 rounded-full"
@@ -313,23 +316,19 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
               </div>
 
               {/* Strategy Progress */}
-              <div className="mt-3 pt-3 border-t border-primary/20">
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Paid this month</span>
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Paid this month</span>
                   <span
-                    className={`font-mono ${
-                      data.strategyDebts.totalPaid >=
-                      data.strategyDebts.totalRecommended
-                        ? 'text-success'
-                        : 'text-foreground'
-                    }`}
+                    className="font-mono"
+                    style={{ color: data.strategyDebts.totalPaid >= data.strategyDebts.totalRecommended ? 'var(--color-success)' : 'var(--color-foreground)' }}
                   >
                     $
                     {data.strategyDebts.totalPaid.toLocaleString('en-US', {
                       minimumFractionDigits: 2,
                     })}{' '}
                     /{' '}
-                    <span className="text-primary">
+                    <span style={{ color: 'var(--color-primary)' }}>
                       $
                       {data.strategyDebts.totalRecommended.toLocaleString(
                         'en-US',
@@ -345,7 +344,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
           {/* Manual/Excluded Debts */}
           {data.manualDebts.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-medium mb-2 flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
                 <Edit2 className="w-3 h-3" />
                 {data.strategyEnabled
                   ? 'Manual (Excluded from Strategy)'
@@ -369,7 +368,8 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
               </div>
               <Link
                 href="/dashboard/settings?tab=household-financial"
-                className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80 transition-opacity mt-3"
+                className="inline-flex items-center gap-1 text-sm transition-opacity mt-3"
+                style={{ color: 'var(--color-primary)' }}
               >
                 <TrendingUp className="w-3 h-3" />
                 Enable Payoff Strategy for centralized management
@@ -379,35 +379,35 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
 
           {/* Status Summary */}
           {needsAttention && (
-            <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-xl">
+            <div className="mb-4 p-3 rounded-xl" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-4 h-4 text-warning" />
-                <span className="text-sm font-medium text-foreground">
+                <AlertCircle className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />
+                <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                   Payment Status
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 {statusCounts.unpaid > 0 && (
-                  <span className="flex items-center gap-1 text-error">
-                    <span className="w-2 h-2 rounded-full bg-error" />
+                  <span className="flex items-center gap-1" style={{ color: 'var(--color-destructive)' }}>
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-destructive)' }} />
                     {statusCounts.unpaid} unpaid
                   </span>
                 )}
                 {statusCounts.partial > 0 && (
-                  <span className="flex items-center gap-1 text-warning">
-                    <span className="w-2 h-2 rounded-full bg-warning" />
+                  <span className="flex items-center gap-1" style={{ color: 'var(--color-warning)' }}>
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-warning)' }} />
                     {statusCounts.partial} partial
                   </span>
                 )}
                 {statusCounts.paid > 0 && (
-                  <span className="flex items-center gap-1 text-success">
-                    <span className="w-2 h-2 rounded-full bg-success" />
+                  <span className="flex items-center gap-1" style={{ color: 'var(--color-success)' }}>
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-success)' }} />
                     {statusCounts.paid} paid
                   </span>
                 )}
                 {statusCounts.overpaid > 0 && (
-                  <span className="flex items-center gap-1 text-primary">
-                    <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="flex items-center gap-1" style={{ color: 'var(--color-primary)' }}>
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />
                     {statusCounts.overpaid} overpaid
                   </span>
                 )}
@@ -417,10 +417,10 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
 
           {/* All Paid Success Message */}
           {!needsAttention && data.debtCount > 0 && (
-            <div className="mb-4 p-3 bg-success/10 border border-success/30 rounded-xl">
+            <div className="mb-4 p-3 rounded-xl" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)' }}>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-success" />
-                <span className="text-sm font-medium text-success">
+                <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-success)' }} />
+                <span className="text-sm font-medium" style={{ color: 'var(--color-success)' }}>
                   All {data.debtCount} debt
                   {data.debtCount !== 1 ? 's' : ''} paid this month
                   {statusCounts.overpaid > 0 &&
@@ -432,32 +432,29 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
 
           {/* Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-card border border-border rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Total Minimum</p>
-              <p className="font-mono font-semibold text-foreground">
+            <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Total Minimum</p>
+              <p className="font-mono font-semibold" style={{ color: 'var(--color-foreground)' }}>
                 $
                 {data.totalMinimumPayments.toLocaleString('en-US', {
                   minimumFractionDigits: 2,
                 })}
               </p>
             </div>
-            <div className="bg-card border border-border rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Budgeted</p>
-              <p className="font-mono font-semibold text-primary">
+            <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Budgeted</p>
+              <p className="font-mono font-semibold" style={{ color: 'var(--color-primary)' }}>
                 $
                 {data.totalBudgetedPayments.toLocaleString('en-US', {
                   minimumFractionDigits: 2,
                 })}
               </p>
             </div>
-            <div className="bg-card border border-border rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Paid This Month</p>
+            <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Paid This Month</p>
               <p
-                className={`font-mono font-semibold ${
-                  percentagePaid >= 100
-                    ? 'text-success'
-                    : 'text-foreground'
-                }`}
+                className="font-mono font-semibold"
+                style={{ color: percentagePaid >= 100 ? 'var(--color-success)' : 'var(--color-foreground)' }}
               >
                 $
                 {data.totalActualPaid.toLocaleString('en-US', {
@@ -465,14 +462,11 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
                 })}
               </p>
             </div>
-            <div className="bg-card border border-border rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Remaining</p>
+            <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Remaining</p>
               <p
-                className={`font-mono font-semibold ${
-                  totalRemaining <= 0
-                    ? 'text-success'
-                    : 'text-expense'
-                }`}
+                className="font-mono font-semibold"
+                style={{ color: totalRemaining <= 0 ? 'var(--color-success)' : 'var(--color-expense)' }}
               >
                 $
                 {Math.max(0, totalRemaining).toLocaleString('en-US', {
@@ -487,41 +481,40 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
       {/* Collapsed Summary */}
       {!isExpanded && (
         <div
-          className={`flex items-center justify-between p-3 bg-card border rounded-lg ${
-            needsAttention ? 'border-warning' : 'border-border'
-          }`}
+          className="flex items-center justify-between p-3 rounded-lg"
+          style={{ backgroundColor: 'var(--color-background)', border: needsAttention ? '1px solid var(--color-warning)' : '1px solid var(--color-border)' }}
         >
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
               {data.debtCount} debt{data.debtCount !== 1 ? 's' : ''}
             </span>
             {data.strategyEnabled && (
-              <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded">
+              <span className="text-xs px-2 py-0.5 rounded" style={{ color: 'var(--color-primary)', backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)' }}>
                 {data.payoffMethod}
               </span>
             )}
             {/* Compact status indicators */}
             <div className="flex items-center gap-2 text-xs">
               {statusCounts.paid > 0 && (
-                <span className="flex items-center gap-1 text-success">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                <span className="flex items-center gap-1" style={{ color: 'var(--color-success)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-success)' }} />
                   {statusCounts.paid}
                 </span>
               )}
               {statusCounts.overpaid > 0 && (
-                <span className="flex items-center gap-1 text-primary">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <span className="flex items-center gap-1" style={{ color: 'var(--color-primary)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />
                   +{statusCounts.overpaid}
                 </span>
               )}
               {statusCounts.partial > 0 && (
-                <span className="flex items-center gap-1 text-warning">
-                  <span className="w-1.5 h-1.5 rounded-full bg-warning" />
+                <span className="flex items-center gap-1" style={{ color: 'var(--color-warning)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-warning)' }} />
                   {statusCounts.partial}
                 </span>
               )}
               {statusCounts.unpaid > 0 && (
-                <span className="flex items-center gap-1 text-error">
+                <span className="flex items-center gap-1" style={{ color: 'var(--color-destructive)' }}>
                   <AlertCircle className="w-3 h-3" />
                   {statusCounts.unpaid}
                 </span>
@@ -530,19 +523,15 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
           </div>
           <span className="text-sm font-mono">
             <span
-              className={
-                percentagePaid >= 100
-                  ? 'text-success'
-                  : 'text-foreground'
-              }
+              style={{ color: percentagePaid >= 100 ? 'var(--color-success)' : 'var(--color-foreground)' }}
             >
               $
               {data.totalActualPaid.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
               })}
             </span>
-            <span className="text-muted-foreground"> / </span>
-            <span className="text-primary">
+            <span style={{ color: 'var(--color-muted-foreground)' }}> / </span>
+            <span style={{ color: 'var(--color-primary)' }}>
               $
               {data.totalBudgetedPayments.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
@@ -562,15 +551,18 @@ function ManualDebtRow({ debt }: { debt: UnifiedDebtItem }) {
   const isOverpaid = debt.actualPaid > target;
 
   return (
-    <div className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover:bg-elevated transition-colors">
+    <div
+      className="flex items-center justify-between p-3 rounded-lg transition-colors"
+      style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
+    >
       <div className="flex items-center gap-3">
         <span
           className="w-3 h-3 rounded-full"
           style={{ backgroundColor: debt.color || '#6b7280' }}
         />
         <div>
-          <p className="text-sm font-medium text-foreground">{debt.name}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{debt.name}</p>
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
             {debt.source === 'account' ? 'Credit' : 'Loan'} - $
             {debt.balance.toLocaleString('en-US', { minimumFractionDigits: 0 })}{' '}
             balance
@@ -579,17 +571,12 @@ function ManualDebtRow({ debt }: { debt: UnifiedDebtItem }) {
       </div>
       <div className="text-right">
         <p
-          className={`text-sm font-mono ${
-            isOverpaid
-              ? 'text-primary'
-              : isPaid
-              ? 'text-success'
-              : 'text-foreground'
-          }`}
+          className="text-sm font-mono"
+          style={{ color: isOverpaid ? 'var(--color-primary)' : isPaid ? 'var(--color-success)' : 'var(--color-foreground)' }}
         >
           ${debt.actualPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
           / ${target.toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </p>
       </div>

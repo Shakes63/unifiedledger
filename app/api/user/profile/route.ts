@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { user as betterAuthUser } from '@/auth-schema';
 import { userSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { getEmailProvider } from '@/lib/email/email-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,7 @@ export async function GET() {
     }
 
     const user = users[0];
+    const resendIntegrationEnabled = getEmailProvider() === 'resend';
 
     // Also fetch display name and avatar from user settings if available
     const settings = await db
@@ -59,6 +61,7 @@ export async function GET() {
       avatarUrl: settings[0]?.avatarUrl || null,
       bio: settings[0]?.bio || null,
       createdAt: user.createdAt,
+      resendIntegrationEnabled,
     };
 
     return NextResponse.json({ profile });
@@ -195,6 +198,7 @@ export async function PATCH(request: NextRequest) {
       avatarUrl: updatedSettings[0]?.avatarUrl || null,
       bio: updatedSettings[0]?.bio || null,
       createdAt: updatedUsers[0].createdAt,
+      resendIntegrationEnabled: getEmailProvider() === 'resend',
     };
 
     return NextResponse.json({

@@ -19,17 +19,16 @@ export function ApiTimingBadge({ startTime, endTime, endpoint, className = '' }:
   const duration = endTime - startTime;
 
   // Color code based on performance
-  const getColorClass = () => {
-    if (duration < 100) return 'text-success bg-success/10';
-    if (duration < 500) return 'text-warning bg-warning/10';
-    return 'text-error bg-error/10';
+  const getColorStyle = () => {
+    if (duration < 100) return { color: 'var(--color-success)', backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)' };
+    if (duration < 500) return { color: 'var(--color-warning)', backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)' };
+    return { color: 'var(--color-destructive)', backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)' };
   };
-
-  const colorClass = getColorClass();
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-border ${colorClass} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border ${className}`}
+      style={{ borderColor: 'var(--color-border)', ...getColorStyle() }}
       title={`API: ${endpoint}\nDuration: ${duration}ms`}
       aria-label={`API timing: ${duration}ms for ${endpoint}`}
     >

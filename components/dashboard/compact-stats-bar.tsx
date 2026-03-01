@@ -365,36 +365,174 @@ export function CompactStatsBar() {
     });
   }
 
+  const heroStat = discretionaryData !== null ? stats[0] : null;
+  const supportingStats = discretionaryData !== null ? stats.slice(1) : stats;
+
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-        {stats.map((stat, index) => (
+      <div className="space-y-3">
+        {/* Hero Discretionary Card */}
+        {heroStat && discretionaryData && !heroStat.loading && (
           <div
-            key={index}
-            className="relative px-3 py-2 rounded-lg border transition-all hover:bg-elevated"
+            className="relative overflow-hidden rounded-xl border p-5 dashboard-fade-in"
             style={{
-              backgroundColor: 'var(--color-card)',
+              backgroundColor: 'var(--color-background)',
               borderColor: 'var(--color-border)',
             }}
           >
-            {stat.loading ? (
-              <div className="animate-pulse">
-                <div className="h-4 w-16 rounded mb-1" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
-                <div className="h-5 w-20 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+            <div
+              className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full"
+              style={{ backgroundColor: heroStat.color }}
+            />
+            <div
+              className="absolute -top-24 -right-24 w-64 h-64 rounded-full pointer-events-none"
+              style={{
+                background: `radial-gradient(circle, ${heroStat.color}, transparent 70%)`,
+                opacity: 0.04,
+              }}
+            />
+
+            <div className="relative flex items-start justify-between pl-3">
+              <div>
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center"
+                    style={{
+                      backgroundColor: `color-mix(in oklch, ${heroStat.color} 12%, transparent)`,
+                      color: heroStat.color,
+                    }}
+                  >
+                    {heroStat.icon}
+                  </div>
+                  {heroStat.tooltip ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1.5 cursor-help">
+                          <span className="text-sm font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
+                            {heroStat.label}
+                          </span>
+                          <HelpCircle className="w-3.5 h-3.5" style={{ color: 'var(--color-muted-foreground)' }} />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs whitespace-pre-line">
+                        <p className="text-sm">{heroStat.tooltip}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
+                      {heroStat.label}
+                    </span>
+                  )}
+                </div>
+                <p
+                  className="text-3xl font-bold tracking-tight"
+                  style={{ color: heroStat.color }}
+                >
+                  {heroStat.value}
+                </p>
               </div>
-            ) : (
-              <>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <div style={{ color: stat.color }}>
-                      {stat.icon}
-                    </div>
+
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {discretionaryData.periodLabel}
+                </span>
+                <span
+                  className="px-2.5 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    backgroundColor: 'var(--color-elevated)',
+                    color: 'var(--color-muted-foreground)',
+                  }}
+                >
+                  {discretionaryData.daysRemaining}d remaining
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Hero Loading Skeleton */}
+        {loading && (
+          <div
+            className="rounded-xl border p-5 animate-pulse"
+            style={{
+              backgroundColor: 'var(--color-background)',
+              borderColor: 'var(--color-border)',
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div
+                    className="w-9 h-9 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-elevated)' }}
+                  />
+                  <div
+                    className="h-4 w-24 rounded"
+                    style={{ backgroundColor: 'var(--color-elevated)' }}
+                  />
+                </div>
+                <div
+                  className="h-9 w-40 rounded"
+                  style={{ backgroundColor: 'var(--color-elevated)' }}
+                />
+              </div>
+              <div
+                className="h-7 w-24 rounded-full"
+                style={{ backgroundColor: 'var(--color-elevated)' }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Supporting Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
+          {supportingStats.map((stat, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all hover:bg-(--color-elevated) dashboard-fade-in"
+              style={{
+                backgroundColor: 'var(--color-background)',
+                borderColor: 'var(--color-border)',
+                animationDelay: `${(index + 1) * 60}ms`,
+              }}
+            >
+              {stat.loading ? (
+                <div className="animate-pulse flex items-center gap-2.5 w-full">
+                  <div
+                    className="w-8 h-8 rounded-lg shrink-0"
+                    style={{ backgroundColor: 'var(--color-elevated)' }}
+                  />
+                  <div className="flex-1">
+                    <div
+                      className="h-3 w-14 rounded mb-1.5"
+                      style={{ backgroundColor: 'var(--color-elevated)' }}
+                    />
+                    <div
+                      className="h-4 w-20 rounded"
+                      style={{ backgroundColor: 'var(--color-elevated)' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: `color-mix(in oklch, ${stat.color} 12%, transparent)`,
+                      color: stat.color,
+                    }}
+                  >
+                    {stat.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
                     {stat.tooltip ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center gap-1 cursor-help">
-                            <p className="text-xs text-muted-foreground">{stat.label}</p>
-                            <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                            <p className="text-xs truncate" style={{ color: 'var(--color-muted-foreground)' }}>
+                              {stat.label}
+                            </p>
+                            <HelpCircle className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs whitespace-pre-line">
@@ -402,25 +540,20 @@ export function CompactStatsBar() {
                         </TooltipContent>
                       </Tooltip>
                     ) : (
-                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--color-muted-foreground)' }}>{stat.label}</p>
+                    )}
+                    <p className="text-sm font-bold truncate" style={{ color: 'var(--color-foreground)' }}>
+                      {stat.value}
+                    </p>
+                    {stat.subtitle && (
+                      <p className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>{stat.subtitle}</p>
                     )}
                   </div>
-                  <p
-                    className="text-lg md:text-base font-bold truncate"
-                    style={{ color: 'var(--color-foreground)' }}
-                  >
-                    {stat.value}
-                  </p>
-                </div>
-                {stat.subtitle && (
-                  <p className="text-xs text-muted-foreground mt-0.5 md:text-right">
-                    {stat.subtitle}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        ))}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </TooltipProvider>
   );

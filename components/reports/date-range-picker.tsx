@@ -178,7 +178,7 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
   };
 
   return (
-    <Card className="bg-card border-border">
+    <Card style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
       <CardHeader className="pb-3">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -186,11 +186,11 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
           aria-expanded={isExpanded}
           aria-label="Toggle date range picker"
         >
-          <CardTitle className="text-lg font-semibold text-foreground">Date Range</CardTitle>
+          <CardTitle className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Date Range</CardTitle>
           {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            <ChevronUp className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
           ) : (
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            <ChevronDown className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
           )}
         </button>
       </CardHeader>
@@ -212,10 +212,10 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
                 onClick={() => handlePresetClick(preset.id)}
                 aria-pressed={activePreset === preset.id}
                 aria-label={`Select ${preset.label} date range`}
-                className={
+                style={
                   activePreset === preset.id
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-elevated text-foreground border-border hover:bg-elevated'
+                    ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)', border: '1px solid var(--color-primary)' }
+                    : { backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', border: '1px solid var(--color-border)' }
                 }
               >
                 {preset.label}
@@ -228,11 +228,11 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
               onClick={() => handlePresetClick('custom')}
               aria-pressed={activePreset === 'custom'}
               aria-label="Select custom date range"
-              className={
-                activePreset === 'custom'
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-elevated text-foreground border-border hover:bg-elevated'
-              }
+                style={
+                  activePreset === 'custom'
+                    ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)', border: '1px solid var(--color-primary)' }
+                    : { backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', border: '1px solid var(--color-border)' }
+                }
             >
               Custom
             </Button>
@@ -241,7 +241,7 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
           {/* Date Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="start-date" className="text-sm font-medium text-foreground">
+              <Label htmlFor="start-date" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                 Start Date
               </Label>
               <Input
@@ -250,13 +250,14 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
                 type="date"
                 value={startDate || ''}
                 onChange={(e) => handleStartDateChange(e.target.value)}
-                className="bg-elevated border-border text-foreground"
+                className=""
+                style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                 aria-label="Start date"
                 aria-describedby={error ? 'date-error' : undefined}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="end-date" className="text-sm font-medium text-foreground">
+              <Label htmlFor="end-date" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                 End Date
               </Label>
               <Input
@@ -265,7 +266,8 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
                 type="date"
                 value={endDate || ''}
                 onChange={(e) => handleEndDateChange(e.target.value)}
-                className="bg-elevated border-border text-foreground"
+                className=""
+                style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                 aria-label="End date"
                 aria-describedby={error ? 'date-error' : undefined}
               />
@@ -276,7 +278,8 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
           {error && (
             <div
               id="date-error"
-              className="text-sm text-error"
+              className="text-sm"
+              style={{ color: 'var(--color-destructive)' }}
               role="alert"
               aria-live="polite"
             >
@@ -292,7 +295,7 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
                 variant="outline"
                 size="sm"
                 onClick={handleClear}
-                className="text-muted-foreground border-border hover:bg-elevated"
+                style={{ color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}
               >
                 <X className="w-4 h-4 mr-2" />
                 Clear Dates

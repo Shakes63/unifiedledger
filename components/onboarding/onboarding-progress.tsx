@@ -17,7 +17,7 @@ export function OnboardingProgress({
   skippedSteps,
 }: OnboardingProgressProps) {
   return (
-    <div className="flex items-center justify-between w-full px-4 py-6">
+    <div className="flex items-center w-full px-4 py-4">
       {Array.from({ length: totalSteps }, (_, i) => {
         const stepNumber = i + 1;
         const isCompleted = completedSteps.has(stepNumber);
@@ -25,54 +25,25 @@ export function OnboardingProgress({
         const isCurrent = stepNumber === currentStep;
         const isPast = stepNumber < currentStep;
 
+        const circleBg = isCompleted ? 'var(--color-success)' : isSkipped ? 'color-mix(in oklch, var(--color-warning) 15%, transparent)' : isCurrent ? 'var(--color-primary)' : 'var(--color-elevated)';
+        const circleBorder = isCompleted ? 'var(--color-success)' : isSkipped ? 'var(--color-warning)' : isCurrent ? 'var(--color-primary)' : 'var(--color-border)';
+        const circleColor = (isCompleted || isCurrent) ? 'var(--color-primary-foreground)' : isSkipped ? 'var(--color-warning)' : 'var(--color-muted-foreground)';
+
         return (
           <div key={stepNumber} className="flex items-center flex-1">
-            {/* Step Circle */}
             <div className="flex flex-col items-center flex-1">
-              <div
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors',
-                  isCompleted &&
-                    'bg-success border-success text-background',
-                  isSkipped &&
-                    'bg-warning/20 border-warning text-warning',
-                  isCurrent &&
-                    !isCompleted &&
-                    !isSkipped &&
-                    'bg-primary border-primary text-background',
-                  !isCompleted &&
-                    !isSkipped &&
-                    !isCurrent &&
-                    'bg-elevated border-border text-muted-foreground'
-                )}
-              >
-                {isCompleted ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <span className="text-xs font-semibold">{stepNumber}</span>
-                )}
+              <div className={cn('flex items-center justify-center w-7 h-7 rounded-full border-2 transition-all')}
+                style={{ backgroundColor: circleBg, borderColor: circleBorder, color: circleColor }}>
+                {isCompleted ? <Check className="w-3.5 h-3.5" /> : <span className="text-[11px] font-bold">{stepNumber}</span>}
               </div>
-              {/* Step Label (hidden on mobile, shown on larger screens) */}
-              <span
-                className={cn(
-                  'mt-2 text-xs text-center hidden sm:block',
-                  isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'
-                )}
-              >
+              <span className={cn('mt-1.5 text-[10px] text-center hidden sm:block')}
+                style={{ color: isCurrent ? 'var(--color-foreground)' : 'var(--color-muted-foreground)', fontWeight: isCurrent ? 600 : 400 }}>
                 Step {stepNumber}
               </span>
             </div>
-
-            {/* Connector Line */}
             {stepNumber < totalSteps && (
-              <div
-                className={cn(
-                  'h-0.5 flex-1 mx-2 transition-colors',
-                  isPast || isCompleted
-                    ? 'bg-success'
-                    : 'bg-border'
-                )}
-              />
+              <div className="h-px flex-1 mx-1.5 transition-colors"
+                style={{ backgroundColor: isPast || isCompleted ? 'var(--color-success)' : 'var(--color-border)' }} />
             )}
           </div>
         );

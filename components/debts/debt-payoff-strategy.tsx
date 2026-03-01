@@ -130,7 +130,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   if (loading) {
     return (
       <div className={className}>
-        <div className="text-center py-8 text-muted-foreground">Loading payoff strategy...</div>
+        <div className="text-center py-8" style={{ color: 'var(--color-muted-foreground)' }}>Loading payoff strategy...</div>
       </div>
     );
   }
@@ -138,7 +138,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   if (!comparison || comparison.snowball.payoffOrder.length === 0) {
     return (
       <div className={className}>
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8" style={{ color: 'var(--color-muted-foreground)' }}>
           No active debts found. Create a debt to see payoff strategies.
         </div>
       </div>
@@ -152,54 +152,58 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
     <div className={className}>
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Debt Payoff Strategy</h2>
+        <h2 className="text-[17px] font-semibold mb-4" style={{ color: 'var(--color-foreground)' }}>Debt Payoff Strategy</h2>
 
         {/* Payment Frequency Toggle */}
         <div className="mb-3">
-          <Label className="text-foreground text-sm mb-2 block">Payment Frequency</Label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-card rounded-lg p-1">
+          <Label className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>Payment Frequency</Label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-lg p-1" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
             <button
               onClick={() => setPaymentFrequency('weekly')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              style={
                 paymentFrequency === 'weekly'
-                  ? 'bg-success text-white'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-              }`}
+                  ? { backgroundColor: 'var(--color-success)', color: 'white' }
+                  : { color: 'var(--color-muted-foreground)' }
+              }
             >
               Weekly
             </button>
             <button
               onClick={() => setPaymentFrequency('biweekly')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              style={
                 paymentFrequency === 'biweekly'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-              }`}
+                  ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                  : { color: 'var(--color-muted-foreground)' }
+              }
             >
               Bi-Weekly
             </button>
             <button
               onClick={() => setPaymentFrequency('monthly')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              style={
                 paymentFrequency === 'monthly'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-              }`}
+                  ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-foreground)' }
+                  : { color: 'var(--color-muted-foreground)' }
+              }
             >
               Monthly
             </button>
             <button
               onClick={() => setPaymentFrequency('quarterly')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              style={
                 paymentFrequency === 'quarterly'
-                  ? 'bg-warning text-white'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-              }`}
+                  ? { backgroundColor: 'var(--color-warning)', color: 'white' }
+                  : { color: 'var(--color-muted-foreground)' }
+              }
             >
               Quarterly
             </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             {paymentFrequency === 'weekly' && (
               <>52 payments/year - Fastest payoff, ideal for weekly paychecks</>
             )}
@@ -217,25 +221,27 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
         {/* Method Toggle */}
         <div>
-          <Label className="text-foreground text-sm mb-2 block">Payoff Method</Label>
-          <div className="flex items-center gap-2 bg-card rounded-lg p-1">
+          <Label className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>Payoff Method</Label>
+          <div className="flex items-center gap-2 rounded-lg p-1" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
             <button
               onClick={() => setMethod('snowball')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              style={
                 method === 'snowball'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+                  ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                  : { color: 'var(--color-muted-foreground)' }
+              }
             >
               Snowball
             </button>
             <button
               onClick={() => setMethod('avalanche')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              style={
                 method === 'avalanche'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+                  ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                  : { color: 'var(--color-muted-foreground)' }
+              }
             >
               Avalanche
             </button>
@@ -245,11 +251,11 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
       {/* Extra Payment Input */}
       <div className="mb-6">
-        <Label htmlFor="extraPayment" className="text-foreground mb-2 block">
+        <Label htmlFor="extraPayment" className="text-[11px] font-medium uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-muted-foreground)' }}>
           Extra {paymentFrequency === 'biweekly' ? 'Per Payment' : 'Monthly Payment'}
         </Label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
           <Input
             id="extraPayment"
             type="number"
@@ -257,11 +263,12 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
             step="10"
             value={extraPayment}
             onChange={(e) => setExtraPayment(e.target.value)}
-            className="pl-7 bg-card border-border text-foreground"
+            className="pl-7"
+            style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
             placeholder="0.00"
           />
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           {paymentFrequency === 'biweekly'
             ? `Amount above minimums per payment (${normalizedExtraPayment * 26 || 0}/year)`
             : 'Amount above minimum payments to apply toward debts'}
@@ -270,38 +277,38 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Next Recommended Payment */}
-        <div className="bg-card rounded-xl p-6 border border-border">
+        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
           <div className="flex items-center gap-2 mb-4">
-            <MapPin className="w-6 h-6 text-primary" />
-            <h3 className="text-lg font-semibold text-foreground">Pay This Next</h3>
+            <MapPin className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
+            <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Pay This Next</h3>
           </div>
 
           <div className="space-y-3">
             <div>
-              <div className="text-2xl font-bold text-foreground mb-1">
+              <div className="text-2xl font-bold mb-1" style={{ color: 'var(--color-foreground)' }}>
                 {currentStrategy.nextRecommendedPayment.debtName}
               </div>
-              <div className="text-muted-foreground text-sm">
+              <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 Current Balance: ${currentStrategy.nextRecommendedPayment.currentBalance.toFixed(2)}
               </div>
             </div>
 
-            <div className="pt-3 border-t border-border space-y-2">
+            <div className="pt-3 border-t space-y-2" style={{ borderColor: 'var(--color-border)' }}>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Recommended Payment:</span>
-                <span className="text-foreground font-mono font-semibold">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Recommended Payment:</span>
+                <span className="font-mono font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   ${currentStrategy.nextRecommendedPayment.recommendedPayment.toFixed(2)}/{paymentFrequency === 'biweekly' ? 'payment' : 'month'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Months Until Payoff:</span>
-                <span className="text-foreground font-semibold">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Months Until Payoff:</span>
+                <span className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   {currentStrategy.nextRecommendedPayment.monthsUntilPayoff}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Interest:</span>
-                <span className="text-foreground font-mono font-semibold">
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Total Interest:</span>
+                <span className="font-mono font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   ${currentStrategy.nextRecommendedPayment.totalInterest.toFixed(2)}
                 </span>
               </div>
@@ -310,11 +317,11 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         </div>
 
         {/* Payoff Order with Rolldown Visualization */}
-        <div className="bg-card rounded-xl p-6 border border-border">
+        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
           <div className="flex items-center gap-2 mb-4">
-            <Target className="w-6 h-6 text-primary" />
-            <h3 className="text-lg font-semibold text-foreground">Your Payoff Order</h3>
-            <span className="text-xs text-muted-foreground ml-auto capitalize">
+            <Target className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
+            <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Your Payoff Order</h3>
+            <span className="text-xs ml-auto capitalize" style={{ color: 'var(--color-muted-foreground)' }}>
               {method} Method
             </span>
           </div>
@@ -325,7 +332,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                 {/* Rolldown Arrow for debts after the first */}
                 {index > 0 && (
                   <div className="flex items-center justify-center py-1">
-                    <div className="flex items-center gap-2 text-income">
+                    <div className="flex items-center gap-2" style={{ color: 'var(--color-income)' }}>
                       <ArrowDown className="w-4 h-4" />
                       <span className="text-xs font-medium">
                         +${debt.rolldownAmount.toFixed(0)} rolls down
@@ -337,34 +344,36 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
                 {/* Debt Card */}
                 <div
-                  className={`p-4 rounded-lg border transition-all ${
+                  className="p-4 rounded-lg border transition-all"
+                  style={
                     debt.isFocusDebt
-                      ? 'bg-primary/10 border-primary/30'
-                      : 'bg-elevated border-border'
-                  }`}
+                      ? { backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 25%, transparent)' }
+                      : { backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }
+                  }
                 >
                   {/* Header Row */}
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
+                        className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm"
+                        style={
                           debt.isFocusDebt
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-card text-foreground border border-border'
-                        }`}
+                            ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                            : { backgroundColor: 'var(--color-background)', color: 'var(--color-foreground)', border: '1px solid var(--color-border)' }
+                        }
                       >
                         {debt.order}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-foreground font-medium">{debt.debtName}</span>
+                          <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>{debt.debtName}</span>
                           {debt.isFocusDebt && (
-                            <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
                               Focus
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                           ${debt.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} @ {debt.interestRate}% APR
                         </div>
                       </div>
@@ -373,22 +382,22 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                     {/* Payoff Timeline */}
                     <div className="text-right">
                       <div className="flex items-center gap-1 justify-end">
-                        <Clock className="w-3 h-3 text-income" />
-                        <span className="text-xs font-semibold text-income">Month {debt.payoffMonth}</span>
+                        <Clock className="w-3 h-3" style={{ color: 'var(--color-income)' }} />
+                        <span className="text-xs font-semibold" style={{ color: 'var(--color-income)' }}>Month {debt.payoffMonth}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                         {new Date(debt.payoffDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </div>
                       {/* Minimum-only comparison */}
                       {debt.minimumOnlyMonths > 0 && debt.minimumOnlyMonths !== debt.payoffMonth && (
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                           {debt.minimumOnlyMonths === -1 ? (
-                            <span className="text-error">Min only: Never</span>
+                            <span style={{ color: 'var(--color-destructive)' }}>Min only: Never</span>
                           ) : (
                             <span>
                               Min only: {debt.minimumOnlyMonths} mo
                               {debt.minimumOnlyMonths > debt.payoffMonth && (
-                                <span className="text-income ml-1">
+                                <span className="ml-1" style={{ color: 'var(--color-income)' }}>
                                   ({debt.minimumOnlyMonths - debt.payoffMonth} faster)
                                 </span>
                               )}
@@ -400,23 +409,23 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                   </div>
 
                   {/* Payment Breakdown */}
-                  <div className="mt-3 pt-3 border-t border-border/50">
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
                     {debt.isFocusDebt ? (
                       /* Focus debt shows current active payment */
                       <div className="space-y-1">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Current Payment:</span>
-                          <span className="text-lg font-mono font-semibold text-income">
+                          <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Current Payment:</span>
+                          <span className="text-lg font-mono font-semibold" style={{ color: 'var(--color-income)' }}>
                             ${debt.activePayment.toFixed(2)}/mo
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                        <div className="text-xs flex flex-wrap gap-x-2" style={{ color: 'var(--color-muted-foreground)' }}>
                           <span>${debt.minimumPayment.toFixed(0)} min</span>
                           {debt.additionalMonthlyPayment > 0 && (
                             <span>+ ${debt.additionalMonthlyPayment.toFixed(0)} committed</span>
                           )}
                           {normalizedExtraPayment > 0 && (
-                            <span className="text-income">+ ${normalizedExtraPayment.toFixed(0)} extra</span>
+                            <span style={{ color: 'var(--color-income)' }}>+ ${normalizedExtraPayment.toFixed(0)} extra</span>
                           )}
                         </div>
                       </div>
@@ -424,25 +433,25 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                       /* Non-focus debts show what payment will be after rolldown */
                       <div className="space-y-1">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Now:</span>
-                          <span className="text-sm font-mono text-foreground">
+                          <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Now:</span>
+                          <span className="text-sm font-mono" style={{ color: 'var(--color-foreground)' }}>
                             ${debt.currentPayment.toFixed(2)}/mo
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-income" />
+                          <span className="text-sm flex items-center gap-1" style={{ color: 'var(--color-muted-foreground)' }}>
+                            <Sparkles className="w-3 h-3" style={{ color: 'var(--color-income)' }} />
                             After #{debt.order - 1} paid:
                           </span>
-                          <span className="text-sm font-mono font-semibold text-income">
+                          <span className="text-sm font-mono font-semibold" style={{ color: 'var(--color-income)' }}>
                             ${debt.activePayment.toFixed(2)}/mo
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                           (${debt.minimumPayment.toFixed(0)} min
                           {debt.additionalMonthlyPayment > 0 && ` + $${debt.additionalMonthlyPayment.toFixed(0)} committed`}
                           {debt.rolldownAmount > 0 && ` + $${debt.rolldownAmount.toFixed(0)} rolled`}
-                          {normalizedExtraPayment > 0 && <span className="text-income"> + ${normalizedExtraPayment.toFixed(0)} extra</span>})
+                          {normalizedExtraPayment > 0 && <span style={{ color: 'var(--color-income)' }}> + ${normalizedExtraPayment.toFixed(0)} extra</span>})
                         </div>
                       </div>
                     )}
@@ -455,28 +464,28 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
       </div>
 
       {/* Comparison Metrics */}
-      <div className="mt-6 bg-card rounded-xl p-6 border border-border">
+      <div className="mt-6 rounded-xl p-6" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex items-center gap-2 mb-4">
-          <DollarSign className="w-6 h-6 text-income" />
-          <h3 className="text-lg font-semibold text-foreground">Method Comparison</h3>
+          <DollarSign className="w-6 h-6" style={{ color: 'var(--color-income)' }} />
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Method Comparison</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Current Method */}
-          <div className="bg-elevated rounded-lg p-4">
-            <div className="text-xs text-muted-foreground uppercase mb-1">
+          <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-elevated)' }}>
+            <div className="text-xs uppercase mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
               {method === 'snowball' ? 'Snowball' : 'Avalanche'} Method
             </div>
             <div className="space-y-2">
               <div>
-                <div className="text-sm text-muted-foreground">Time to debt-free:</div>
-                <div className="text-lg font-semibold text-foreground">
+                <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Time to debt-free:</div>
+                <div className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   {currentStrategy.totalMonths} months
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Total interest:</div>
-                <div className="text-lg font-mono font-semibold text-foreground">
+                <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Total interest:</div>
+                <div className="text-lg font-mono font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   ${currentStrategy.totalInterestPaid.toFixed(2)}
                 </div>
               </div>
@@ -484,20 +493,20 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
           </div>
 
           {/* Alternate Method */}
-          <div className="bg-elevated rounded-lg p-4">
-            <div className="text-xs text-muted-foreground uppercase mb-1">
+          <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-elevated)' }}>
+            <div className="text-xs uppercase mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
               {method === 'snowball' ? 'Avalanche' : 'Snowball'} Method
             </div>
             <div className="space-y-2">
               <div>
-                <div className="text-sm text-muted-foreground">Time to debt-free:</div>
-                <div className="text-lg font-semibold text-foreground">
+                <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Time to debt-free:</div>
+                <div className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   {alternateStrategy.totalMonths} months
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Total interest:</div>
-                <div className="text-lg font-mono font-semibold text-foreground">
+                <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Total interest:</div>
+                <div className="text-lg font-mono font-semibold" style={{ color: 'var(--color-foreground)' }}>
                   ${alternateStrategy.totalInterestPaid.toFixed(2)}
                 </div>
               </div>
@@ -505,24 +514,20 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
           </div>
 
           {/* Savings */}
-          <div className="bg-elevated rounded-lg p-4">
-            <div className="text-xs text-muted-foreground uppercase mb-1">
+          <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-elevated)' }}>
+            <div className="text-xs uppercase mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
               {comparison.recommendedMethod === method ? 'You Save:' : 'You Could Save:'}
             </div>
             <div className="space-y-2">
               <div>
-                <div className="text-sm text-muted-foreground">Time savings:</div>
-                <div className={`text-lg font-semibold ${
-                  comparison.timeSavings > 0 ? 'text-income' : 'text-muted-foreground'
-                }`}>
+                <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Time savings:</div>
+                <div className="text-lg font-semibold" style={{ color: comparison.timeSavings > 0 ? 'var(--color-income)' : 'var(--color-muted-foreground)' }}>
                   {Math.abs(comparison.timeSavings)} months
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Interest savings:</div>
-                <div className={`text-lg font-mono font-semibold ${
-                  comparison.interestSavings > 0 ? 'text-income' : 'text-muted-foreground'
-                }`}>
+                <div className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Interest savings:</div>
+                <div className="text-lg font-mono font-semibold" style={{ color: comparison.interestSavings > 0 ? 'var(--color-income)' : 'var(--color-muted-foreground)' }}>
                   ${Math.abs(comparison.interestSavings).toFixed(2)}
                 </div>
               </div>
@@ -532,10 +537,10 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
         {/* Recommendation */}
         {comparison.recommendedMethod !== method && (
-          <div className="mt-4 p-3 bg-transfer/10 border border-transfer/30 rounded-lg">
+          <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 25%, transparent)' }}>
             <div className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-transfer shrink-0 mt-0.5" />
-              <p className="text-sm text-transfer">
+              <Lightbulb className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+              <p className="text-sm" style={{ color: 'var(--color-primary)' }}>
                 The <strong>{comparison.recommendedMethod}</strong> method could save you{' '}
                 {comparison.timeSavings} months and ${comparison.interestSavings.toFixed(2)} in interest!
               </p>

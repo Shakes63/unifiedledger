@@ -77,7 +77,7 @@ export function TransactionTemplates({ onSelectTemplate }: TransactionTemplatesP
           onClick={() => onSelectTemplate(template)}
         >
           {template.icon}
-          <span className="text-xs text-center text-muted-foreground">
+          <span className="text-xs text-center" style={{ color: 'var(--color-muted-foreground)' }}>
             {template.description}
           </span>
         </Button>

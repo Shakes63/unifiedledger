@@ -21,18 +21,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { 
-  Loader2, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  FileText, 
-  AlertCircle,
-  ChevronRight,
-  Building2,
-  User,
+import {
+  Loader2, Plus, Pencil, Trash2, FileText, AlertCircle,
+  ChevronRight, Building2, User, Receipt,
 } from 'lucide-react';
 import { useHousehold } from '@/contexts/household-context';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -79,9 +71,52 @@ const FORM_TYPE_LABELS: Record<string, string> = {
   schedule_a: 'Schedule A (Itemized)',
   schedule_d: 'Schedule D (Capital Gains)',
   schedule_e: 'Schedule E (Rental)',
-  form_1040: 'Form 1040 (General)',
-  other: 'Other',
+  form_1040:  'Form 1040 (General)',
+  other:      'Other',
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  action,
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string | React.ReactNode;
+  accent?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest flex-1" style={{ color: accent }}>{label}</span>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function DeductionBadge({ category }: { category: string }) {
+  if (category.includes('business')) return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)', color: 'var(--color-primary)' }}>
+      <Building2 className="w-2.5 h-2.5" /> Business
+    </span>
+  );
+  if (category.includes('personal') || category === 'personal_deduction') return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 12%, transparent)', color: 'var(--color-success)' }}>
+      <User className="w-2.5 h-2.5" /> Personal
+    </span>
+  );
+  return null;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function TaxMappingTab() {
   const { selectedHouseholdId } = useHousehold();
@@ -90,553 +125,298 @@ export function TaxMappingTab() {
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [taxYear, setTaxYear] = useState<number>(new Date().getFullYear());
-  
-  // Data
+
   const [taxCategories, setTaxCategories] = useState<TaxCategory[]>([]);
   const [groupedTaxCategories, setGroupedTaxCategories] = useState<GroupedTaxCategories>({});
   const [mappings, setMappings] = useState<Mapping[]>([]);
   const [unmappedTaxDeductible, setUnmappedTaxDeductible] = useState<BudgetCategory[]>([]);
   const [unmappedOther, setUnmappedOther] = useState<BudgetCategory[]>([]);
-  
-  // Dialog state
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMapping, setEditingMapping] = useState<Mapping | null>(null);
-  const [formData, setFormData] = useState({
-    budgetCategoryId: '',
-    taxCategoryId: '',
-    allocationPercentage: '100',
-    notes: '',
-  });
+  const [formData, setFormData] = useState({ budgetCategoryId: '', taxCategoryId: '', allocationPercentage: '100', notes: '' });
 
-  // Year options
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
-  // Fetch tax categories on mount
-  useEffect(() => {
-    fetchTaxCategories();
-  }, []);
+  const allUnmappedCategories = [...unmappedTaxDeductible, ...unmappedOther];
+
+  useEffect(() => { fetchTaxCategories(); }, []);
 
   const fetchTaxCategories = async () => {
     try {
-      const response = await fetch('/api/tax/categories', { credentials: 'include' });
-      if (response.ok) {
-        const data = await response.json();
-        setTaxCategories(data.data || []);
-        setGroupedTaxCategories(data.grouped || {});
-        
-        // If no categories exist, show seed option
-        if (!data.data || data.data.length === 0) {
+      const res = await fetch('/api/tax/categories', { credentials: 'include' });
+      if (res.ok) {
+        const d = await res.json();
+        setTaxCategories(d.data || []);
+        setGroupedTaxCategories(d.grouped || {});
+        if (!d.data || d.data.length === 0) {
           toast.info('No tax categories found. Click "Setup Tax Categories" to add standard IRS categories.');
         }
       }
-    } catch (error) {
-      console.error('Error fetching tax categories:', error);
-      toast.error('Failed to load tax categories');
-    }
+    } catch { toast.error('Failed to load tax categories'); }
   };
 
   const fetchMappings = useCallback(async () => {
     if (!selectedHouseholdId) return;
-    
     setLoading(true);
     try {
-      const response = await fetchWithHousehold(`/api/tax/mappings?year=${taxYear}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMappings(data.data || []);
-        setUnmappedTaxDeductible(data.unmappedTaxDeductible || []);
-        setUnmappedOther(data.unmappedOther || []);
+      const res = await fetchWithHousehold(`/api/tax/mappings?year=${taxYear}`);
+      if (res.ok) {
+        const d = await res.json();
+        setMappings(d.data || []);
+        setUnmappedTaxDeductible(d.unmappedTaxDeductible || []);
+        setUnmappedOther(d.unmappedOther || []);
       }
-    } catch (error) {
-      console.error('Error fetching mappings:', error);
-      toast.error('Failed to load tax mappings');
-    } finally {
-      setLoading(false);
-    }
+    } catch { toast.error('Failed to load tax mappings'); }
+    finally { setLoading(false); }
   }, [fetchWithHousehold, selectedHouseholdId, taxYear]);
 
-  // Fetch mappings when household or year changes
   useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchMappings();
-    }
+    if (selectedHouseholdId) fetchMappings();
   }, [selectedHouseholdId, taxYear, fetchMappings]);
 
   const seedTaxCategories = async () => {
     setSeeding(true);
     try {
-      const response = await fetch('/api/tax/categories', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(`Tax categories ready: ${data.created} created, ${data.skipped} already existed`);
+      const res = await fetch('/api/tax/categories', { method: 'POST', credentials: 'include' });
+      if (res.ok) {
+        const d = await res.json();
+        toast.success(`Tax categories ready: ${d.created} created, ${d.skipped} already existed`);
         await fetchTaxCategories();
-      } else {
-        throw new Error('Failed to seed tax categories');
-      }
-    } catch (error) {
-      console.error('Error seeding tax categories:', error);
-      toast.error('Failed to setup tax categories');
-    } finally {
-      setSeeding(false);
-    }
+      } else throw new Error('Failed');
+    } catch { toast.error('Failed to setup tax categories'); }
+    finally { setSeeding(false); }
   };
 
-  const openCreateDialog = (budgetCategory?: BudgetCategory) => {
+  const openCreateDialog = (cat?: BudgetCategory) => {
     setEditingMapping(null);
-    setFormData({
-      budgetCategoryId: budgetCategory?.id || '',
-      taxCategoryId: '',
-      allocationPercentage: '100',
-      notes: '',
-    });
+    setFormData({ budgetCategoryId: cat?.id || '', taxCategoryId: '', allocationPercentage: '100', notes: '' });
     setDialogOpen(true);
   };
 
-  const openEditDialog = (mapping: Mapping) => {
-    setEditingMapping(mapping);
-    setFormData({
-      budgetCategoryId: mapping.budgetCategoryId,
-      taxCategoryId: mapping.taxCategoryId,
-      allocationPercentage: (mapping.allocationPercentage ?? 100).toString(),
-      notes: mapping.notes || '',
-    });
+  const openEditDialog = (m: Mapping) => {
+    setEditingMapping(m);
+    setFormData({ budgetCategoryId: m.budgetCategoryId, taxCategoryId: m.taxCategoryId, allocationPercentage: (m.allocationPercentage ?? 100).toString(), notes: m.notes || '' });
     setDialogOpen(true);
   };
 
   const handleSaveMapping = async () => {
-    if (!formData.budgetCategoryId || !formData.taxCategoryId) {
-      toast.error('Please select both a budget category and tax category');
-      return;
-    }
-
+    if (!formData.budgetCategoryId || !formData.taxCategoryId) { toast.error('Please select both categories'); return; }
     const allocation = parseFloat(formData.allocationPercentage);
-    if (isNaN(allocation) || allocation < 0 || allocation > 100) {
-      toast.error('Allocation percentage must be between 0 and 100');
-      return;
-    }
-
+    if (isNaN(allocation) || allocation < 0 || allocation > 100) { toast.error('Allocation must be 0–100'); return; }
     setSaving(true);
     try {
       if (editingMapping) {
-        // Update existing mapping
-        const response = await fetch(`/api/tax/mappings/${editingMapping.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            taxCategoryId: formData.taxCategoryId,
-            allocationPercentage: allocation,
-            notes: formData.notes || null,
-          }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to update mapping');
-        }
-
-        toast.success('Mapping updated successfully');
+        const res = await fetch(`/api/tax/mappings/${editingMapping.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ taxCategoryId: formData.taxCategoryId, allocationPercentage: allocation, notes: formData.notes || null }) });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
+        toast.success('Mapping updated');
       } else {
-        // Create new mapping
-        const response = await fetchWithHousehold('/api/tax/mappings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            budgetCategoryId: formData.budgetCategoryId,
-            taxCategoryId: formData.taxCategoryId,
-            taxYear,
-            allocationPercentage: allocation,
-            notes: formData.notes || null,
-          }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to create mapping');
-        }
-
-        toast.success('Mapping created successfully');
+        const res = await fetchWithHousehold('/api/tax/mappings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ budgetCategoryId: formData.budgetCategoryId, taxCategoryId: formData.taxCategoryId, taxYear, allocationPercentage: allocation, notes: formData.notes || null }) });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
+        toast.success('Mapping created');
       }
-
       setDialogOpen(false);
       await fetchMappings();
-    } catch (error) {
-      console.error('Error saving mapping:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save mapping');
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save mapping'); }
+    finally { setSaving(false); }
   };
 
   const handleDeleteMapping = async (mappingId: string) => {
-    if (!confirm('Are you sure you want to delete this mapping?')) return;
-
+    if (!confirm('Delete this mapping?')) return;
     try {
-      const response = await fetch(`/api/tax/mappings/${mappingId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete mapping');
-      }
-
+      const res = await fetch(`/api/tax/mappings/${mappingId}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
       toast.success('Mapping deleted');
       await fetchMappings();
-    } catch (error) {
-      console.error('Error deleting mapping:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete mapping');
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to delete'); }
   };
 
-  const getDeductionTypeBadge = (category: string) => {
-    if (category.includes('business')) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary">
-          <Building2 className="w-3 h-3" />
-          Business
-        </span>
-      );
-    }
-    if (category.includes('personal') || category === 'personal_deduction') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-success/20 text-success">
-          <User className="w-3 h-3" />
-          Personal
-        </span>
-      );
-    }
-    return null;
-  };
-
-  // Get unmapped categories for the dropdown
-  const allUnmappedCategories = [...unmappedTaxDeductible, ...unmappedOther];
-
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading && !taxCategories.length) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <div className="h-48 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }} />
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">Tax Category Mappings</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Map your budget categories to IRS tax categories for automatic deduction tracking in the Tax Dashboard.
-        </p>
-      </div>
+    <div className="space-y-4">
 
-      {/* Setup Section (if no tax categories) */}
+      {/* ── Setup required ────────────────────────────────────────────── */}
       {taxCategories.length === 0 && (
-        <Card className="border-warning/30 bg-warning/5">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-foreground">
-              <AlertCircle className="w-5 h-5 text-warning" />
-              Setup Required
-            </CardTitle>
-            <CardDescription>
-              Standard IRS tax categories need to be initialized before you can create mappings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={seedTaxCategories}
-              disabled={seeding}
-              className="bg-primary hover:opacity-90"
-            >
-              {seeding ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Setting up...
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Setup Tax Categories
-                </>
-              )}
+        <div
+          className="rounded-xl px-4 py-5 flex items-start gap-3"
+          style={{ border: '1px solid color-mix(in oklch, var(--color-warning) 40%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-warning) 7%, transparent)', borderLeft: '3px solid var(--color-warning)' }}
+        >
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
+          <div className="flex-1 min-w-0 space-y-2">
+            <div>
+              <p className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Setup Required</p>
+              <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>Standard IRS tax categories need to be initialized before you can create mappings.</p>
+            </div>
+            <Button onClick={seedTaxCategories} disabled={seeding} size="sm" className="text-[12px] h-8 px-4 font-medium" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {seeding ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Setting up…</> : <><FileText className="w-3.5 h-3.5 mr-1.5" /> Setup Tax Categories</>}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Year Selector & Actions */}
+      {/* ── Year selector + Add button ────────────────────────────────── */}
       {taxCategories.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Label htmlFor="taxYear" className="text-foreground whitespace-nowrap">
-              Tax Year:
-            </Label>
-            <Select
-              value={taxYear.toString()}
-              onValueChange={(v) => setTaxYear(parseInt(v))}
-            >
-              <SelectTrigger
-                id="taxYear"
-                name="taxYear"
-                aria-label="Select tax year"
-                className="w-32 bg-background border-border"
-              >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="taxYear" className="text-[12px] font-medium whitespace-nowrap" style={{ color: 'var(--color-muted-foreground)' }}>Tax Year</Label>
+            <Select value={taxYear.toString()} onValueChange={v => setTaxYear(parseInt(v))}>
+              <SelectTrigger id="taxYear" name="taxYear" aria-label="Select tax year" className="h-8 w-24 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {yearOptions.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
+                {yearOptions.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-
-          <Button
-            onClick={() => openCreateDialog()}
-            className="bg-primary hover:opacity-90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Mapping
+          <Button onClick={() => openCreateDialog()} size="sm" className="text-[12px] h-8 px-3 font-medium" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add Mapping
           </Button>
         </div>
       )}
 
-      {/* Loading State */}
+      {/* ── Loading (data only) ───────────────────────────────────────── */}
       {loading && taxCategories.length > 0 && (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <div className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }} />
+      )}
+
+      {/* ── Mapped categories ─────────────────────────────────────────── */}
+      {!loading && mappings.length > 0 && (
+        <Section
+          icon={FileText}
+          label={`Mapped Categories · ${mappings.length}`}
+          action={<span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Tax year {taxYear}</span>}
+        >
+          <div className="divide-y" style={{ borderColor: 'color-mix(in oklch, var(--color-border) 45%, transparent)' }}>
+            {mappings.map(m => (
+              <div key={m.id} className="px-4 py-3 flex items-center gap-3 group transition-colors" onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 30%, transparent)'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{m.budgetCategoryName}</span>
+                    <ChevronRight className="w-3 h-3 shrink-0" style={{ color: 'var(--color-muted-foreground)' }} />
+                    <span className="text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>{m.taxCategoryName}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)' }}>
+                      {FORM_TYPE_LABELS[m.taxCategoryFormType] || m.taxCategoryFormType}
+                      {m.taxCategoryLineNumber && ` Line ${m.taxCategoryLineNumber}`}
+                    </span>
+                    <DeductionBadge category={m.taxCategoryCategory} />
+                    {m.allocationPercentage !== 100 && (
+                      <span className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>({m.allocationPercentage}% allocation)</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => openEditDialog(m)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ color: 'var(--color-muted-foreground)' }} title="Edit">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => handleDeleteMapping(m.id)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ color: 'var(--color-destructive)' }} title="Delete">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ── Unmapped tax-deductible categories ───────────────────────── */}
+      {!loading && unmappedTaxDeductible.length > 0 && (
+        <Section
+          icon={AlertCircle}
+          label={`Unmapped Tax-Deductible · ${unmappedTaxDeductible.length}`}
+          accent="var(--color-warning)"
+        >
+          <div className="divide-y" style={{ borderColor: 'color-mix(in oklch, var(--color-border) 45%, transparent)' }}>
+            {unmappedTaxDeductible.map(cat => (
+              <div key={cat.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[13px] font-medium truncate" style={{ color: 'var(--color-foreground)' }}>{cat.name}</span>
+                  {cat.isBusinessCategory && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)', color: 'var(--color-primary)' }}>Business</span>
+                  )}
+                </div>
+                <Button onClick={() => openCreateDialog(cat)} size="sm" variant="outline" className="h-7 px-2.5 text-[12px] shrink-0" style={{ border: '1px solid var(--color-primary)', color: 'var(--color-primary)' }}>
+                  <Plus className="w-3 h-3 mr-1" /> Map
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ── Empty state ────────────────────────────────────────────────── */}
+      {!loading && mappings.length === 0 && unmappedTaxDeductible.length === 0 && taxCategories.length > 0 && (
+        <div className="rounded-xl py-12 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+          <div className="inline-flex items-center justify-center w-11 h-11 rounded-full mb-3" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)' }}>
+            <Receipt className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+          </div>
+          <p className="text-[14px] font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No Tax Mappings Yet</p>
+          <p className="text-[12px] mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
+            Create mappings to automatically track tax deductions when you use specific categories.
+          </p>
+          <Button onClick={() => openCreateDialog()} size="sm" className="text-[12px] h-8 px-4 font-medium" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" /> Create First Mapping
+          </Button>
         </div>
       )}
 
-      {/* Mappings List */}
-      {!loading && mappings.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              Mapped Categories ({mappings.length})
-            </CardTitle>
-            <CardDescription>
-              Transactions with these categories will be tracked in your Tax Dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-border">
-              {mappings.map((mapping) => (
-                <div
-                  key={mapping.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 hover:bg-elevated/50"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-foreground truncate">
-                          {mapping.budgetCategoryName}
-                        </span>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground truncate">
-                          {mapping.taxCategoryName}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-xs text-muted-foreground px-2 py-0.5 bg-elevated rounded">
-                          {FORM_TYPE_LABELS[mapping.taxCategoryFormType] || mapping.taxCategoryFormType}
-                          {mapping.taxCategoryLineNumber && ` Line ${mapping.taxCategoryLineNumber}`}
-                        </span>
-                        {getDeductionTypeBadge(mapping.taxCategoryCategory)}
-                        {mapping.allocationPercentage !== 100 && (
-                          <span className="text-xs text-muted-foreground">
-                            ({mapping.allocationPercentage}% allocation)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditDialog(mapping)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteMapping(mapping.id)}
-                      className="text-muted-foreground hover:text-error"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Unmapped Tax-Deductible Categories */}
-      {!loading && unmappedTaxDeductible.length > 0 && (
-        <Card className="border-warning/30">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-warning" />
-              Unmapped Tax-Deductible Categories ({unmappedTaxDeductible.length})
-            </CardTitle>
-            <CardDescription>
-              These categories are marked as tax-deductible but not yet mapped to IRS categories
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-border">
-              {unmappedTaxDeductible.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center justify-between p-4 hover:bg-elevated/50"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground">{cat.name}</span>
-                    {cat.isBusinessCategory && (
-                      <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded">
-                        Business
-                      </span>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openCreateDialog(cat)}
-                    className="text-primary border-primary"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Map
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Empty State */}
-      {!loading && mappings.length === 0 && unmappedTaxDeductible.length === 0 && taxCategories.length > 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              No Tax Mappings Yet
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Create mappings to automatically track tax deductions when you use specific budget categories.
-            </p>
-            <Button
-              onClick={() => openCreateDialog()}
-              className="bg-primary hover:opacity-90"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create First Mapping
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Create/Edit Dialog */}
+      {/* ── Create / Edit Dialog ─────────────────────────────────────── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-card border-border sm:max-w-md">
+        <DialogContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: '1rem', maxWidth: '28rem', boxShadow: '0 24px 64px -12px color-mix(in oklch, var(--color-foreground) 18%, transparent)' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">
+            <DialogTitle className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>
               {editingMapping ? 'Edit Tax Mapping' : 'Create Tax Mapping'}
             </DialogTitle>
-            <DialogDescription>
-              {editingMapping
-                ? 'Update the tax category mapping for this budget category.'
-                : 'Link a budget category to an IRS tax category for automatic tracking.'}
+            <DialogDescription className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+              {editingMapping ? 'Update the tax category mapping.' : 'Link a budget category to an IRS tax category.'}
             </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {/* Budget Category */}
-            <div className="space-y-2">
-              <Label htmlFor="budgetCategory" className="text-foreground">
-                Budget Category
-              </Label>
-              <Select
-                value={formData.budgetCategoryId}
-                onValueChange={(v) => setFormData({ ...formData, budgetCategoryId: v })}
-                disabled={!!editingMapping}
-              >
-                <SelectTrigger
-                  id="budgetCategory"
-                  name="budgetCategory"
-                  aria-label="Select budget category"
-                  className="bg-background border-border"
-                >
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="budgetCategory" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Budget Category</Label>
+              <Select value={formData.budgetCategoryId} onValueChange={v => setFormData({ ...formData, budgetCategoryId: v })} disabled={!!editingMapping}>
+                <SelectTrigger id="budgetCategory" name="budgetCategory" aria-label="Select budget category" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {editingMapping ? (
-                    <SelectItem value={editingMapping.budgetCategoryId}>
-                      {editingMapping.budgetCategoryName}
-                    </SelectItem>
-                  ) : (
-                    allUnmappedCategories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{cat.name}</span>
-                          {cat.isTaxDeductible && (
-                            <span className="text-xs px-1 py-0.5 bg-success/20 text-success rounded">
-                              Tax Deductible
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
+                  {editingMapping
+                    ? <SelectItem value={editingMapping.budgetCategoryId}>{editingMapping.budgetCategoryName}</SelectItem>
+                    : allUnmappedCategories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <div className="flex items-center gap-2">
+                            {cat.name}
+                            {cat.isTaxDeductible && <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 12%, transparent)', color: 'var(--color-success)' }}>Deductible</span>}
+                          </div>
+                        </SelectItem>
+                      ))
+                  }
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Tax Category */}
-            <div className="space-y-2">
-              <Label htmlFor="taxCategory" className="text-foreground">
-                IRS Tax Category
-              </Label>
-              <Select
-                value={formData.taxCategoryId}
-                onValueChange={(v) => setFormData({ ...formData, taxCategoryId: v })}
-              >
-                <SelectTrigger
-                  id="taxCategory"
-                  name="taxCategory"
-                  aria-label="Select IRS tax category"
-                  className="bg-background border-border"
-                >
+            <div className="space-y-1.5">
+              <Label htmlFor="taxCategory" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>IRS Tax Category</Label>
+              <Select value={formData.taxCategoryId} onValueChange={v => setFormData({ ...formData, taxCategoryId: v })}>
+                <SelectTrigger id="taxCategory" name="taxCategory" aria-label="Select IRS tax category" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
                   <SelectValue placeholder="Select a tax category" />
                 </SelectTrigger>
                 <SelectContent className="max-h-80">
                   {Object.entries(groupedTaxCategories).map(([formType, cats]) => (
                     <SelectGroup key={formType}>
-                      <SelectLabel className="text-muted-foreground font-semibold">
-                        {FORM_TYPE_LABELS[formType] || formType}
-                      </SelectLabel>
-                      {cats.map((cat) => (
+                      <SelectLabel className="text-[11px] font-semibold" style={{ color: 'var(--color-muted-foreground)' }}>{FORM_TYPE_LABELS[formType] || formType}</SelectLabel>
+                      {cats.map(cat => (
                         <SelectItem key={cat.id} value={cat.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{cat.name}</span>
-                            {cat.lineNumber && (
-                              <span className="text-xs text-muted-foreground">
-                                (Line {cat.lineNumber})
-                              </span>
-                            )}
+                          <div className="flex items-center gap-1.5">
+                            {cat.name}
+                            {cat.lineNumber && <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Line {cat.lineNumber}</span>}
                           </div>
                         </SelectItem>
                       ))}
@@ -646,63 +426,23 @@ export function TaxMappingTab() {
               </Select>
             </div>
 
-            {/* Allocation Percentage */}
-            <div className="space-y-2">
-              <Label htmlFor="allocation" className="text-foreground">
-                Allocation Percentage
-              </Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="allocation" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Allocation %</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  id="allocation"
-                  name="allocation"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.allocationPercentage}
-                  onChange={(e) =>
-                    setFormData({ ...formData, allocationPercentage: e.target.value })
-                  }
-                  className="bg-background border-border w-24"
-                />
-                <span className="text-muted-foreground">%</span>
+                <Input id="allocation" name="allocation" type="number" min="0" max="100" value={formData.allocationPercentage} onChange={e => setFormData({ ...formData, allocationPercentage: e.target.value })} className="h-9 w-24 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }} />
+                <span className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>% of transactions counted as deductible (50% for meals)</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                What percentage of transactions in this category should be counted as tax deductible?
-                Use 50% for meals (only 50% deductible).
-              </p>
             </div>
 
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes" className="text-foreground">
-                Notes (Optional)
-              </Label>
-              <Input
-                id="notes"
-                name="notes"
-                type="text"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="e.g., Business office supplies"
-                className="bg-background border-border"
-              />
+            <div className="space-y-1.5">
+              <Label htmlFor="notes" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Notes (Optional)</Label>
+              <Input id="notes" name="notes" type="text" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="e.g., Business office supplies" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }} />
             </div>
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveMapping}
-              disabled={saving || !formData.budgetCategoryId || !formData.taxCategoryId}
-              className="bg-primary hover:opacity-90"
-            >
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px]" style={{ color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}>Cancel</Button>
+            <Button onClick={handleSaveMapping} disabled={saving || !formData.budgetCategoryId || !formData.taxCategoryId} className="text-[13px] font-medium" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {saving && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
               {editingMapping ? 'Save Changes' : 'Create Mapping'}
             </Button>
           </DialogFooter>
@@ -711,4 +451,3 @@ export function TaxMappingTab() {
     </div>
   );
 }
-

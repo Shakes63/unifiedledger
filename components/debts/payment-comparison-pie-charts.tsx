@@ -67,14 +67,14 @@ interface PaymentTooltipProps {
 const CustomTooltip = ({ active, payload }: PaymentTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-semibold text-foreground mb-1">
+      <div className="rounded-lg p-3 shadow-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>
           {payload[0].name}
         </p>
-        <p className="text-sm text-muted-foreground font-mono">
+        <p className="text-sm font-mono" style={{ color: 'var(--color-muted-foreground)' }}>
           ${payload[0].value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
           {((payload[0].value / payload[0].payload.total) * 100).toFixed(1)}% of payment
         </p>
       </div>
@@ -125,7 +125,7 @@ export function PaymentComparisonPieCharts({
   if (!schedule || !schedule.monthlyBreakdown?.length) {
     return (
       <div className={`text-center p-8 ${className}`}>
-        <p className="text-muted-foreground">No payment data available</p>
+        <p style={{ color: 'var(--color-muted-foreground)' }}>No payment data available</p>
       </div>
     );
   }
@@ -133,10 +133,10 @@ export function PaymentComparisonPieCharts({
   return (
     <div className={className}>
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground mb-2">
+        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>
           Payment Composition Over Time
         </h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
           See how the split between principal and interest changes from your first payment to your last
         </p>
       </div>
@@ -159,14 +159,15 @@ export function PaymentComparisonPieCharts({
           return (
             <div
               key={stage.stage}
-              className="bg-card border border-border rounded-xl p-6 hover:bg-elevated transition-colors"
+              className="rounded-xl p-6 transition-colors [&:hover]:bg-[var(--color-elevated)]"
+              style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
             >
               {/* Header */}
               <div className="text-center mb-4">
-                <h4 className="text-base font-semibold text-foreground mb-1">
+                <h4 className="text-base font-semibold mb-1" style={{ color: 'var(--color-foreground)' }}>
                   {stage.label}
                 </h4>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                   Month {stage.monthNumber} of {schedule.monthsToPayoff}
                 </p>
               </div>
@@ -195,11 +196,11 @@ export function PaymentComparisonPieCharts({
               {/* Stats */}
               <div className="mt-4 space-y-3">
                 {/* Payment Amount */}
-                <div className="text-center pb-3 border-b border-border">
-                  <div className="text-xs text-muted-foreground uppercase mb-1">
+                <div className="text-center pb-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <div className="text-xs uppercase mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
                     Payment Amount
                   </div>
-                  <div className="text-lg font-bold text-foreground font-mono">
+                  <div className="text-lg font-bold font-mono" style={{ color: 'var(--color-foreground)' }}>
                     ${stage.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -211,13 +212,13 @@ export function PaymentComparisonPieCharts({
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: COLORS.principal }}
                     />
-                    <span className="text-sm text-muted-foreground">Principal</span>
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Principal</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold text-foreground font-mono">
+                    <div className="text-sm font-semibold font-mono" style={{ color: 'var(--color-foreground)' }}>
                       ${stage.principal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       {stage.principalPercent.toFixed(1)}%
                     </div>
                   </div>
@@ -230,13 +231,13 @@ export function PaymentComparisonPieCharts({
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: COLORS.interest }}
                     />
-                    <span className="text-sm text-muted-foreground">Interest</span>
+                    <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Interest</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold text-foreground font-mono">
+                    <div className="text-sm font-semibold font-mono" style={{ color: 'var(--color-foreground)' }}>
                       ${stage.interest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       {stage.interestPercent.toFixed(1)}%
                     </div>
                   </div>
@@ -246,25 +247,34 @@ export function PaymentComparisonPieCharts({
               {/* Insight Badge */}
               <div className="mt-4 text-center">
                 {stage.stage === 'first' && stage.interestPercent > 50 && (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-warning/10 border border-warning/30 rounded-full">
-                    <AlertTriangle className="w-3 h-3 text-warning" />
-                    <span className="text-xs text-warning">
+                  <div
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full"
+                    style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-warning) 30%, transparent)' }}
+                  >
+                    <AlertTriangle className="w-3 h-3" style={{ color: 'var(--color-warning)' }} />
+                    <span className="text-xs" style={{ color: 'var(--color-warning)' }}>
                       Most interest paid early
                     </span>
                   </div>
                 )}
                 {stage.stage === 'last' && stage.principalPercent > 90 && (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-success/10 border border-success/30 rounded-full">
-                    <PartyPopper className="w-3 h-3 text-success" />
-                    <span className="text-xs text-success">
+                  <div
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full"
+                    style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 30%, transparent)' }}
+                  >
+                    <PartyPopper className="w-3 h-3" style={{ color: 'var(--color-success)' }} />
+                    <span className="text-xs" style={{ color: 'var(--color-success)' }}>
                       Almost all principal
                     </span>
                   </div>
                 )}
                 {stage.stage === 'midpoint' && (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-accent/10 border border-accent/30 rounded-full">
-                    <Scale className="w-3 h-3 text-accent" />
-                    <span className="text-xs text-accent">
+                  <div
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full"
+                    style={{ backgroundColor: 'color-mix(in oklch, var(--color-accent) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-accent) 30%, transparent)' }}
+                  >
+                    <Scale className="w-3 h-3" style={{ color: 'var(--color-accent)' }} />
+                    <span className="text-xs" style={{ color: 'var(--color-accent)' }}>
                       Balanced split
                     </span>
                   </div>
@@ -276,12 +286,15 @@ export function PaymentComparisonPieCharts({
       </div>
 
       {/* Key Insight */}
-      <div className="mt-6 p-4 bg-accent/10 border border-accent/30 rounded-lg">
+      <div
+        className="mt-6 p-4 rounded-lg"
+        style={{ backgroundColor: 'color-mix(in oklch, var(--color-accent) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-accent) 30%, transparent)' }}
+      >
         <div className="flex items-start gap-3">
-          <Lightbulb className="w-6 h-6 text-accent shrink-0" />
+          <Lightbulb className="w-6 h-6 shrink-0" style={{ color: 'var(--color-accent)' }} />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-accent mb-1">Key Insight</p>
-            <p className="text-sm text-foreground">
+            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-accent)' }}>Key Insight</p>
+            <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>
               Notice how the composition changes dramatically over time.
               {paymentStages[0] && paymentStages[0].interestPercent > 50 && (
                 <> Your first payment is <span className="font-semibold">{paymentStages[0].interestPercent.toFixed(0)}% interest</span>, </>

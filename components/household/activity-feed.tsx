@@ -54,27 +54,27 @@ const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
-  transaction_created: 'text-blue-400',
-  transaction_updated: 'text-yellow-400',
-  transaction_deleted: 'text-red-400',
-  bill_created: 'text-blue-400',
-  bill_updated: 'text-yellow-400',
-  bill_deleted: 'text-red-400',
-  bill_paid: 'text-green-400',
-  goal_created: 'text-emerald-400',
-  goal_updated: 'text-yellow-400',
-  goal_deleted: 'text-red-400',
-  goal_completed: 'text-green-400',
-  debt_created: 'text-red-400',
-  debt_updated: 'text-yellow-400',
-  debt_deleted: 'text-red-400',
-  debt_paid: 'text-green-400',
-  debt_payoff_milestone: 'text-purple-400',
-  member_added: 'text-blue-400',
-  member_removed: 'text-red-400',
-  member_left: 'text-red-400',
-  transfer_created: 'text-cyan-400',
-  transfer_deleted: 'text-red-400',
+  transaction_created: 'var(--color-primary)',
+  transaction_updated: 'var(--color-warning)',
+  transaction_deleted: 'var(--color-destructive)',
+  bill_created: 'var(--color-primary)',
+  bill_updated: 'var(--color-warning)',
+  bill_deleted: 'var(--color-destructive)',
+  bill_paid: 'var(--color-success)',
+  goal_created: 'var(--color-success)',
+  goal_updated: 'var(--color-warning)',
+  goal_deleted: 'var(--color-destructive)',
+  goal_completed: 'var(--color-success)',
+  debt_created: 'var(--color-destructive)',
+  debt_updated: 'var(--color-warning)',
+  debt_deleted: 'var(--color-destructive)',
+  debt_paid: 'var(--color-success)',
+  debt_payoff_milestone: 'var(--color-primary)',
+  member_added: 'var(--color-primary)',
+  member_removed: 'var(--color-destructive)',
+  member_left: 'var(--color-destructive)',
+  transfer_created: 'var(--color-primary)',
+  transfer_deleted: 'var(--color-destructive)',
 };
 
 interface ActivityFeedProps {
@@ -107,9 +107,9 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
 
   if (loading) {
     return (
-      <Card className="bg-card border-border p-6">
+      <Card className="p-6" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Loading activity...</p>
+          <p style={{ color: 'var(--color-muted-foreground)' }}>Loading activity...</p>
         </div>
       </Card>
     );
@@ -117,21 +117,22 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
 
   if (activities.length === 0) {
     return (
-      <Card className="bg-card border-border p-6">
+      <Card className="p-6" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No activity yet</p>
+          <p style={{ color: 'var(--color-muted-foreground)' }}>No activity yet</p>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-card border-border p-6">
+    <Card className="p-6 border" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
       <div className="space-y-4">
         {activities.map((activity) => (
           <div
             key={activity.id}
-            className="flex gap-3 py-3 border-b border-border last:border-b-0"
+            className="flex gap-3 py-3 last:border-b-0"
+            style={{ borderBottom: '1px solid var(--color-border)' }}
           >
             {/* User Avatar */}
             <UserAvatar
@@ -144,9 +145,8 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
 
             {/* Activity Type Icon */}
             <div
-              className={`flex items-center justify-center w-6 h-6 rounded-full bg-elevated shrink-0 ${
-                ACTIVITY_COLORS[activity.activityType] || 'text-muted-foreground'
-              }`}
+              className="flex items-center justify-center w-6 h-6 rounded-full shrink-0"
+            style={{ backgroundColor: 'var(--color-elevated)', color: ACTIVITY_COLORS[activity.activityType] || 'var(--color-muted-foreground)' }}
             >
               {ACTIVITY_ICONS[activity.activityType] || <Zap className="w-3 h-3" />}
             </div>
@@ -155,13 +155,13 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm text-foreground">
+                  <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                     <span className="font-semibold">{activity.userName || 'Unknown User'}</span>
                     {' '}
-                    <span className="text-muted-foreground">{activity.description}</span>
+                    <span style={{ color: 'var(--color-muted-foreground)' }}>{activity.description}</span>
                   </p>
                   {activity.metadata && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                       {Object.entries(activity.metadata)
                         .slice(0, 2)
                         .map(([key, value]) => `${key}: ${value}`)
@@ -169,7 +169,7 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
                     </p>
                   )}
                 </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                <span className="text-xs whitespace-nowrap shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
                   {formatDistanceToNow(new Date(activity.createdAt), {
                     addSuffix: true,
                   })}

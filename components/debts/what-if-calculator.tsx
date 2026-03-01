@@ -201,11 +201,11 @@ export function WhatIfCalculator({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary" />
+          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
+            <Sparkles className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
             What-If Scenario Calculator
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
             Compare different payment strategies to find the best debt payoff plan
           </p>
         </div>
@@ -213,7 +213,8 @@ export function WhatIfCalculator({
           <Button
             variant="outline"
             onClick={resetScenarios}
-            className="border-border text-muted-foreground hover:text-foreground"
+            className="[&:hover]:[color:var(--color-foreground)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Reset
@@ -222,14 +223,15 @@ export function WhatIfCalculator({
       </div>
 
       {/* Quick Templates */}
-      <div className="bg-card rounded-xl p-4 border border-border">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Quick Scenarios</h3>
+      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-foreground)' }}>Quick Scenarios</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('extra-50')}
-            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+            className="[&:hover]:[color:var(--color-foreground)] [&:hover]:[background-color:var(--color-elevated)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
           >
             +$50/month
           </Button>
@@ -237,7 +239,8 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('extra-100')}
-            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+            className="[&:hover]:[color:var(--color-foreground)] [&:hover]:[background-color:var(--color-elevated)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
           >
             +$100/month
           </Button>
@@ -245,7 +248,8 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('extra-200')}
-            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+            className="[&:hover]:[color:var(--color-foreground)] [&:hover]:[background-color:var(--color-elevated)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
           >
             +$200/month
           </Button>
@@ -254,7 +258,8 @@ export function WhatIfCalculator({
               variant="outline"
               size="sm"
               onClick={() => addQuickScenario('weekly')}
-              className="border-success text-success hover:bg-success/20"
+              style={{ borderColor: 'var(--color-success)', color: 'var(--color-success)' }}
+              className="[&:hover]:bg-[color-mix(in_oklch,var(--color-success)_20%,transparent)]"
             >
               Weekly
             </Button>
@@ -264,7 +269,8 @@ export function WhatIfCalculator({
               variant="outline"
               size="sm"
               onClick={() => addQuickScenario('biweekly')}
-              className="border-income text-income hover:bg-income/20"
+              style={{ borderColor: 'var(--color-income)', color: 'var(--color-income)' }}
+              className="[&:hover]:bg-[color-mix(in_oklch,var(--color-income)_20%,transparent)]"
             >
               Bi-Weekly
             </Button>
@@ -274,7 +280,8 @@ export function WhatIfCalculator({
               variant="outline"
               size="sm"
               onClick={() => addQuickScenario('quarterly')}
-              className="border-warning text-warning hover:bg-warning/20"
+              style={{ borderColor: 'var(--color-warning)', color: 'var(--color-warning)' }}
+              className="[&:hover]:bg-[color-mix(in_oklch,var(--color-warning)_20%,transparent)]"
             >
               Quarterly
             </Button>
@@ -283,7 +290,8 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('tax-refund')}
-            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+            className="[&:hover]:[color:var(--color-foreground)] [&:hover]:[background-color:var(--color-elevated)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
           >
             Tax Refund
           </Button>
@@ -291,7 +299,8 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('bonus')}
-            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+            className="[&:hover]:[color:var(--color-foreground)] [&:hover]:[background-color:var(--color-elevated)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
           >
             Bonus
           </Button>
@@ -299,7 +308,8 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('double')}
-            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+            className="[&:hover]:[color:var(--color-foreground)] [&:hover]:[background-color:var(--color-elevated)]"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
           >
             Double Pay
           </Button>
@@ -309,10 +319,11 @@ export function WhatIfCalculator({
       {/* Scenario Builders */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">Your Scenarios</h3>
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-foreground)' }}>Your Scenarios</h3>
           <Button
             onClick={() => addScenario()}
-            className="bg-primary hover:opacity-90 text-primary-foreground"
+            className="hover:opacity-90"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
             disabled={scenarios.length >= 4}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -321,7 +332,14 @@ export function WhatIfCalculator({
         </div>
 
         {scenarios.length >= 4 && (
-          <p className="text-sm text-warning bg-warning/10 border border-warning/30 rounded p-2 mb-4">
+          <p
+            className="text-sm rounded p-2 mb-4"
+            style={{
+              color: 'var(--color-warning)',
+              backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)',
+              border: '1px solid color-mix(in oklch, var(--color-warning) 25%, transparent)',
+            }}
+          >
             Maximum 4 scenarios can be compared at once
           </p>
         )}
@@ -342,12 +360,15 @@ export function WhatIfCalculator({
       {/* Results */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-muted-foreground mt-4">Calculating scenarios...</p>
+          <div
+            className="inline-block w-8 h-8 border-4 border-t-transparent rounded-full animate-spin"
+            style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }}
+          ></div>
+          <p className="mt-4" style={{ color: 'var(--color-muted-foreground)' }}>Calculating scenarios...</p>
         </div>
       ) : comparison && comparison.scenarios.length > 0 ? (
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-4">Comparison Results</h3>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-foreground)' }}>Comparison Results</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {comparison.scenarios.map((scenario, index) => (
               <ScenarioComparisonCard
@@ -361,27 +382,33 @@ export function WhatIfCalculator({
 
           {/* Recommendation Summary */}
           {comparison.recommendation && comparison.scenarios.length > 1 && (
-            <div className="mt-6 bg-gradient-to-r from-primary/10 to-success/10 border border-primary/30 rounded-xl p-6">
-              <h4 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
+            <div
+              className="mt-6 rounded-xl p-6"
+              style={{
+                background: 'linear-gradient(to right, color-mix(in oklch, var(--color-primary) 10%, transparent), color-mix(in oklch, var(--color-success) 10%, transparent))',
+                border: '1px solid color-mix(in oklch, var(--color-primary) 25%, transparent)',
+              }}
+            >
+              <h4 className="text-lg font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
+                <Sparkles className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                 Recommendations
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Fastest Payoff:</span>
-                  <div className="text-foreground font-semibold mt-1">
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Fastest Payoff:</span>
+                  <div className="font-semibold mt-1" style={{ color: 'var(--color-foreground)' }}>
                     {comparison.recommendation.bestForTime}
                   </div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Saves Most Money:</span>
-                  <div className="text-foreground font-semibold mt-1">
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Saves Most Money:</span>
+                  <div className="font-semibold mt-1" style={{ color: 'var(--color-foreground)' }}>
                     {comparison.recommendation.bestForMoney}
                   </div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Most Balanced:</span>
-                  <div className="text-foreground font-semibold mt-1">
+                  <span style={{ color: 'var(--color-muted-foreground)' }}>Most Balanced:</span>
+                  <div className="font-semibold mt-1" style={{ color: 'var(--color-foreground)' }}>
                     {comparison.recommendation.mostBalanced}
                   </div>
                 </div>

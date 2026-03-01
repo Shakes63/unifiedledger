@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Edit2, Trash2, Check, Lightbulb, History } from 'lucide-react';
+import {
+  Edit2, Trash2, Lightbulb, History, Plus, CheckCircle2, PauseCircle, Flame,
+} from 'lucide-react';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
@@ -43,6 +42,23 @@ interface GoalTrackerProps {
   onContribute?: (goalId: string, amount: number) => void;
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  emergency_fund: 'Emergency Fund',
+  vacation: 'Vacation',
+  purchase: 'Purchase',
+  education: 'Education',
+  home: 'Home',
+  vehicle: 'Vehicle',
+  retirement: 'Retirement',
+  debt_payoff: 'Debt Payoff',
+  other: 'Other',
+};
+
+function fmt(n: number) {
+  if (n >= 1000) return `$${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 export function GoalTracker({
   goal,
   milestones = [],
@@ -52,288 +68,285 @@ export function GoalTracker({
 }: GoalTrackerProps) {
   const { selectedHouseholdId } = useHousehold();
   const { putWithHousehold } = useHouseholdFetch();
-  const [showMilestones, setShowMilestones] = useState(false);
-  const [showContribute, setShowContribute] = useState(false);
   const [contributeAmount, setContributeAmount] = useState('');
+  const [contributing, setContributing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   const progressPercent = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
   const remaining = Math.max(goal.targetAmount - goal.currentAmount, 0);
   const daysLeft = goal.targetDate
-    ? Math.ceil(
-        (new Date(goal.targetDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-      )
+    ? Math.ceil((new Date(goal.targetDate).getTime() - Date.now()) / 86_400_000)
     : null;
 
-  // Calculate recommended monthly savings
   const recommendation = useMemo(() => {
     if (goal.status !== 'active') return null;
-    return calculateRecommendedMonthlySavings(
-      goal.targetAmount,
-      goal.currentAmount,
-      goal.targetDate
-    );
+    return calculateRecommendedMonthlySavings(goal.targetAmount, goal.currentAmount, goal.targetDate);
   }, [goal.targetAmount, goal.currentAmount, goal.targetDate, goal.status]);
 
   const handleContribute = async () => {
-    if (!selectedHouseholdId) {
-      toast.error('Please select a household');
-      return;
-    }
-
+    if (!selectedHouseholdId) { toast.error('Please select a household'); return; }
     const amount = parseFloat(contributeAmount);
-    if (!amount || amount <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
+    if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
 
     try {
-      const response = await putWithHousehold(`/api/savings-goals/${goal.id}/progress`, {
-        increment: amount,
-      });
+      setContributing(true);
+      const res = await putWithHousehold(`/api/savings-goals/${goal.id}/progress`, { increment: amount });
+      if (!res.ok) throw new Error();
 
-      if (!response.ok) throw new Error('Failed to contribute');
-
-      const updated = await response.json();
-      onContribute?.(goal.id, amount);
-
-      // Check for newly achieved milestones
+      const updated = await res.json();
       if (updated.milestones) {
         const newlyAchieved = updated.milestones.filter(
-          (m: Milestone) =>
-            m.achievedAt &&
-            !milestones.find((existing) => existing.id === m.id && existing.achievedAt)
+          (m: Milestone) => m.achievedAt && !milestones.find(e => e.id === m.id && e.achievedAt),
         );
         newlyAchieved.forEach((m: Milestone) => {
-          toast.success(`Milestone reached! ${m.percentage}% of goal achieved!`);
+          toast.success(`Milestone! ${m.percentage}% achieved!`);
         });
       }
 
       setContributeAmount('');
-      setShowContribute(false);
-      toast.success(`Added $${amount.toFixed(2)} to ${goal.name}`);
-    } catch (_error) {
+      onContribute?.(goal.id, amount);
+      toast.success(`+${fmt(amount)} added to ${goal.name}`);
+    } catch {
       toast.error('Failed to add contribution');
+    } finally {
+      setContributing(false);
     }
   };
 
+  // Derived colors
+  const daysColor =
+    daysLeft === null ? 'var(--color-muted-foreground)'
+    : daysLeft < 0  ? 'var(--color-error)'
+    : daysLeft < 30 ? 'var(--color-warning)'
+    : 'var(--color-muted-foreground)';
+
+  const isCompleted = goal.status === 'completed';
+  const isPaused    = goal.status === 'paused';
+
   return (
-    <Card className="bg-card border-border p-4 hover:border-border transition-colors">
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <div
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: goal.color }}
-              />
-              <h3 className="font-semibold text-foreground">{goal.name}</h3>
-              <EntityIdBadge id={goal.id} label="Goal" />
-              {goal.status === 'completed' && (
-                <span className="text-xs bg-income/30 text-income px-2 py-1 rounded">
-                  Completed
+    <div
+      className="rounded-xl overflow-hidden transition-shadow duration-200"
+      style={{
+        border: '1px solid var(--color-border)',
+        backgroundColor: 'var(--color-background)',
+        borderLeft: `3px solid ${goal.color}`,
+        boxShadow: '0 1px 3px color-mix(in oklch, var(--color-foreground) 4%, transparent)',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = `0 4px 16px color-mix(in oklch, ${goal.color} 18%, transparent)`;
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 3px color-mix(in oklch, var(--color-foreground) 4%, transparent)';
+      }}
+    >
+      <div className="p-4 space-y-3.5">
+
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Color dot */}
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: goal.color }} />
+              <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--color-foreground)' }}>
+                {goal.name}
+              </span>
+              {/* Status badges */}
+              {isCompleted && (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-px rounded-full shrink-0"
+                  style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 14%, transparent)', color: 'var(--color-success)' }}
+                >
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  Done
                 </span>
               )}
-              {goal.status === 'paused' && (
-                <span className="text-xs bg-warning/30 text-warning px-2 py-1 rounded">
+              {isPaused && (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-px rounded-full shrink-0"
+                  style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 14%, transparent)', color: 'var(--color-warning)' }}
+                >
+                  <PauseCircle className="w-2.5 h-2.5" />
                   Paused
                 </span>
               )}
+              <EntityIdBadge id={goal.id} label="Goal" />
             </div>
-            {goal.description && (
-              <p className="text-xs text-muted-foreground mt-1">{goal.description}</p>
-            )}
+            {/* Category + date row */}
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] font-medium px-1.5 py-px rounded" style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-muted-foreground)' }}>
+                {CATEGORY_LABELS[goal.category] ?? goal.category}
+              </span>
+              {goal.targetDate && (
+                <span className="text-[10px] font-mono" style={{ color: daysColor }}>
+                  {daysLeft === null ? '' : daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Due today' : `${daysLeft}d left`}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex gap-2">
+          {/* Actions */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={() => setShowHistory(h => !h)}
+              className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+              style={{ color: showHistory ? 'var(--color-foreground)' : 'var(--color-muted-foreground)' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-elevated)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
+              title="Contribution history"
+            >
+              <History className="w-3.5 h-3.5" />
+            </button>
             {onEdit && (
-              <Button
-                size="sm"
-                variant="ghost"
+              <button
                 onClick={() => onEdit(goal)}
-                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+                className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-elevated)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent')}
               >
-                <Edit2 className="w-4 h-4" />
-              </Button>
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
             )}
             {onDelete && (
-              <Button
-                size="sm"
-                variant="ghost"
+              <button
                 onClick={() => onDelete(goal.id)}
-                className="text-muted-foreground hover:text-error hover:bg-error/20"
+                className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+                style={{ color: 'var(--color-muted-foreground)' }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'color-mix(in oklch, var(--color-error) 12%, transparent)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-error)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted-foreground)';
+                }}
               >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">
-              ${goal.currentAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })} of $
-              {goal.targetAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+        {/* ── Progress gauge ───────────────────────────────────────────── */}
+        <div className="space-y-1.5">
+          {/* Labels row */}
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+              <span className="text-[13px] font-semibold" style={{ color: goal.color }}>
+                {fmt(goal.currentAmount)}
+              </span>
+              {' '}of {fmt(goal.targetAmount)}
             </span>
-            <span className="text-foreground font-semibold">{Math.round(progressPercent)}%</span>
+            <span
+              className="text-[15px] font-bold font-mono tabular-nums"
+              style={{ color: Math.round(progressPercent) >= 100 ? 'var(--color-success)' : goal.color }}
+            >
+              {Math.round(progressPercent)}%
+            </span>
           </div>
-          <Progress value={progressPercent} className="h-2 bg-elevated" />
+
+          {/* Track */}
+          <div
+            className="relative h-3 rounded-full overflow-hidden"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 80%, transparent)' }}
+          >
+            {/* Fill */}
+            <div
+              className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"
+              style={{
+                width: `${progressPercent}%`,
+                background: progressPercent >= 100
+                  ? `linear-gradient(to right, ${goal.color}, color-mix(in oklch, ${goal.color} 70%, var(--color-success)))`
+                  : `linear-gradient(to right, color-mix(in oklch, ${goal.color} 75%, transparent), ${goal.color})`,
+              }}
+            />
+            {/* Milestone markers */}
+            {milestones.map(m => (
+              <div
+                key={m.id}
+                className="absolute top-0 bottom-0 w-px"
+                style={{
+                  left: `${m.percentage}%`,
+                  backgroundColor: m.achievedAt
+                    ? 'color-mix(in oklch, var(--color-background) 60%, transparent)'
+                    : 'color-mix(in oklch, var(--color-foreground) 25%, transparent)',
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Stats row */}
+          <div className="flex items-center gap-4 text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
+            <span className="font-mono tabular-nums">
+              {fmt(remaining)} remaining
+            </span>
+            {goal.description && (
+              <span className="truncate opacity-70">{goal.description}</span>
+            )}
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 text-center text-sm">
-          <div>
-            <p className="text-muted-foreground text-xs">Remaining</p>
-            <p className="text-foreground font-semibold">
-              ${remaining.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          {daysLeft !== null && (
-            <div>
-              <p className="text-muted-foreground text-xs">Days Left</p>
-              <p className={`font-semibold ${daysLeft < 0 ? 'text-error' : 'text-foreground'}`}>
-                {daysLeft < 0 ? `${Math.abs(daysLeft)} ago` : daysLeft}
-              </p>
-            </div>
-          )}
-          <div>
-            <p className="text-muted-foreground text-xs">Category</p>
-            <p className="text-foreground font-semibold capitalize">{goal.category.replace(/_/g, ' ')}</p>
-          </div>
-        </div>
-
-        {/* Recommended Monthly Savings */}
-        {recommendation?.recommendedMonthly !== null && recommendation?.recommendedMonthly !== undefined && goal.status === 'active' && (
-          <div className="bg-elevated/50 border border-border/50 rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">Recommended Monthly</p>
-                  <p className="text-sm font-semibold text-primary font-mono">
-                    {formatCurrency(recommendation.recommendedMonthly)}/mo
-                  </p>
-                </div>
-                {goal.monthlyContribution && goal.monthlyContribution > 0 && (
-                  <div className="flex items-baseline justify-between gap-2 mt-1">
-                    <p className="text-xs text-muted-foreground">Your Planned</p>
-                    <p className="text-sm font-medium text-foreground font-mono">
-                      {formatCurrency(goal.monthlyContribution)}/mo
-                    </p>
-                  </div>
-                )}
-              </div>
+        {/* ── Recommendation hint ──────────────────────────────────────── */}
+        {recommendation?.recommendedMonthly != null && !isCompleted && (
+          <div
+            className="flex items-center gap-2 px-2.5 py-2 rounded-lg"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-elevated) 60%, transparent)', border: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)' }}
+          >
+            <Lightbulb className="w-3 h-3 shrink-0" style={{ color: goal.color }} />
+            <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+              <span className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
+                Recommended monthly
+              </span>
+              <span className="text-[12px] font-mono font-semibold tabular-nums shrink-0" style={{ color: goal.color }}>
+                {formatCurrency(recommendation.recommendedMonthly)}/mo
+              </span>
             </div>
             {recommendation.isTightTimeline && (
-              <p className="text-xs text-warning mt-2 flex items-center gap-1">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning" />
-                Tight timeline
-              </p>
+              <Flame className="w-3 h-3 shrink-0" style={{ color: 'var(--color-warning)' }} />
             )}
           </div>
         )}
 
-        {/* Milestones */}
-        {milestones.length > 0 && (
-          <div className="border-t border-border pt-3">
-            <button
-              onClick={() => setShowMilestones(!showMilestones)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        {/* ── Contribute ───────────────────────────────────────────────── */}
+        {!isCompleted && (
+          <div className="flex items-center gap-2 pt-0.5">
+            <div
+              className="flex-1 flex items-center gap-1.5 rounded-lg px-3 h-8"
+              style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}
             >
-              {showMilestones ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-              Milestones
+              <span className="text-[12px] font-mono" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
+              <input
+                type="number"
+                placeholder="0.00"
+                value={contributeAmount}
+                onChange={e => setContributeAmount(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleContribute()}
+                className="flex-1 bg-transparent text-[12px] font-mono outline-none tabular-nums min-w-0"
+                style={{ color: 'var(--color-foreground)' }}
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <button
+              onClick={handleContribute}
+              disabled={contributing || !contributeAmount}
+              className="h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-opacity disabled:opacity-40"
+              style={{ backgroundColor: goal.color, color: '#fff' }}
+            >
+              {contributing ? '…' : <><Plus className="w-3 h-3" /> Add</>}
             </button>
-            {showMilestones && (
-              <div className="mt-3 space-y-2">
-                {milestones.map((milestone) => (
-                  <div key={milestone.id} className="flex items-center gap-3 text-sm">
-                    <div className="flex-1">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-muted-foreground">{milestone.percentage}%</span>
-                        <span className="text-muted-foreground">
-                          ${milestone.milestoneAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <Progress
-                        value={milestone.achievedAt ? 100 : 0}
-                        className="h-1.5 bg-elevated"
-                      />
-                    </div>
-                    {milestone.achievedAt && (
-                      <Check className="w-4 h-4 text-income shrink-0" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
-        {/* Contribute Button */}
-        {goal.status !== 'completed' && (
-          <div className="border-t border-border pt-3">
-            {!showContribute ? (
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setShowContribute(true)}
-                  className="flex-1 bg-primary hover:opacity-90 text-white"
-                >
-                  Add Contribution
-                </Button>
-                <Button
-                  onClick={() => setShowHistory(!showHistory)}
-                  variant="outline"
-                  className="border-border text-muted-foreground hover:text-foreground"
-                  title="View contribution history"
-                >
-                  <History className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="Amount"
-                  value={contributeAmount}
-                  onChange={(e) => setContributeAmount(e.target.value)}
-                  className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-income"
-                  step="0.01"
-                  min="0"
-                />
-                <Button
-                  onClick={handleContribute}
-                  className="bg-primary hover:opacity-90 text-white"
-                >
-                  Add
-                </Button>
-                <Button
-                  onClick={() => setShowContribute(false)}
-                  variant="outline"
-                  className="border-border text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Phase 18: Contribution History */}
+        {/* ── Contribution history ─────────────────────────────────────── */}
         {showHistory && (
-          <div className="border-t border-border pt-3 mt-3">
-            <GoalContributionsList
-              goalId={goal.id}
-              showHeader={false}
-              maxHeight="300px"
-            />
+          <div
+            className="rounded-lg overflow-hidden"
+            style={{ border: '1px solid var(--color-border)' }}
+          >
+            <GoalContributionsList goalId={goal.id} showHeader={false} maxHeight="280px" />
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

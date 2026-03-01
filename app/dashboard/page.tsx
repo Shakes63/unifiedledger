@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -17,14 +17,23 @@ import { BillsByClassificationWidget } from '@/components/dashboard/bills-by-cla
 import { PaycheckBalanceWidget } from '@/components/dashboard/paycheck-balance-widget';
 import { betterAuthClient } from '@/lib/better-auth-client';
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export default function DashboardPage() {
   const { data: session, isPending: _isPending } = betterAuthClient.useSession();
 
+  const greeting = useMemo(() => getGreeting(), []);
+  const firstName = session?.user?.name?.split(' ')[0];
+
   useEffect(() => {
-    // Initialize user on first load
     const initializeUser = async () => {
       try {
-        const response = await fetch('/api/auth/init', { credentials: 'include', method: 'POST', });
+        const response = await fetch('/api/auth/init', { credentials: 'include', method: 'POST' });
         if (response.ok) {
           console.log('User initialized');
         }
@@ -39,78 +48,94 @@ export default function DashboardPage() {
   }, [session]);
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
       <div className="max-w-7xl mx-auto">
-        {/* Compact Stats Bar */}
-        <section className="mb-4">
+        {/* Header: Greeting + Quick Action */}
+        <section className="mb-6 dashboard-fade-in">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-foreground)' }}>
+                {greeting}{firstName ? `, ${firstName}` : ''}
+              </h1>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
+                Here&apos;s your financial overview
+              </p>
+            </div>
+            <Link href="/dashboard/transactions/new" className="shrink-0">
+              <Button
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+                className="hover:opacity-90 rounded-full px-5 h-10 text-sm font-medium shadow-sm"
+              >
+                <Plus className="mr-1.5 w-4 h-4" />
+                <span className="hidden sm:inline">New Transaction</span>
+                <span className="sm:hidden">New</span>
+              </Button>
+            </Link>
+          </div>
+        </section>
+
+        {/* Financial Overview */}
+        <section className="mb-6">
           <CompactStatsBar />
         </section>
 
-        {/* Add Transaction Button */}
-        <section className="mb-4">
-          <Link href="/dashboard/transactions/new" className="block">
-            <Button className="w-full h-12 text-base font-medium rounded-lg bg-primary text-primary-foreground hover:opacity-90" size="default">
-              <Plus className="mr-2 w-4 h-4" />
-              Add Transaction
-            </Button>
-          </Link>
-        </section>
-
-        {/* Bills Section */}
-        <section className="mb-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Enhanced Bills Widget - Takes 2 columns on large screens */}
-            <div className="lg:col-span-2">
+        {/* Main Content Grid */}
+        <section className="mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Primary Column: Bills + Transactions */}
+            <div className="lg:col-span-2 space-y-5">
               <EnhancedBillsWidget />
+
+              <div
+                className="rounded-xl border p-4"
+                style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderLeftWidth: 4, borderLeftColor: 'var(--color-transfer)' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>
+                    Recent Transactions
+                  </h2>
+                </div>
+                <RecentTransactions />
+              </div>
             </div>
-            
-            {/* Sidebar widgets - stacked */}
-            <div className="lg:col-span-1 space-y-6">
+
+            {/* Secondary Column: Next Payments + Category Breakdown */}
+            <div className="lg:col-span-1 space-y-5">
               <NextPaymentDueWidget />
               <BillsByClassificationWidget />
             </div>
           </div>
         </section>
 
-        {/* Recent Transactions */}
-        <section className="mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-foreground">Recent Transactions</h2>
-            <Link href="/dashboard/transactions">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">View All</Button>
-            </Link>
-          </div>
-          <RecentTransactions />
-        </section>
-
-        {/* Budget Details - Collapsible */}
+        {/* Budget Details */}
         <CollapsibleSection
           title="Budget Details"
           storageKey="dashboard-budget-details"
           defaultExpanded={false}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Paycheck Balance Widget - Takes full width on mobile, 1 column on desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <div className="lg:col-span-1">
               <PaycheckBalanceWidget />
             </div>
-            {/* Budget widgets - Take 2 columns on desktop */}
-            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5">
               <BudgetSummaryWidget />
               <BudgetSurplusCard />
             </div>
           </div>
         </CollapsibleSection>
 
-        {/* Debt & Credit - Collapsible */}
+        {/* Debt & Credit */}
         <CollapsibleSection
           title="Debt & Credit"
           storageKey="dashboard-debt-credit"
           defaultExpanded={false}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <CreditUtilizationWidget />
-            <div className="border bg-card rounded-xl overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+            >
               <DebtCountdownCard />
             </div>
           </div>

@@ -1,17 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Trash2, Info } from 'lucide-react';
+import { ArrowRight, Trash2, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -37,234 +32,341 @@ interface TransferListProps {
   onRefresh?: () => void;
 }
 
-export function TransferList({
-  transfers = [],
-  isLoading = false,
-  onRefresh,
-}: TransferListProps) {
+function fmt(n: number) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+const STATUS_STYLES: Record<string, { color: string; label: string }> = {
+  completed: { color: 'var(--color-income)',  label: 'Completed' },
+  pending:   { color: 'var(--color-warning)', label: 'Pending'   },
+  failed:    { color: 'var(--color-error)',   label: 'Failed'    },
+};
+
+export function TransferList({ transfers = [], isLoading = false, onRefresh }: TransferListProps) {
   const { deleteWithHousehold } = useHouseholdFetch();
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = async (transferId: string) => {
-    if (!window.confirm('Are you sure you want to delete this transfer?')) {
-      return;
-    }
+  const handleDelete = async (transferId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!window.confirm('Delete this transfer? This cannot be undone.')) return;
 
     try {
       setIsDeleting(true);
       const response = await deleteWithHousehold(`/api/transfers/${transferId}`);
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to delete transfer');
       }
-
-      toast.success('Transfer deleted successfully');
+      toast.success('Transfer deleted');
       setSelectedTransfer(null);
       onRefresh?.();
     } catch (error) {
-      console.error('Delete error:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to delete transfer'
-      );
+      toast.error(error instanceof Error ? error.message : 'Failed to delete transfer');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-success/10 text-success';
-      case 'pending':
-        return 'bg-warning/10 text-warning';
-      case 'failed':
-        return 'bg-error/10 text-error';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
-
   if (isLoading) {
     return (
-      <Card className="p-8 text-center bg-card border-border">
-        <p className="text-muted-foreground">Loading transfers...</p>
-      </Card>
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+      >
+        {[...Array(3)].map((_, i) => (
+          <div
+            key={i}
+            className="px-5 py-4 animate-pulse flex items-center gap-4"
+            style={{
+              borderBottom: i < 2 ? '1px solid color-mix(in oklch, var(--color-border) 40%, transparent)' : 'none',
+              animationDelay: `${i * 80}ms`,
+            }}
+          >
+            <div className="w-16 h-3 rounded" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            <div className="flex-1 h-3 rounded" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            <div className="w-20 h-3 rounded" style={{ backgroundColor: 'var(--color-elevated)' }} />
+          </div>
+        ))}
+      </div>
     );
   }
 
   if (transfers.length === 0) {
     return (
-      <Card className="p-8 text-center bg-card border-border">
-        <p className="text-muted-foreground">No transfers yet</p>
-        <p className="text-muted-foreground/60 text-sm mt-2">
-          Create your first transfer to move money between accounts
+      <div
+        className="rounded-xl py-16 text-center"
+        style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+      >
+        <div
+          className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
+          style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}
+        >
+          <ArrowLeftRight className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+        </div>
+        <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>No transfers yet</p>
+        <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+          Create a transfer to move money between accounts
         </p>
-      </Card>
+      </div>
     );
   }
 
   return (
     <>
-      <div className="space-y-3">
-        {transfers.map((transfer) => (
-          <Card
-            key={transfer.id}
-            className="p-4 bg-card border-border hover:border-ring transition cursor-pointer"
-            onClick={() => setSelectedTransfer(transfer)}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-foreground font-medium">
+      {/* Connected list container */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+      >
+        {/* Column headers */}
+        <div
+          className="grid px-5 py-2"
+          style={{
+            gridTemplateColumns: '90px 1fr 110px',
+            borderBottom: '1px solid var(--color-border)',
+            backgroundColor: 'color-mix(in oklch, var(--color-elevated) 40%, transparent)',
+          }}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-muted-foreground)' }}>Date</span>
+          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-muted-foreground)' }}>Flow</span>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-right" style={{ color: 'var(--color-muted-foreground)' }}>Amount</span>
+        </div>
+
+        {transfers.map((transfer, idx) => {
+          const amount = parseFloat(transfer.amount.toString());
+          const fees = transfer.fees ? parseFloat(transfer.fees.toString()) : 0;
+          const statusStyle = STATUS_STYLES[transfer.status] ?? STATUS_STYLES.completed;
+
+          return (
+            <div
+              key={transfer.id}
+              className="group relative tx-row-enter"
+              style={{
+                animationDelay: `${idx * 35}ms`,
+                borderBottom: idx < transfers.length - 1
+                  ? '1px solid color-mix(in oklch, var(--color-border) 35%, transparent)'
+                  : 'none',
+              }}
+            >
+              <button
+                onClick={() => setSelectedTransfer(transfer)}
+                className="w-full text-left px-5 py-3.5 transition-colors"
+                style={{ backgroundColor: 'transparent' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-elevated) 40%, transparent)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <div
+                  className="grid items-center gap-3"
+                  style={{ gridTemplateColumns: '90px 1fr 110px' }}
+                >
+                  {/* Date */}
+                  <div>
+                    <p className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+                      {formatDate(transfer.date)}
+                    </p>
+                    {/* Status dot + label */}
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: statusStyle.color }}
+                      />
+                      <span className="text-[10px]" style={{ color: statusStyle.color }}>
+                        {statusStyle.label}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Flow: From → To */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="text-sm font-medium truncate max-w-[120px]"
+                      style={{ color: 'var(--color-foreground)' }}
+                    >
                       {transfer.fromAccountName}
                     </span>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-foreground font-medium">
+                    {/* Connecting line with arrow */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span
+                        className="w-6 h-px"
+                        style={{ backgroundColor: 'var(--color-border)' }}
+                      />
+                      <ArrowRight
+                        className="w-3 h-3 shrink-0"
+                        style={{ color: 'var(--color-muted-foreground)' }}
+                      />
+                      <span
+                        className="w-6 h-px"
+                        style={{ backgroundColor: 'var(--color-border)' }}
+                      />
+                    </div>
+                    <span
+                      className="text-sm font-medium truncate max-w-[120px]"
+                      style={{ color: 'var(--color-foreground)' }}
+                    >
                       {transfer.toAccountName}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={getStatusColor(transfer.status)}>
-                      {transfer.status}
-                    </Badge>
-                    <span className="text-muted-foreground text-sm">
-                      {formatDate(transfer.date)}
-                    </span>
+
+                  {/* Amount */}
+                  <div className="text-right">
+                    <p
+                      className="text-sm font-mono font-semibold tabular-nums"
+                      style={{ color: 'var(--color-foreground)' }}
+                    >
+                      ${fmt(amount)}
+                    </p>
+                    {fees > 0 && (
+                      <p className="text-[10px] font-mono tabular-nums" style={{ color: 'var(--color-muted-foreground)' }}>
+                        +${fmt(fees)} fee
+                      </p>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-foreground font-medium">
-                    ${parseFloat(transfer.amount.toString()).toFixed(2)}
+                {/* Description, shown when not default */}
+                {transfer.description && transfer.description !== 'Transfer' && (
+                  <p
+                    className="text-[11px] mt-1 pl-[calc(90px+12px)] truncate"
+                    style={{ color: 'var(--color-muted-foreground)' }}
+                  >
+                    {transfer.description}
                   </p>
-                  {transfer.fees && parseFloat(transfer.fees.toString()) > 0 && (
-                    <p className="text-muted-foreground text-sm">
-                      Fee: ${parseFloat(transfer.fees.toString()).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTransfer(transfer);
-                    }}
-                    className="text-muted-foreground hover:text-foreground hover:bg-elevated"
-                  >
-                    <Info className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(transfer.id);
-                    }}
-                    disabled={isDeleting}
-                    className="text-error hover:text-error hover:bg-error/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+                )}
+              </button>
+
+              {/* Delete button — hover-revealed */}
+              <button
+                onClick={(e) => handleDelete(transfer.id, e)}
+                disabled={isDeleting}
+                className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md"
+                style={{ color: 'var(--color-error)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-error) 10%, transparent)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                title="Delete transfer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
-          </Card>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Transfer Details Dialog */}
+      {/* Transfer Detail Dialog */}
       <Dialog open={!!selectedTransfer} onOpenChange={(open) => !open && setSelectedTransfer(null)}>
-        <DialogContent className="bg-card border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle>Transfer Details</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              View transfer information and manage this transfer
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent
+          className="p-0 gap-0 overflow-hidden"
+          style={{
+            maxWidth: '420px',
+            backgroundColor: 'var(--color-background)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '14px',
+          }}
+        >
+          {selectedTransfer && (() => {
+            const amount = parseFloat(selectedTransfer.amount.toString());
+            const fees = selectedTransfer.fees ? parseFloat(selectedTransfer.fees.toString()) : 0;
+            const statusStyle = STATUS_STYLES[selectedTransfer.status] ?? STATUS_STYLES.completed;
 
-          {selectedTransfer && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-muted-foreground text-sm mb-1">From Account</p>
-                  <p className="text-foreground font-medium">
-                    {selectedTransfer.fromAccountName}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-sm mb-1">To Account</p>
-                  <p className="text-foreground font-medium">
-                    {selectedTransfer.toAccountName}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-muted-foreground text-sm mb-1">Amount</p>
-                  <p className="text-foreground font-medium">
-                    ${parseFloat(selectedTransfer.amount.toString()).toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-sm mb-1">Status</p>
-                  <Badge variant="outline" className={getStatusColor(selectedTransfer.status)}>
-                    {selectedTransfer.status}
-                  </Badge>
-                </div>
-              </div>
-
-              {selectedTransfer.fees && parseFloat(selectedTransfer.fees.toString()) > 0 && (
-                <div>
-                  <p className="text-muted-foreground text-sm mb-1">Fees</p>
-                  <p className="text-foreground font-medium">
-                    ${parseFloat(selectedTransfer.fees.toString()).toFixed(2)}
-                  </p>
-                </div>
-              )}
-
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Date</p>
-                <p className="text-foreground font-medium">
-                  {formatDate(selectedTransfer.date)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Description</p>
-                <p className="text-foreground">
-                  {selectedTransfer.description}
-                </p>
-              </div>
-
-              {selectedTransfer.notes && (
-                <div>
-                  <p className="text-muted-foreground text-sm mb-1">Notes</p>
-                  <p className="text-foreground">{selectedTransfer.notes}</p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={() => handleDelete(selectedTransfer.id)}
-                  disabled={isDeleting}
-                  variant="destructive"
-                  className="flex-1 bg-error hover:bg-error/90"
+            return (
+              <>
+                {/* Header */}
+                <div
+                  className="px-5 pt-5 pb-4"
+                  style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
                 >
-                  {isDeleting ? 'Deleting...' : 'Delete Transfer'}
-                </Button>
-              </div>
-            </div>
-          )}
+                  <DialogTitle className="sr-only">Transfer Details</DialogTitle>
+                  {/* Flow diagram */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div
+                      className="px-2.5 py-1.5 rounded-lg text-sm font-medium"
+                      style={{
+                        backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)',
+                        color: 'var(--color-foreground)',
+                      }}
+                    >
+                      {selectedTransfer.fromAccountName}
+                    </div>
+                    <div className="flex items-center gap-1 flex-1">
+                      <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
+                      <div className="flex-1 h-px" style={{ backgroundColor: 'var(--color-border)' }} />
+                    </div>
+                    <div
+                      className="px-2.5 py-1.5 rounded-lg text-sm font-medium"
+                      style={{
+                        backgroundColor: 'color-mix(in oklch, var(--color-income) 10%, transparent)',
+                        color: 'var(--color-foreground)',
+                      }}
+                    >
+                      {selectedTransfer.toAccountName}
+                    </div>
+                  </div>
+                  {/* Big amount */}
+                  <div
+                    className="text-3xl font-bold font-mono tabular-nums"
+                    style={{ color: 'var(--color-foreground)', letterSpacing: '-0.02em' }}
+                  >
+                    ${fmt(amount)}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusStyle.color }} />
+                    <span className="text-xs font-medium" style={{ color: statusStyle.color }}>{statusStyle.label}</span>
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>· {formatDate(selectedTransfer.date)}</span>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="px-5 py-4 space-y-3">
+                  {fees > 0 && (
+                    <Row label="Fees" value={`$${fmt(fees)}`} />
+                  )}
+                  <Row label="Description" value={selectedTransfer.description} />
+                  {selectedTransfer.notes && (
+                    <Row label="Notes" value={selectedTransfer.notes} />
+                  )}
+                  <Row label="Transfer ID" value={selectedTransfer.id.slice(0, 12) + '…'} mono />
+                </div>
+
+                {/* Delete */}
+                <div className="px-5 pb-5">
+                  <button
+                    onClick={() => handleDelete(selectedTransfer.id)}
+                    disabled={isDeleting}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: 'color-mix(in oklch, var(--color-error) 10%, transparent)',
+                      color: 'var(--color-error)',
+                      border: '1px solid color-mix(in oklch, var(--color-error) 25%, transparent)',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-error) 18%, transparent)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'color-mix(in oklch, var(--color-error) 10%, transparent)')}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {isDeleting ? 'Deleting…' : 'Delete Transfer'}
+                  </button>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-[11px] uppercase tracking-widest font-semibold shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
+        {label}
+      </span>
+      <span
+        className={`text-sm text-right ${mono ? 'font-mono tabular-nums' : ''}`}
+        style={{ color: 'var(--color-foreground)' }}
+      >
+        {value}
+      </span>
+    </div>
   );
 }

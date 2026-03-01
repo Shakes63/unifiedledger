@@ -2,18 +2,15 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { 
-  CalendarClock, 
-  AlertCircle, 
-  Clock, 
+import {
+  CalendarClock,
+  AlertCircle,
+  Clock,
   CreditCard,
   Zap,
   ArrowRight,
   CheckCircle,
-  ChevronRight,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { parseISO, format } from 'date-fns';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
@@ -196,56 +193,78 @@ export function NextPaymentDueWidget() {
   // Loading state
   if (isLoading) {
     return (
-      <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+      <div
+        className="relative overflow-hidden rounded-xl border p-4"
+        style={{
+          borderColor: 'var(--color-border)',
+          backgroundColor: 'var(--color-background)',
+          boxShadow: 'inset 0 0 80px 0 rgba(0,0,0,0.03)',
+        }}
+      >
         <div className="animate-pulse space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-elevated rounded-lg" />
-            <div className="h-4 bg-elevated rounded w-32" />
+            <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }} />
+            <div className="h-4 rounded w-32" style={{ backgroundColor: 'var(--color-elevated)' }} />
           </div>
           <div className="space-y-2">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-12 bg-elevated rounded-lg" />
+              <div key={i} className="h-12 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }} />
             ))}
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+      <div
+        className="relative overflow-hidden rounded-xl border p-4"
+        style={{
+          borderColor: 'var(--color-border)',
+          backgroundColor: 'var(--color-background)',
+          boxShadow: 'inset 0 0 80px 0 rgba(0,0,0,0.03)',
+        }}
+      >
         <div className="flex flex-col items-center justify-center py-6 text-center">
-          <AlertCircle className="w-8 h-8 text-error mb-2" />
-          <p className="text-sm text-muted-foreground">Failed to load upcoming payments</p>
+          <AlertCircle className="w-8 h-8 mb-2" style={{ color: 'var(--color-destructive)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Failed to load upcoming payments</p>
           <button
             onClick={fetchData}
-            className="mt-2 text-xs text-primary hover:underline"
+            className="mt-2 text-xs hover:underline"
+            style={{ color: 'var(--color-primary)' }}
           >
             Retry
           </button>
         </div>
-      </Card>
+      </div>
     );
   }
 
   // No data or no bills
   if (!data || data.bills.length === 0) {
     return (
-      <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+      <div
+        className="relative overflow-hidden rounded-xl border p-4"
+        style={{
+          borderColor: 'var(--color-border)',
+          backgroundColor: 'var(--color-background)',
+          boxShadow: 'inset 0 0 80px 0 rgba(0,0,0,0.03)',
+        }}
+      >
         <div className="flex items-center gap-2 mb-4">
-          <div className="p-1.5 bg-elevated rounded-lg">
+          <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
             <CalendarClock className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
           </div>
-          <h3 className="text-sm font-semibold text-foreground">Next Payments</h3>
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--color-foreground)' }}>Next Payments</h3>
         </div>
         <div className="flex flex-col items-center justify-center py-6 text-center">
-          <CheckCircle className="w-10 h-10 text-success mb-2 opacity-50" />
-          <p className="text-sm font-medium text-foreground">All caught up!</p>
-          <p className="text-xs text-muted-foreground mt-1">No upcoming payments due</p>
+          <CheckCircle className="w-10 h-10 mb-2 opacity-50" style={{ color: 'var(--color-success)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>All caught up!</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>No upcoming payments due</p>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -269,7 +288,7 @@ export function NextPaymentDueWidget() {
   };
 
   const getStatusColor = (bill: NextDueBill) => {
-    if (bill.isOverdue) return 'var(--color-error)';
+    if (bill.isOverdue) return 'var(--color-destructive)';
     if (bill.daysUntilDue <= 2) return 'var(--color-warning)';
     return 'var(--color-primary)';
   };
@@ -279,23 +298,41 @@ export function NextPaymentDueWidget() {
   };
 
   return (
-    <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+    <div
+      className="relative overflow-hidden rounded-xl border p-4"
+      style={{
+        position: 'relative',
+        borderColor: 'var(--color-border)',
+        backgroundColor: 'var(--color-background)',
+        borderTopWidth: '2px',
+        borderTopColor: 'var(--color-primary)',
+        boxShadow: 'inset 0 0 80px 0 rgba(0,0,0,0.03)',
+      }}
+    >
+      {/* Corner gradient overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-xl"
+        style={{
+          background: 'radial-gradient(ellipse 80% 80% at 100% 0%, color-mix(in oklch, var(--color-primary) 3%, transparent) 0%, transparent 70%)',
+        }}
+      />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="relative flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-elevated rounded-lg">
+          <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
             <CalendarClock className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
           </div>
-          <h3 className="text-sm font-semibold text-foreground">Next Payments</h3>
+          <h3 className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Next Payments</h3>
         </div>
-        
+
         {/* Overdue badge */}
         {summary.overdueCount > 0 && (
-          <span 
-            className="px-2 py-0.5 text-xs font-medium rounded-full"
-            style={{ 
-              backgroundColor: 'color-mix(in srgb, var(--color-error) 20%, transparent)',
-              color: 'var(--color-error)',
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+            style={{
+              backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)',
+              color: 'var(--color-destructive)',
             }}
           >
             {summary.overdueCount} overdue
@@ -304,96 +341,90 @@ export function NextPaymentDueWidget() {
       </div>
 
       {/* Summary bar */}
-      <div className="flex items-center gap-3 mb-3 text-xs text-muted-foreground">
+      <div className="relative flex items-center gap-3 mb-3 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          Next 7 days: ${formatAmount(summary.next7DaysTotal)}
+          Next 7 days: <span style={{ fontVariantNumeric: 'tabular-nums' }}>${formatAmount(summary.next7DaysTotal)}</span>
         </span>
-        <span className="text-border">|</span>
+        <span style={{ color: 'var(--color-muted-foreground)', opacity: 0.6 }}>|</span>
         <span>{summary.next7DaysCount + summary.overdueCount} bills</span>
       </div>
 
       {/* Bills list */}
-      <div className="space-y-2">
-        {bills.map((bill) => (
+      <div className="relative space-y-1">
+        {bills.map((bill, i) => (
           <Link
             key={bill.id}
-            href={`/dashboard/bills`}
-            className="flex items-center justify-between p-2.5 rounded-lg border transition-all hover:bg-elevated group"
-            style={{ borderColor: 'var(--color-border)' }}
+            href="/dashboard/bills"
+            className="dashboard-fade-in flex items-center justify-between rounded-lg py-2 px-3 transition-colors hover:bg-(--color-elevated)"
+            style={{
+              borderLeft: `3px solid ${getStatusColor(bill)}`,
+              backgroundColor: bill.isOverdue ? 'color-mix(in oklch, var(--color-destructive) 10%, transparent)' : undefined,
+              animationDelay: `${i * 30}ms`,
+            }}
           >
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              {/* Status indicator */}
-              <div 
-                className="w-1.5 h-8 rounded-full shrink-0"
-                style={{ backgroundColor: getStatusColor(bill) }}
-              />
-              
               {/* Bill info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-foreground truncate">
+                  <span className="text-sm font-medium truncate" style={{ color: 'var(--color-foreground)' }}>
                     {bill.billName}
                   </span>
-                  
+
                   {/* Credit card indicator */}
                   {bill.linkedAccount && (
-                    <CreditCard 
-                      className="w-3 h-3 shrink-0" 
-                      style={{ color: 'var(--color-primary)' }} 
+                    <CreditCard
+                      className="w-3 h-3 shrink-0"
+                      style={{ color: 'var(--color-primary)' }}
                     />
                   )}
-                  
+
                   {/* Autopay indicator */}
                   {bill.isAutopay && (
                     <span title="Autopay enabled">
-                      <Zap 
-                        className="w-3 h-3 shrink-0" 
+                      <Zap
+                        className="w-3 h-3 shrink-0"
                         style={{ color: 'var(--color-income)' }}
                       />
                     </span>
                   )}
                 </div>
-                
-                <div className="flex items-center gap-2 text-xs">
-                  <span 
+
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--color-muted-foreground)' }}>
+                  <span
                     className={bill.isOverdue ? 'font-medium' : ''}
-                    style={{ color: getStatusColor(bill) }}
+                    style={{ color: getStatusColor(bill), textTransform: 'none' }}
                   >
                     {getDaysLabel(bill.daysUntilDue, bill.isOverdue)}
                   </span>
-                  <span className="text-muted-foreground">
-                    {formatDueDate(bill.dueDate)}
-                  </span>
+                  <span>{formatDueDate(bill.dueDate)}</span>
                 </div>
               </div>
             </div>
 
-            {/* Amount and arrow */}
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-sm font-bold font-mono text-foreground">
-                ${formatAmount(bill.expectedAmount)}
-              </span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
+            {/* Amount */}
+            <span
+              className="text-sm font-bold shrink-0"
+              style={{ color: 'var(--color-foreground)', fontVariantNumeric: 'tabular-nums' }}
+            >
+              ${formatAmount(bill.expectedAmount)}
+            </span>
           </Link>
         ))}
       </div>
 
       {/* View all link */}
       {(summary.totalPendingCount + summary.overdueCount > bills.length) && (
-        <Link href="/dashboard/bills" className="block mt-3">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full text-xs h-8 text-primary hover:bg-elevated"
-          >
-            View all bills
-            <ArrowRight className="w-3 h-3 ml-1" />
-          </Button>
+        <Link
+          href="/dashboard/bills"
+          className="relative mt-2 flex items-center gap-1 py-1.5 text-xs hover:underline"
+          style={{ color: 'var(--color-primary)' }}
+        >
+          View all bills
+          <ArrowRight className="w-3 h-3" />
         </Link>
       )}
-    </Card>
+    </div>
   );
 }
 

@@ -791,8 +791,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading household data...</p>
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: 'var(--color-primary)' }} />
+          <p style={{ color: 'var(--color-muted-foreground)' }}>Loading household data...</p>
         </div>
       </div>
     );
@@ -804,8 +804,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       <div className="flex items-center justify-center min-h-[400px]">
         <Card className="max-w-md">
           <div className="p-6 text-center">
-            <p className="text-foreground mb-4">No household selected</p>
-            <p className="text-muted-foreground text-sm mb-4">
+            <p className="mb-4" style={{ color: 'var(--color-foreground)' }}>No household selected</p>
+            <p className="text-sm mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
               Please select a household to create transactions.
             </p>
           </div>
@@ -817,20 +817,20 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 md:max-w-2xl md:mx-auto">
       {error && (
-        <div className="p-4 bg-error/20 border border-error/40 rounded-lg text-error text-sm">
+        <div className="p-4 rounded-lg text-sm" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-destructive) 40%, transparent)', color: 'var(--color-destructive)' }}>
           {error}
         </div>
       )}
 
       {success && (
-        <div className="p-4 bg-success/20 border border-success/40 rounded-lg text-success text-sm">
+        <div className="p-4 rounded-lg text-sm" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 40%, transparent)', color: 'var(--color-success)' }}>
           Transaction {isEditMode ? 'updated' : 'created'} successfully! Redirecting...
         </div>
       )}
 
       {/* Transaction Type */}
       <div className="space-y-2">
-        <Label htmlFor="type" className="text-sm font-medium text-foreground">
+        <Label htmlFor="type" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
           Transaction Type
         </Label>
         <Select value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}>
@@ -849,14 +849,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       {/* Bill Selector (for bill payments) */}
       {formData.type === 'bill' && (
         <div className="space-y-2">
-          <Label htmlFor="billInstance" className="text-sm font-medium text-foreground">
+          <Label htmlFor="billInstance" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
             Select Bill to Pay *
           </Label>
           <Select value={selectedBillInstanceId || 'none'} onValueChange={handleBillSelect}>
             <SelectTrigger>
               <SelectValue placeholder="Select a bill to pay" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border">
+            <SelectContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
               <SelectItem value="none">Select a bill</SelectItem>
               {billsLoading ? (
                 <SelectItem value="loading" disabled>Loading bills...</SelectItem>
@@ -865,7 +865,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               ) : (
                 unpaidBills.map((item: UnpaidBillWithInstance) => (
                   <SelectItem key={item.instance.id} value={item.instance.id}>
-                    <div className={item.instance.status === 'overdue' ? 'text-error' : 'text-foreground'}>
+                    <div style={{ color: item.instance.status === 'overdue' ? 'var(--color-destructive)' : 'var(--color-foreground)' }}>
                       {item.instance.status === 'overdue' && (
                         <span className="font-semibold">OVERDUE - </span>
                       )}
@@ -876,7 +876,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               )}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
             Selecting a bill will pre-fill the form. You can still edit any field before submitting.
           </p>
         </div>
@@ -886,7 +886,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       <div>
         <div className="space-y-2">
           {formData.type === 'transfer' ? (
-            <Label className="text-sm font-medium text-foreground">From Account *</Label>
+            <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>From Account *</Label>
           ) : null}
           <AccountSelector
             selectedAccountId={formData.accountId}
@@ -899,11 +899,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         {/* To Account Selection (for transfers) */}
         {formData.type === 'transfer' && (
           <div className="mt-4 space-y-2">
-            <Label className="text-sm font-medium text-foreground">
+            <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
               To Account *
             </Label>
             <Select value={formData.toAccountId} onValueChange={(value) => handleSelectChange('toAccountId', value)}>
-              <SelectTrigger className="bg-card border border-border text-foreground rounded-lg">
+              <SelectTrigger className="rounded-lg" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
                 <SelectValue placeholder="Select destination account" />
               </SelectTrigger>
               <SelectContent>
@@ -911,7 +911,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   <SelectItem key={account.id} value={account.id}>
                     <div className="flex items-center gap-2 w-full">
                       <span className="flex-1 truncate">{account.name}</span>
-                      <span className="text-xs text-muted-foreground shrink-0">
+                      <span className="text-xs shrink-0" style={{ color: 'var(--color-muted-foreground)' }}>
                         ${account.currentBalance?.toFixed(2) || '0.00'}
                       </span>
                     </div>
@@ -924,59 +924,57 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
         {/* Phase 5: Payment Bill Auto-Detection Banner */}
         {formData.type === 'transfer' && formData.toAccountId && paymentBillDetection && paymentBillDetection.confidence !== 'none' && (
-          <div className={`mt-4 p-3 rounded-lg border flex items-start gap-3 ${
-            paymentBillDetection.detectedBill?.status === 'overdue'
-              ? 'bg-error/10 border-error/30'
-              : paymentBillDetection.confidence === 'high'
-                ? 'bg-primary/10 border-primary/30'
-                : paymentBillDetection.confidence === 'medium'
-                  ? 'bg-primary/5 border-primary/20'
-                  : 'bg-elevated border-border'
-          }`}>
-            <CreditCard className={`w-5 h-5 shrink-0 mt-0.5 ${
-              paymentBillDetection.detectedBill?.status === 'overdue'
-                ? 'text-error'
-                : 'text-primary'
-            }`} />
+          <div
+            className="mt-4 p-3 rounded-lg flex items-start gap-3"
+            style={{
+              backgroundColor: paymentBillDetection.detectedBill?.status === 'overdue'
+                ? 'color-mix(in oklch, var(--color-destructive) 10%, transparent)'
+                : paymentBillDetection.confidence === 'high'
+                  ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)'
+                  : paymentBillDetection.confidence === 'medium'
+                    ? 'color-mix(in oklch, var(--color-primary) 5%, transparent)'
+                    : 'var(--color-elevated)',
+              border: `1px solid ${
+                paymentBillDetection.detectedBill?.status === 'overdue'
+                  ? 'color-mix(in oklch, var(--color-destructive) 30%, transparent)'
+                  : paymentBillDetection.confidence === 'high'
+                    ? 'color-mix(in oklch, var(--color-primary) 30%, transparent)'
+                    : paymentBillDetection.confidence === 'medium'
+                      ? 'color-mix(in oklch, var(--color-primary) 20%, transparent)'
+                      : 'var(--color-border)'
+              }`,
+            }}
+          >
+            <CreditCard className="w-5 h-5 shrink-0 mt-0.5" style={{ color: paymentBillDetection.detectedBill?.status === 'overdue' ? 'var(--color-destructive)' : 'var(--color-primary)' }} />
             <div className="flex-1 min-w-0">
               {paymentBillDetection.detectedBill ? (
                 <>
-                  <p className={`text-sm font-medium ${
-                    paymentBillDetection.detectedBill.status === 'overdue' 
-                      ? 'text-error' 
-                      : 'text-foreground'
-                  }`}>
+                  <p className="text-sm font-medium" style={{ color: paymentBillDetection.detectedBill.status === 'overdue' ? 'var(--color-destructive)' : 'var(--color-foreground)' }}>
                     {paymentBillDetection.detectedBill.templateName}
                     {paymentBillDetection.detectedBill.status === 'overdue' && (
-                      <span className="ml-2 text-xs font-normal bg-error/20 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs font-normal px-1.5 py-0.5 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)' }}>
                         OVERDUE
                       </span>
                     )}
                     {paymentBillDetection.detectedBill.status === 'partial' && (
-                      <span className="ml-2 text-xs font-normal bg-warning/20 text-warning px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs font-normal px-1.5 py-0.5 rounded" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 20%, transparent)', color: 'var(--color-warning)' }}>
                         PARTIAL
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted-foreground)' }}>
                     Due: {format(parseISO(paymentBillDetection.detectedBill.dueDate), 'MMM d, yyyy')}
                     {' '}&middot;{' '}
                     ${(paymentBillDetection.detectedBill.expectedAmountCents / 100).toFixed(2)}
                     {paymentBillDetection.detectedBill.status === 'partial' && (
-                      <span className="text-warning">
+                      <span style={{ color: 'var(--color-warning)' }}>
                         {' '}(${(paymentBillDetection.detectedBill.remainingAmountCents / 100).toFixed(2)} remaining)
                       </span>
                     )}
                   </p>
                 </>
               ) : null}
-              <p className={`text-xs mt-1 ${
-                paymentBillDetection.detectedBill?.status === 'overdue'
-                  ? 'text-error'
-                  : paymentBillDetection.confidence === 'high'
-                    ? 'text-primary'
-                    : 'text-muted-foreground'
-              }`}>
+              <p className="text-xs mt-1" style={{ color: paymentBillDetection.detectedBill?.status === 'overdue' ? 'var(--color-destructive)' : paymentBillDetection.confidence === 'high' ? 'var(--color-primary)' : 'var(--color-muted-foreground)' }}>
                 {paymentBillDetection.reason}
               </p>
               {paymentBillDetection.confidence === 'low' && !paymentBillDetection.detectedBill && (
@@ -984,7 +982,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   href="/dashboard/bills"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                  className="inline-flex items-center gap-1 text-xs hover:underline mt-1"
+                  style={{ color: 'var(--color-primary)' }}
                 >
                   Set up payment bill <ExternalLink className="w-3 h-3" />
                 </a>
@@ -995,22 +994,30 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
         {/* Phase 18: Savings Goal Auto-Detection Banner */}
         {formData.type === 'transfer' && formData.toAccountId && detectionResult && detectionResult.confidence !== 'none' && (
-          <div className={`mt-4 p-3 rounded-lg border flex items-start gap-3 ${
-            detectionResult.confidence === 'high'
-              ? 'bg-primary/10 border-primary/30'
-              : detectionResult.confidence === 'medium'
-                ? 'bg-primary/5 border-primary/20'
-                : 'bg-elevated border-border'
-          }`}>
+          <div
+            className="mt-4 p-3 rounded-lg flex items-start gap-3"
+            style={{
+              backgroundColor: detectionResult.confidence === 'high'
+                ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)'
+                : detectionResult.confidence === 'medium'
+                  ? 'color-mix(in oklch, var(--color-primary) 5%, transparent)'
+                  : 'var(--color-elevated)',
+              border: `1px solid ${
+                detectionResult.confidence === 'high'
+                  ? 'color-mix(in oklch, var(--color-primary) 30%, transparent)'
+                  : detectionResult.confidence === 'medium'
+                    ? 'color-mix(in oklch, var(--color-primary) 20%, transparent)'
+                    : 'var(--color-border)'
+              }`,
+            }}
+          >
             {detectionResult.confidence === 'high' ? (
-              <Target className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <Target className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
             ) : (
-              <Info className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--color-muted-foreground)' }} />
             )}
             <div className="flex-1 min-w-0">
-              <p className={`text-sm ${
-                detectionResult.confidence === 'high' ? 'text-primary' : 'text-foreground'
-              }`}>
+              <p className="text-sm" style={{ color: detectionResult.confidence === 'high' ? 'var(--color-primary)' : 'var(--color-foreground)' }}>
                 {detectionResult.reason}
               </p>
               {detectionResult.confidence === 'low' && (
@@ -1018,7 +1025,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   href="/dashboard/goals"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                  className="inline-flex items-center gap-1 text-xs hover:underline mt-1"
+                style={{ color: 'var(--color-primary)' }}
                 >
                   Create a goal <ExternalLink className="w-3 h-3" />
                 </a>
@@ -1060,11 +1068,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Amount */}
       <div className="space-y-2">
-        <Label htmlFor="amount" className="text-sm font-medium text-foreground">
+        <Label htmlFor="amount" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
           Amount *
         </Label>
         <div className="relative">
-          <span className="absolute left-3 top-3 md:top-2.5 text-muted-foreground">$</span>
+          <span className="absolute left-3 top-3 md:top-2.5" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
           <Input
             id="amount"
             name="amount"
@@ -1082,7 +1090,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description" className="text-sm font-medium text-foreground">
+        <Label htmlFor="description" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
           Description *
         </Label>
         <Input
@@ -1099,7 +1107,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Date */}
       <div className="space-y-2">
-        <Label htmlFor="date" className="text-sm font-medium text-foreground">
+        <Label htmlFor="date" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
           Date
         </Label>
         <Input
@@ -1142,7 +1150,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       {/* Split Transaction Toggle */}
       {formData.type !== 'transfer' && formData.type !== 'bill' && (
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">Split this transaction?</Label>
+          <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Split this transaction?</Label>
           <Button
             type="button"
             variant={useSplits ? 'default' : 'outline'}
@@ -1175,11 +1183,12 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 setSplits([]);
               }
             }}
-            className={`w-full h-12 md:h-10 text-base md:text-sm ${
+            className={`w-full h-12 md:h-10 text-base md:text-sm ${useSplits ? 'hover:opacity-90' : ''}`}
+            style={
               useSplits
-                ? 'bg-primary text-primary-foreground hover:opacity-90'
-                : 'bg-elevated text-foreground border-border hover:bg-elevated/80'
-            }`}
+                ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }
+                : { backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', borderColor: 'var(--color-border)', borderWidth: 1, borderStyle: 'solid' }
+            }
           >
             <SplitIcon className="w-4 h-4 mr-2" />
             {useSplits ? 'Using Splits' : 'Add Splits'}
@@ -1201,13 +1210,13 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Sales Tax Section - Only for income transactions */}
       {formData.type === 'income' && (
-        <div className="border-t border-border pt-4 space-y-2">
+        <div className="border-t pt-4 space-y-2" style={{ borderColor: 'var(--color-border)' }}>
           {merchantIsSalesTaxExempt ? (
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
+              <Badge variant="outline" className="text-xs" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 10%, transparent)', color: 'var(--color-success)', borderColor: 'color-mix(in oklch, var(--color-success) 30%, transparent)' }}>
                 Tax Exempt Merchant
               </Badge>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                 This income is excluded from sales tax calculations
               </span>
             </div>
@@ -1219,17 +1228,19 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   id="salesTax"
                   checked={salesTaxEnabled}
                   onChange={(e) => setSalesTaxEnabled(e.target.checked)}
-                  className="h-4 w-4 rounded border-border bg-input text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+                  className="h-4 w-4 rounded focus:ring-2 focus:ring-offset-0"
+                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-input)', accentColor: 'var(--color-primary)' }}
                 />
                 <label
                   htmlFor="salesTax"
-                  className="text-sm text-muted-foreground cursor-pointer"
+                  className="text-sm cursor-pointer"
+                style={{ color: 'var(--color-muted-foreground)' }}
                 >
                   Subject to sales tax
                 </label>
               </div>
               {!salesTaxEnabled && (
-                <p className="text-xs text-muted-foreground ml-6">
+                <p className="text-xs ml-6" style={{ color: 'var(--color-muted-foreground)' }}>
                   This income will be excluded from sales tax calculations (tax exempt)
                 </p>
               )}
@@ -1240,11 +1251,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Tax Deduction Section (non-transfer transactions) */}
       {formData.type !== 'transfer' && (
-        <div className="border-t border-border pt-4 space-y-3">
+        <div className="border-t pt-4 space-y-3" style={{ borderColor: 'var(--color-border)' }}>
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-foreground">Tax Deduction Handling</Label>
+            <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Tax Deduction Handling</Label>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
             Precedence: transaction override (when enabled) takes priority over category defaults.
           </p>
 
@@ -1254,13 +1265,15 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               id="useCategoryTaxDefault"
               checked={useCategoryTaxDefault}
               onChange={(e) => setUseCategoryTaxDefault(e.target.checked)}
-              className="h-4 w-4 rounded border-border bg-input text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+              className="h-4 w-4 rounded focus:ring-2 focus:ring-offset-0"
+                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-input)', accentColor: 'var(--color-primary)' }}
             />
-            <label htmlFor="useCategoryTaxDefault" className="text-sm text-muted-foreground cursor-pointer">
+            <label htmlFor="useCategoryTaxDefault" className="text-sm cursor-pointer"
+                style={{ color: 'var(--color-muted-foreground)' }}>
               Use category default tax treatment
             </label>
           </div>
-          <p className="text-xs text-muted-foreground ml-6">
+          <p className="text-xs ml-6" style={{ color: 'var(--color-muted-foreground)' }}>
             {useCategoryTaxDefault
               ? 'Category defaults are currently active.'
               : 'Transaction-level tax override is currently active.'}
@@ -1274,16 +1287,18 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   id="transactionTaxDeductible"
                   checked={transactionTaxDeductible}
                   onChange={(e) => setTransactionTaxDeductible(e.target.checked)}
-                  className="h-4 w-4 rounded border-border bg-input text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+                  className="h-4 w-4 rounded focus:ring-2 focus:ring-offset-0"
+                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-input)', accentColor: 'var(--color-primary)' }}
                 />
-                <label htmlFor="transactionTaxDeductible" className="text-sm text-muted-foreground cursor-pointer">
+                <label htmlFor="transactionTaxDeductible" className="text-sm cursor-pointer"
+                style={{ color: 'var(--color-muted-foreground)' }}>
                   Mark this transaction as tax deductible
                 </label>
               </div>
 
               {transactionTaxDeductible && (
                 <div className="space-y-2">
-                  <Label htmlFor="transactionTaxDeductionType" className="text-sm font-medium text-foreground">
+                  <Label htmlFor="transactionTaxDeductionType" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                     Deduction Type
                   </Label>
                   <Select
@@ -1309,7 +1324,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label htmlFor="notes" className="text-sm font-medium text-foreground">
+        <Label htmlFor="notes" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
           Notes
         </Label>
         <Input
@@ -1324,13 +1339,13 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Custom Fields */}
       {customFields.length > 0 && (
-        <div className="space-y-4 border-t border-border pt-4">
+        <div className="space-y-4 border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
           <div className="space-y-3">
             {customFields.map((field) => (
               <div key={field.id} className="space-y-2">
-                <Label htmlFor={field.id} className="text-sm font-medium text-foreground">
+                <Label htmlFor={field.id} className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                   {field.name}
-                  {field.isRequired && <span className="text-error ml-1">*</span>}
+                  {field.isRequired && <span className="ml-1" style={{ color: 'var(--color-destructive)' }}>*</span>}
                 </Label>
 
                 {field.type === 'text' && (
@@ -1395,10 +1410,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                       type="checkbox"
                       checked={customFieldValues[field.id] === 'true' || customFieldValues[field.id] === '1'}
                       onChange={(e) => handleCustomFieldChange(field.id, e.target.checked ? 'true' : '')}
-                      className="w-4 h-4 rounded border-border bg-elevated cursor-pointer"
+                      className="w-4 h-4 rounded cursor-pointer"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-elevated)' }}
                     />
-                    <Label htmlFor={field.id} className="text-sm text-foreground cursor-pointer">
-                      {field.description && <span className="text-muted-foreground">{field.description}</span>}
+                    <Label htmlFor={field.id} className="text-sm cursor-pointer" style={{ color: 'var(--color-foreground)' }}>
+                      {field.description && <span style={{ color: 'var(--color-muted-foreground)' }}>{field.description}</span>}
                     </Label>
                   </div>
                 )}
@@ -1409,7 +1425,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                     value={customFieldValues[field.id] || ''}
                     onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
                     required={field.isRequired}
-                    className="w-full px-3 py-2 bg-elevated border border-border text-foreground rounded-lg hover:bg-elevated/80 focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                   >
                     <option value="">Select an option</option>
                     {field.options.map((option) => (
@@ -1429,7 +1446,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                       const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
                       handleCustomFieldChange(field.id, selected.join(','));
                     }}
-                    className="w-full px-3 py-2 bg-elevated border border-border text-foreground rounded-lg hover:bg-elevated/80 focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                   >
                     {field.options.map((option) => (
                       <option key={option} value={option}>
@@ -1440,7 +1458,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 )}
 
                 {field.description && field.type !== 'checkbox' && (
-                  <p className="text-xs text-muted-foreground">{field.description}</p>
+                  <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{field.description}</p>
                 )}
               </div>
             ))}
@@ -1450,7 +1468,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Tags */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">Tags (Optional)</Label>
+        <Label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Tags (Optional)</Label>
 
         {/* Selected Tags Display */}
         {selectedTagIds.length > 0 && (
@@ -1460,7 +1478,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               return tag ? (
                 <Badge
                   key={tag.id}
-                  className="text-foreground"
+                  style={{ color: 'var(--color-foreground)' }}
                   style={{ backgroundColor: tag.color }}
                 >
                   {tag.name}
@@ -1484,14 +1502,15 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             variant="outline"
             onClick={() => setTagsOpen(!tagsOpen)}
             disabled={tagsLoading || loading}
-            className="border-border text-muted-foreground hover:text-foreground w-full justify-start"
+            className="w-full justify-start"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
           >
             <Plus className="w-4 h-4 mr-2" />
             {selectedTagIds.length > 0 ? 'Add more tags' : 'Add tags'}
           </Button>
 
           {tagsOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
               {allTags
                 .filter(tag => !selectedTagIds.includes(tag.id))
                 .map((tag) => (
@@ -1504,24 +1523,24 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                         setTagsOpen(false);
                       }
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-elevated transition-colors flex items-center gap-2"
+                    className="w-full text-left px-3 py-2 transition-colors flex items-center gap-2 hover:bg-(--color-elevated)"
                   >
                     <div
                       className="w-3 h-3 rounded"
                       style={{ backgroundColor: tag.color }}
                     />
                     <div className="flex-1">
-                      <p className="text-sm text-foreground">{tag.name}</p>
+                      <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>{tag.name}</p>
                       {tag.description && (
-                        <p className="text-xs text-muted-foreground">{tag.description}</p>
+                        <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{tag.description}</p>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground">{tag.usageCount}</span>
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{tag.usageCount}</span>
                   </button>
                 ))}
 
               {/* Create New Tag Section */}
-              <div className="border-t border-border px-3 py-2 space-y-2">
+              <div className="border-t px-3 py-2 space-y-2" style={{ borderColor: 'var(--color-border)' }}>
                 <div className="flex gap-2">
                   <Input
                     type="text"
@@ -1535,14 +1554,16 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                       }
                     }}
                     disabled={creatingTag}
-                    className="bg-elevated border-border text-foreground placeholder-muted-foreground text-sm"
+                    className="text-sm"
+                  style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                   />
                   <Button
                     type="button"
                     size="sm"
                     onClick={handleCreateTag}
                     disabled={creatingTag || !newTagName.trim()}
-                    className="bg-primary hover:opacity-90 text-primary-foreground"
+                    className="hover:opacity-90"
+                    style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -1567,23 +1588,24 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             <Button
               type="button"
               variant="outline"
-              className="bg-elevated text-foreground border-border hover:bg-elevated/80 w-full h-10 text-sm"
+              className="w-full h-10 text-sm hover:bg-(--color-elevated)"
+            style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', borderColor: 'var(--color-border)' }}
               disabled={!formData.accountId || !formData.amount || !formData.description}
             >
               <Save className="w-4 h-4 mr-2" />
               Save as Template
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
             <DialogHeader>
               <DialogTitle>Save Transaction as Template</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
                 Save this transaction configuration as a reusable template for quick entry
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="template-name" className="text-sm font-medium text-foreground">
+                <Label htmlFor="template-name" className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
                   Template Name *
                 </Label>
                 <Input
@@ -1591,14 +1613,15 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   placeholder="e.g., Monthly Grocery Shopping"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
-                  className="bg-elevated border-border text-foreground"
+                  style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                 />
               </div>
               <div className="flex gap-2">
                 <Button
                   onClick={handleSaveTemplate}
                   disabled={savingTemplate || !templateName.trim()}
-                  className="flex-1 bg-primary text-primary-foreground hover:opacity-90 font-medium"
+                  className="flex-1 hover:opacity-90 font-medium"
+                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
                 >
                   {savingTemplate ? 'Saving...' : 'Save Template'}
                 </Button>
@@ -1607,7 +1630,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   variant="outline"
                   onClick={() => setSaveTemplateOpen(false)}
                   disabled={savingTemplate}
-                  className="bg-elevated text-foreground border-border hover:bg-elevated/80"
+                  className="hover:bg-(--color-elevated)"
+                  style={{ backgroundColor: 'var(--color-elevated)', color: 'var(--color-foreground)', borderColor: 'var(--color-border)' }}
                 >
                   Cancel
                 </Button>

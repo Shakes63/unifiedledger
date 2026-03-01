@@ -118,15 +118,15 @@ export function BillPayForm({
     <form onSubmit={handleSubmit} className="space-y-3">
       {/* Payment Progress (for partial payments) */}
       {(isPartiallyPaid || progressPercent > 0) && (
-        <div className="p-2 bg-elevated rounded-lg">
-          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+        <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
+          <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--color-muted-foreground)' }}>
             <span>Paid: ${new Decimal(paidSoFar).toFixed(2)}</span>
             <span>Remaining: ${new Decimal(effectiveRemainingAmount).toFixed(2)}</span>
           </div>
-          <div className="h-2 bg-background rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-success transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
+          <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-background)' }}>
+            <div
+              className="h-full transition-all duration-300"
+              style={{ width: `${progressPercent}%`, backgroundColor: 'var(--color-success)' }}
             />
           </div>
         </div>
@@ -134,11 +134,12 @@ export function BillPayForm({
 
       {/* Split Bill Info (expandable) */}
       {isSplit && (
-        <div className="bg-elevated rounded-lg overflow-hidden">
+        <div className="rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--color-elevated)' }}>
           <button
             type="button"
             onClick={() => setShowDetails(!showDetails)}
-            className="w-full flex items-center justify-between p-2 text-xs text-muted-foreground hover:bg-background/50"
+            className="w-full flex items-center justify-between p-2 text-xs hover:bg-[color-mix(in_oklch,var(--color-background)_50%,transparent)]"
+            style={{ color: 'var(--color-muted-foreground)' }}
           >
             <span>
               {allocation 
@@ -154,22 +155,25 @@ export function BillPayForm({
           
           {showDetails && (
             <div className="px-2 pb-2 space-y-1">
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 Full bill amount: ${new Decimal(instance.expectedAmount).toFixed(2)}
               </div>
               {allAllocations.length > 0 && (
                 <div className="space-y-1">
                   {allAllocations.map(a => (
-                    <div 
+                    <div
                       key={a.id}
-                      className={`flex justify-between text-xs p-1 rounded ${
-                        a.id === allocation?.id ? 'bg-primary/10 text-foreground' : 'text-muted-foreground'
-                      }`}
+                      className="flex justify-between text-xs p-1 rounded"
+                      style={
+                        a.id === allocation?.id
+                          ? { backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', color: 'var(--color-foreground)' }
+                          : { color: 'var(--color-muted-foreground)' }
+                      }
                     >
                       <span>Period {a.periodNumber}</span>
                       <span>
                         ${new Decimal(a.paidAmount || 0).toFixed(2)} / ${new Decimal(a.allocatedAmount).toFixed(2)}
-                        {a.isPaid && <Check className="w-3 h-3 ml-1 inline text-success" />}
+                        {a.isPaid && <Check className="w-3 h-3 ml-1 inline" style={{ color: 'var(--color-success)' }} />}
                       </span>
                     </div>
                   ))}
@@ -182,20 +186,20 @@ export function BillPayForm({
 
       {/* Account Selection */}
       <div>
-        <Label className="text-xs text-muted-foreground mb-1 block">
+        <Label className="text-xs mb-1 block" style={{ color: 'var(--color-muted-foreground)' }}>
           {isIncome ? 'Deposit To' : 'Pay From'}
         </Label>
         <Select value={accountId} onValueChange={setAccountId}>
-          <SelectTrigger className="bg-background border-border">
+          <SelectTrigger style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
             <SelectValue placeholder="Select account" />
           </SelectTrigger>
-          <SelectContent className="bg-card border-border">
+          <SelectContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
             {availableAccounts.map((account) => (
               <SelectItem key={account.id} value={account.id}>
                 <div className="flex items-center gap-2">
                   <span>{account.name}</span>
                   {account.currentBalance !== undefined && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                       (${new Decimal(account.currentBalance).toFixed(2)})
                     </span>
                   )}
@@ -209,9 +213,9 @@ export function BillPayForm({
       {/* Amount and Date Row */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs text-muted-foreground mb-1 block">Amount</Label>
+          <Label className="text-xs mb-1 block" style={{ color: 'var(--color-muted-foreground)' }}>Amount</Label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-muted-foreground)' }}>
               $
             </span>
             <Input
@@ -219,30 +223,31 @@ export function BillPayForm({
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="pl-7 bg-background border-border"
+              className="pl-7"
+              style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
               placeholder={effectiveRemainingAmount.toFixed(2)}
             />
           </div>
           {paymentAmount > 0 && paymentAmount < effectiveRemainingAmount && (
-            <p className="text-[10px] text-warning mt-1">
+            <p className="text-[10px] mt-1" style={{ color: 'var(--color-warning)' }}>
               Partial payment - ${new Decimal(effectiveRemainingAmount).minus(paymentAmount).toFixed(2)} will remain
             </p>
           )}
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground mb-1 block">Date</Label>
+          <Label className="text-xs mb-1 block" style={{ color: 'var(--color-muted-foreground)' }}>Date</Label>
           <Input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="bg-background border-border"
+            style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
           />
         </div>
       </div>
 
       {/* Balance Preview */}
       {selectedAccount && selectedAccount.currentBalance !== undefined && (
-        <div className="text-xs text-muted-foreground p-2 bg-background rounded">
+        <div className="text-xs p-2 rounded" style={{ color: 'var(--color-muted-foreground)', backgroundColor: 'var(--color-background)' }}>
           {isIncome ? (
             <>
               New balance: $
@@ -266,7 +271,8 @@ export function BillPayForm({
         <Button
           type="submit"
           disabled={!isValid || processing}
-          className="flex-1 bg-primary hover:bg-primary/90 text-white"
+          className="flex-1 hover:opacity-90"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
         >
           {processing ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -282,7 +288,7 @@ export function BillPayForm({
           variant="outline"
           onClick={onMarkPaid}
           disabled={processing}
-          className="border-border"
+          style={{ border: '1px solid var(--color-border)' }}
           title="Mark as paid without creating a transaction"
         >
           <Check className="w-4 h-4" />
@@ -297,7 +303,7 @@ export function BillPayForm({
         </Button>
       </div>
 
-      <p className="text-[10px] text-muted-foreground text-center">
+      <p className="text-[10px] text-center" style={{ color: 'var(--color-muted-foreground)' }}>
         {isIncome
           ? 'This will create an income transaction and mark the bill as received.'
           : paymentAmount >= effectiveRemainingAmount

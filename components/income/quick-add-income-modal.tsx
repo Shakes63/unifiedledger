@@ -215,198 +215,107 @@ export function QuickAddIncomeModal({
 
   const isWeekBased = frequency === 'weekly' || frequency === 'biweekly';
 
+  const fieldStyle = { backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' };
+  const labelCls = 'text-[11px] font-medium uppercase tracking-wide block mb-1.5';
+  const labelStyle = { color: 'var(--color-muted-foreground)' };
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-[425px] bg-card border-border">
+        <DialogContent className="sm:max-w-[400px]" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <ArrowDownCircle className="w-5 h-5 text-income" />
+            <DialogTitle className="flex items-center gap-2 text-[15px]" style={{ color: 'var(--color-foreground)' }}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-income) 15%, transparent)' }}>
+                <ArrowDownCircle className="w-3.5 h-3.5" style={{ color: 'var(--color-income)' }} />
+              </div>
               Add Income Source
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogDescription className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>
               Add a recurring income source quickly. Use the full form for advanced options.
             </DialogDescription>
           </DialogHeader>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSubmit(false);
-            }}
-            className="space-y-4 mt-2"
-          >
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(false); }} className="space-y-3 mt-1">
             {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="quick-add-income-name" className="text-foreground">
-                Income Source Name
-              </Label>
-              <Input
-                id="quick-add-income-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Monthly Salary, Rental Income"
-                className="bg-elevated border-border"
-                autoFocus
-              />
+            <div>
+              <Label htmlFor="quick-add-income-name" className={labelCls} style={labelStyle}>Income Source Name</Label>
+              <Input id="quick-add-income-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Monthly Salary, Rental Income" className="h-9 text-[13px]" style={fieldStyle} autoFocus />
             </div>
 
             {/* Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="quick-add-income-amount" className="text-foreground">
-                Expected Amount
-              </Label>
+            <div>
+              <Label htmlFor="quick-add-income-amount" className={labelCls} style={labelStyle}>Expected Amount</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  id="quick-add-income-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="pl-7 bg-elevated border-border"
-                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium" style={{ color: 'var(--color-muted-foreground)' }}>$</span>
+                <Input id="quick-add-income-amount" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="pl-7 h-9 text-[13px] tabular-nums" style={fieldStyle} />
               </div>
             </div>
 
-            {/* Income Type and Frequency Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-foreground">Type</Label>
+            {/* Type and Frequency */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <Label className={labelCls} style={labelStyle}>Type</Label>
                 <Select value={incomeType} onValueChange={setIncomeType}>
-                  <SelectTrigger className="bg-elevated border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    {INCOME_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue /></SelectTrigger>
+                  <SelectContent>{INCOME_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-foreground">Frequency</Label>
+              <div>
+                <Label className={labelCls} style={labelStyle}>Frequency</Label>
                 <Select value={frequency} onValueChange={setFrequency}>
-                  <SelectTrigger className="bg-elevated border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    {QUICK_ADD_FREQUENCIES.map((f) => (
-                      <SelectItem key={f.value} value={f.value}>
-                        {f.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue /></SelectTrigger>
+                  <SelectContent>{QUICK_ADD_FREQUENCIES.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
 
             {/* Expected Date */}
-            <div className="space-y-2">
-              <Label className="text-foreground">
-                {isWeekBased ? 'Day of Week' : 'Day of Month'}
-              </Label>
+            <div>
+              <Label className={labelCls} style={labelStyle}>{isWeekBased ? 'Day of Week' : 'Day of Month'}</Label>
               {isWeekBased ? (
                 <Select value={expectedDate} onValueChange={setExpectedDate}>
-                  <SelectTrigger className="bg-elevated border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    {DAY_OF_WEEK_OPTIONS.map((day) => (
-                      <SelectItem key={day.value} value={day.value.toString()}>
-                        {day.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue /></SelectTrigger>
+                  <SelectContent>{DAY_OF_WEEK_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
                 </Select>
               ) : (
-                <Input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={expectedDate}
-                  onChange={(e) => setExpectedDate(e.target.value)}
-                  placeholder="1"
-                  className="bg-elevated border-border"
-                />
+                <Input type="number" min="1" max="31" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} placeholder="1" className="h-9 text-[13px]" style={fieldStyle} />
               )}
             </div>
 
-            {/* Category (Optional) */}
-            <div className="space-y-2">
-              <Label className="text-foreground">
-                Category <span className="text-muted-foreground text-xs">(optional)</span>
-              </Label>
-              <Select value={categoryId || 'none'} onValueChange={(val) => setCategoryId(val === 'none' ? '' : val)}>
-                <SelectTrigger className="bg-elevated border-border">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+            {/* Category */}
+            <div>
+              <Label className={labelCls} style={labelStyle}>Category <span style={{ opacity: 0.6 }}>(optional)</span></Label>
+              <Select value={categoryId || 'none'} onValueChange={val => setCategoryId(val === 'none' ? '' : val)}>
+                <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
+                  {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-2 pt-2">
-              <div className="flex gap-2">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-income hover:bg-income/90 text-white"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Check className="w-4 h-4 mr-2" />
-                  )}
-                  Save
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => handleSubmit(true)}
-                  disabled={loading}
-                  variant="outline"
-                  className="flex-1 border-border"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Save & Add Another
-                </Button>
-              </div>
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
+              <Button type="submit" disabled={loading} className="flex-1 h-9 text-[12px]" style={{ backgroundColor: 'var(--color-income)', color: 'white' }}>
+                {loading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1.5" />}Save
+              </Button>
+              <Button type="button" onClick={() => handleSubmit(true)} disabled={loading} variant="outline" className="flex-1 h-9 text-[12px]">
+                <Plus className="w-3.5 h-3.5 mr-1.5" />Save & Add Another
+              </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Discard Confirmation */}
       <AlertDialog open={showDiscardConfirm} onOpenChange={setShowDiscardConfirm}>
-        <AlertDialogContent className="bg-card border-border">
+        <AlertDialogContent className="max-w-sm" style={{ backgroundColor: 'var(--color-background)', borderColor: 'var(--color-border)', borderRadius: '16px' }}>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Discard changes?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              You have unsaved changes. Are you sure you want to close without saving?
-            </AlertDialogDescription>
+            <AlertDialogTitle style={{ color: 'var(--color-foreground)' }}>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription style={{ color: 'var(--color-muted-foreground)' }}>You have unsaved changes. Close without saving?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-border">Keep Editing</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDiscard}
-              className="bg-error hover:bg-error/90 text-white"
-            >
-              Discard
-            </AlertDialogAction>
+            <AlertDialogCancel className="text-[12px]">Keep Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDiscard} className="text-[12px]" style={{ backgroundColor: 'var(--color-destructive)', color: 'white' }}>Discard</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

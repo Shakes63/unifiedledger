@@ -20,8 +20,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		}
 
 		try {
+			const params = new URLSearchParams(window.location.search);
+			const isFirstSetupSignUp =
+				window.location.pathname.startsWith('/sign-up') &&
+				params.get('firstSetup') === 'true';
+
+			if (isFirstSetupSignUp) {
+				window.localStorage.removeItem('unified-ledger:selected-household');
+			}
+
 			const selectedHouseholdId = window.localStorage.getItem('unified-ledger:selected-household');
-			const storedTheme = getCachedTheme(selectedHouseholdId);
+			const storedTheme = !isFirstSetupSignUp && selectedHouseholdId ? getCachedTheme(selectedHouseholdId) : null;
 			if (storedTheme) {
 				applyTheme(storedTheme, { householdId: selectedHouseholdId, persist: false });
 				return;

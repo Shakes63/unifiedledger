@@ -21,7 +21,7 @@ export function AnnualPlanningCell({ data, onClick }: AnnualPlanningCellProps) {
     // Empty cell - no bill due this month
     return (
       <div className="h-14 flex items-center justify-center">
-        <span className="text-muted-foreground/30">-</span>
+        <span style={{ color: 'color-mix(in oklch, var(--color-muted-foreground) 30%, transparent)' }}>-</span>
       </div>
     );
   }
@@ -31,36 +31,41 @@ export function AnnualPlanningCell({ data, onClick }: AnnualPlanningCellProps) {
     switch (data.status) {
       case 'paid':
         return {
-          bg: 'bg-income/10 hover:bg-income/20',
-          border: 'border-income/30',
-          icon: <CheckCircle2 className="w-3 h-3 text-income" />,
+          bg: 'hover:opacity-90',
+          bgStyle: { backgroundColor: 'color-mix(in oklch, var(--color-income) 10%, transparent)' },
+          border: 'color-mix(in oklch, var(--color-income) 30%, transparent)',
+          icon: <CheckCircle2 className="w-3 h-3" style={{ color: 'var(--color-income)' }} />,
           iconTitle: 'Paid',
         };
       case 'pending':
         return {
-          bg: 'bg-warning/10 hover:bg-warning/20',
-          border: 'border-warning/30',
-          icon: <Clock className="w-3 h-3 text-warning" />,
+          bg: 'hover:opacity-90',
+          bgStyle: { backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)' },
+          border: 'color-mix(in oklch, var(--color-warning) 30%, transparent)',
+          icon: <Clock className="w-3 h-3" style={{ color: 'var(--color-warning)' }} />,
           iconTitle: 'Pending',
         };
       case 'overdue':
         return {
-          bg: 'bg-error/10 hover:bg-error/20',
-          border: 'border-error/30',
-          icon: <AlertCircle className="w-3 h-3 text-error" />,
+          bg: 'hover:opacity-90',
+          bgStyle: { backgroundColor: 'color-mix(in oklch, var(--color-destructive) 10%, transparent)' },
+          border: 'color-mix(in oklch, var(--color-destructive) 30%, transparent)',
+          icon: <AlertCircle className="w-3 h-3" style={{ color: 'var(--color-destructive)' }} />,
           iconTitle: 'Overdue',
         };
       case 'skipped':
         return {
-          bg: 'bg-muted/30 hover:bg-muted/50',
-          border: 'border-muted-foreground/20',
-          icon: <SkipForward className="w-3 h-3 text-muted-foreground" />,
+          bg: 'hover:opacity-90',
+          bgStyle: { backgroundColor: 'color-mix(in oklch, var(--color-muted-foreground) 30%, transparent)' },
+          border: 'color-mix(in oklch, var(--color-muted-foreground) 20%, transparent)',
+          icon: <SkipForward className="w-3 h-3" style={{ color: 'var(--color-muted-foreground)' }} />,
           iconTitle: 'Skipped',
         };
       default:
         return {
-          bg: 'bg-card hover:bg-elevated',
-          border: 'border-border',
+          bg: 'hover:bg-[var(--color-elevated)]',
+          bgStyle: { backgroundColor: 'var(--color-background)' } as React.CSSProperties,
+          border: 'var(--color-border)',
           icon: null,
           iconTitle: '',
         };
@@ -91,20 +96,24 @@ export function AnnualPlanningCell({ data, onClick }: AnnualPlanningCellProps) {
       className={`
         w-full h-14 flex flex-col items-center justify-center gap-0.5 p-1
         rounded-lg border transition-colors cursor-pointer
-        ${styles.bg} ${styles.border}
+        ${styles.bg}
       `}
+      style={{
+        ...(styles.bgStyle || {}),
+        borderColor: styles.border,
+      }}
       title={`${styles.iconTitle} - Due: ${data.dueDate}${getDueDateSuffix(data.dueDate)} - $${displayAmount.toFixed(2)}`}
     >
       {/* Status Icon */}
       <div className="flex items-center gap-1">
         {styles.icon}
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>
           {data.dueDate}{getDueDateSuffix(data.dueDate)}
         </span>
       </div>
       
       {/* Amount */}
-      <span className="font-mono text-xs font-medium text-foreground">
+      <span className="font-mono text-xs font-medium" style={{ color: 'var(--color-foreground)' }}>
         ${displayAmount >= 1000 ? `${(displayAmount / 1000).toFixed(1)}k` : displayAmount.toFixed(0)}
       </span>
     </button>

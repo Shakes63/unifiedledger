@@ -68,12 +68,10 @@ export function CreateGoalStep({
         isFirstStep={false}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8 text-success" />
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 12%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 20%, transparent)' }}>
+            <CheckCircle2 className="w-7 h-7" style={{ color: 'var(--color-success)' }} />
           </div>
-          <p className="text-muted-foreground">
-            Demo savings goals with progress tracking are ready for you to explore.
-          </p>
+          <p className="text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>Demo savings goals with progress tracking are ready for you to explore.</p>
         </div>
       </OnboardingStep>
     );
@@ -93,26 +91,16 @@ export function CreateGoalStep({
       isOptional={true}
     >
       <div className="space-y-6">
-        <div className="flex items-center justify-center py-4">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-            <Target className="w-8 h-8 text-primary" />
+        <div className="flex items-center justify-center py-3">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)', border: '1px solid color-mix(in oklch, var(--color-primary) 20%, transparent)' }}>
+            <Target className="w-7 h-7" style={{ color: 'var(--color-primary)' }} />
           </div>
         </div>
 
-        <WhyThisMatters
-          benefits={[
-            'Visual progress bar shows how close you are',
-            'Celebrate milestones at 25%, 50%, 75%, and 100%',
-            'Link to a savings account to track contributions',
-            'Target date projections help you plan your saving',
-          ]}
-        />
+        <WhyThisMatters benefits={['Visual progress bar shows how close you are', 'Celebrate milestones at 25%, 50%, 75%, and 100%', 'Link to a savings account to track contributions', 'Target date projections help you plan your saving']} />
 
-        <div className="bg-elevated border border-border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">
-            We&apos;ve pre-filled an example goal. Track your progress and celebrate milestones as you
-            save!
-          </p>
+        <div className="px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+          <p className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>We&apos;ve pre-filled an example goal. Track your progress and celebrate milestones as you save!</p>
         </div>
 
         <GoalForm

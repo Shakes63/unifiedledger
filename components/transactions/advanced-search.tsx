@@ -267,24 +267,17 @@ export function AdvancedSearch({
   ).length;
 
   return (
-    <Card className={`bg-card border-border transition-all ${isExpanded ? 'p-6 space-y-6' : 'p-4'}`}>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
-      >
+    <div className={`rounded-xl transition-all ${isExpanded ? 'p-5 space-y-5' : 'p-4'}`} style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+      <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex items-center justify-between hover:opacity-80 transition-opacity">
         <div className="text-left flex-1">
-          <h2 className="text-lg font-semibold text-foreground">Advanced Search</h2>
+          <h2 className="text-[14px] font-semibold" style={{ color: 'var(--color-foreground)' }}>Advanced Search</h2>
           {activeFilterCount > 0 && (
-            <p className="text-sm text-income mt-1">
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-income)' }}>
               {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} applied
             </p>
           )}
         </div>
-        <ChevronDown
-          className={`w-5 h-5 text-muted-foreground transition-transform shrink-0 ${
-            isExpanded ? 'rotate-180' : ''
-          }`}
-        />
+        <ChevronDown className={`w-4 h-4 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} style={{ color: 'var(--color-muted-foreground)' }} />
       </button>
 
       {isExpanded && (
@@ -295,7 +288,8 @@ export function AdvancedSearch({
                 variant="outline"
                 size="sm"
                 onClick={handleClearFilters}
-                className="text-muted-foreground border-border hover:bg-elevated"
+                className="hover:bg-(--color-elevated)"
+            style={{ color: 'var(--color-muted-foreground)', borderColor: 'var(--color-border)' }}
               >
                 Clear All
               </Button>
@@ -303,11 +297,12 @@ export function AdvancedSearch({
           </div>
 
       {/* Saved Searches Toggle */}
-      <div className="border-t border-border pt-4">
+      <div className="border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
         <Button
           onClick={() => setShowSavedSearches(!showSavedSearches)}
           variant="outline"
-          className="w-full justify-between text-muted-foreground border-border hover:bg-elevated"
+          className="w-full justify-between hover:bg-(--color-elevated)"
+          style={{ color: 'var(--color-muted-foreground)', borderColor: 'var(--color-border)' }}
         >
           Saved Searches
           <ChevronDown
@@ -329,19 +324,13 @@ export function AdvancedSearch({
       </div>
 
       {/* Text Search */}
-      <div className="space-y-2">
-        <Label htmlFor="query" className="text-foreground">
-          Search Description & Notes
+      <div className="space-y-1.5">
+        <Label htmlFor="query" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>
+          Search Description &amp; Notes
         </Label>
-        <Input
-          id="query"
-          placeholder="Search transactions..."
-          value={filters.query || ''}
-          onChange={(e) =>
-            setFilters({ ...filters, query: e.target.value || undefined })
-          }
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-        />
+        <Input id="query" placeholder="Search transactions…" value={filters.query || ''}
+          onChange={e => setFilters({ ...filters, query: e.target.value || undefined })}
+          className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }} />
 
         {/* Experimental: Regex Toggle and Save Search */}
         <FeatureGate featureId="enhanced-search">
@@ -353,11 +342,12 @@ export function AdvancedSearch({
                   id="use-regex"
                   checked={useRegex}
                   onChange={(e) => setUseRegex(e.target.checked)}
-                  className="w-4 h-4 rounded border-border bg-elevated text-primary focus:ring-primary focus:ring-offset-0"
+                  className="w-4 h-4 rounded focus:ring-offset-0"
+                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-elevated)', accentColor: 'var(--color-primary)' }}
                 />
                 <Label
                   htmlFor="use-regex"
-                  className="text-sm text-foreground cursor-pointer"
+                  className="text-sm cursor-pointer" style={{ color: 'var(--color-foreground)' }}
                 >
                   Use Regex
                 </Label>
@@ -371,7 +361,8 @@ export function AdvancedSearch({
                 size="sm"
                 onClick={handleSaveSearch}
                 disabled={savingSearch}
-                className="border-border text-foreground hover:bg-elevated"
+                className="hover:bg-(--color-elevated)"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
               >
                 <Save className="w-4 h-4 mr-2" />
                 {savingSearch ? 'Saving...' : 'Save Search'}
@@ -383,110 +374,73 @@ export function AdvancedSearch({
 
       {/* Categories */}
       {categories.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-foreground">Categories</Label>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Badge
-                key={category.id}
-                variant={
-                  selectedCategories.has(category.id) ? 'default' : 'outline'
-                }
-                className={`cursor-pointer transition-colors ${
-                  selectedCategories.has(category.id)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
-                }`}
-                onClick={() => handleCategoryToggle(category.id)}
-              >
-                {category.name}
-              </Badge>
-            ))}
+        <div className="space-y-1.5">
+          <Label className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Categories</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {categories.map(cat => {
+              const active = selectedCategories.has(cat.id);
+              return <button key={cat.id} type="button" onClick={() => handleCategoryToggle(cat.id)}
+                className="px-2.5 py-1 text-[11px] rounded-full transition-all"
+                style={{ backgroundColor: active ? 'var(--color-primary)' : 'var(--color-elevated)', color: active ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)', border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}` }}>
+                {cat.name}
+              </button>;
+            })}
           </div>
         </div>
       )}
 
       {/* Accounts */}
       {accounts.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-foreground">Accounts</Label>
-          <div className="flex flex-wrap gap-2">
-            {accounts.map((account) => (
-              <Badge
-                key={account.id}
-                variant={
-                  selectedAccounts.has(account.id) ? 'default' : 'outline'
-                }
-                className={`cursor-pointer transition-colors ${
-                  selectedAccounts.has(account.id)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
-                }`}
-                onClick={() => handleAccountToggle(account.id)}
-              >
+        <div className="space-y-1.5">
+          <Label className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Accounts</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {accounts.map(account => {
+              const active = selectedAccounts.has(account.id);
+              return <button key={account.id} type="button" onClick={() => handleAccountToggle(account.id)}
+                className="px-2.5 py-1 text-[11px] rounded-full transition-all"
+                style={{ backgroundColor: active ? 'var(--color-primary)' : 'var(--color-elevated)', color: active ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)', border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}` }}>
                 {account.name}
-              </Badge>
-            ))}
+              </button>;
+            })}
           </div>
         </div>
       )}
 
       {/* Tags */}
       {tags.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-foreground">Tags</Label>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <Badge
-                key={tag.id}
-                variant={
-                  selectedTags.has(tag.id) ? 'default' : 'outline'
-                }
-                className={`cursor-pointer transition-colors ${
-                  selectedTags.has(tag.id)
-                    ? 'text-primary-foreground'
-                    : 'text-foreground border-border hover:bg-elevated'
-                }`}
-                style={
-                  selectedTags.has(tag.id)
-                    ? { backgroundColor: tag.color }
-                    : { borderColor: tag.color }
-                }
-                onClick={() => handleTagToggle(tag.id)}
-              >
+        <div className="space-y-1.5">
+          <Label className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Tags</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map(tag => {
+              const active = selectedTags.has(tag.id);
+              return <button key={tag.id} type="button" onClick={() => handleTagToggle(tag.id)}
+                className="px-2.5 py-1 text-[11px] rounded-full transition-all"
+                style={{ backgroundColor: active ? tag.color : 'var(--color-elevated)', color: active ? 'white' : 'var(--color-muted-foreground)', border: `1px solid ${active ? tag.color : 'var(--color-border)'}` }}>
                 {tag.name}
-              </Badge>
-            ))}
+              </button>;
+            })}
           </div>
         </div>
       )}
 
       {/* Transaction Types */}
-      <div className="space-y-2">
-        <Label className="text-foreground">Transaction Types</Label>
-        <div className="flex flex-wrap gap-2">
-          {transactionTypes.map((type) => (
-            <Badge
-              key={type.value}
-              variant={
-                selectedTypes.has(type.value) ? 'default' : 'outline'
-              }
-              className={`cursor-pointer transition-colors ${
-                selectedTypes.has(type.value)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
-              }`}
-              onClick={() => handleTypeToggle(type.value)}
-            >
+      <div className="space-y-1.5">
+        <Label className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Transaction Types</Label>
+        <div className="flex flex-wrap gap-1.5">
+          {transactionTypes.map(type => {
+            const active = selectedTypes.has(type.value);
+            return <button key={type.value} type="button" onClick={() => handleTypeToggle(type.value)}
+              className="px-2.5 py-1 text-[11px] rounded-full transition-all"
+              style={{ backgroundColor: active ? 'var(--color-primary)' : 'var(--color-elevated)', color: active ? 'var(--color-primary-foreground)' : 'var(--color-muted-foreground)', border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}` }}>
               {type.label}
-            </Badge>
-          ))}
+            </button>;
+          })}
         </div>
       </div>
 
       {/* Amount Range */}
       <div className="space-y-4">
-        <Label className="text-foreground">Amount Range</Label>
+        <Label style={{ color: 'var(--color-foreground)' }}>Amount Range</Label>
         <div className="space-y-3">
           <Slider
             value={amountRange}
@@ -498,176 +452,76 @@ export function AdvancedSearch({
           />
           <div className="flex gap-4">
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Min</Label>
-              <div className="text-foreground font-semibold">${amountRange[0]}</div>
+              <Label className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Min</Label>
+              <div className="font-semibold" style={{ color: 'var(--color-foreground)' }}>${amountRange[0]}</div>
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Max</Label>
-              <div className="text-foreground font-semibold">${amountRange[1]}</div>
+              <Label className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Max</Label>
+              <div className="font-semibold" style={{ color: 'var(--color-foreground)' }}>${amountRange[1]}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Date Range */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="dateStart" className="text-foreground">
-            From Date
-          </Label>
-          <Input
-            id="dateStart"
-            type="date"
-            value={filters.dateStart || ''}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                dateStart: e.target.value || undefined,
-              })
-            }
-            className="bg-elevated border-border text-foreground"
-          />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="dateStart" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>From Date</Label>
+          <Input id="dateStart" type="date" value={filters.dateStart || ''} onChange={e => setFilters({ ...filters, dateStart: e.target.value || undefined })}
+            className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="dateEnd" className="text-foreground">
-            To Date
-          </Label>
-          <Input
-            id="dateEnd"
-            type="date"
-            value={filters.dateEnd || ''}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                dateEnd: e.target.value || undefined,
-              })
-            }
-            className="bg-elevated border-border text-foreground"
-          />
+        <div className="space-y-1.5">
+          <Label htmlFor="dateEnd" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>To Date</Label>
+          <Input id="dateEnd" type="date" value={filters.dateEnd || ''} onChange={e => setFilters({ ...filters, dateEnd: e.target.value || undefined })}
+            className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }} />
         </div>
       </div>
 
       {/* Toggle Filters */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
-          <Label htmlFor="isPending" className="text-foreground cursor-pointer">
-            Pending Only
-          </Label>
-          <Switch
-            id="isPending"
-            checked={filters.isPending || false}
-            onCheckedChange={(checked) =>
-              setFilters({
-                ...filters,
-                isPending: checked || undefined,
-              })
-            }
-          />
-        </div>
-
-        <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
-          <Label htmlFor="isSplit" className="text-foreground cursor-pointer">
-            Split Transactions Only
-          </Label>
-          <Switch
-            id="isSplit"
-            checked={filters.isSplit || false}
-            onCheckedChange={(checked) =>
-              setFilters({
-                ...filters,
-                isSplit: checked || undefined,
-              })
-            }
-          />
-        </div>
-
-        <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
-          <Label htmlFor="hasNotes" className="text-foreground cursor-pointer">
-            Has Notes Only
-          </Label>
-          <Switch
-            id="hasNotes"
-            checked={filters.hasNotes || false}
-            onCheckedChange={(checked) =>
-              setFilters({
-                ...filters,
-                hasNotes: checked || undefined,
-              })
-            }
-          />
-        </div>
-
-        {/* Phase 18: Savings Contributions filter */}
-        <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
-          <Label htmlFor="hasSavingsGoal" className="text-foreground cursor-pointer">
-            Savings Contributions Only
-          </Label>
-          <Switch
-            id="hasSavingsGoal"
-            checked={filters.hasSavingsGoal || false}
-            onCheckedChange={(checked) =>
-              setFilters({
-                ...filters,
-                hasSavingsGoal: checked || undefined,
-              })
-            }
-          />
-        </div>
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+        {[
+          { id: 'isPending', label: 'Pending Only', key: 'isPending' as const },
+          { id: 'isSplit', label: 'Split Transactions Only', key: 'isSplit' as const },
+          { id: 'hasNotes', label: 'Has Notes Only', key: 'hasNotes' as const },
+          { id: 'hasSavingsGoal', label: 'Savings Contributions Only', key: 'hasSavingsGoal' as const },
+        ].map(({ id, label, key }, i, arr) => (
+          <div key={id} className="flex items-center justify-between px-3 py-2.5" style={{ backgroundColor: 'var(--color-elevated)', borderBottom: i < arr.length - 1 ? '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' : 'none' }}>
+            <Label htmlFor={id} className="text-[13px] cursor-pointer" style={{ color: 'var(--color-foreground)' }}>{label}</Label>
+            <Switch id={id} checked={!!filters[key]} onCheckedChange={checked => setFilters({ ...filters, [key]: checked || undefined })} />
+          </div>
+        ))}
       </div>
 
       {/* Sort Options */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="sortBy" className="text-foreground">
-            Sort By
-          </Label>
-          <select
-            id="sortBy"
-            value={filters.sortBy || 'date'}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                sortBy: e.target.value as 'date' | 'amount' | 'description',
-              })
-            }
-            className="w-full bg-elevated border border-border text-foreground rounded px-3 py-2"
-          >
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="sortBy" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Sort By</Label>
+          <select id="sortBy" value={filters.sortBy || 'date'}
+            onChange={e => setFilters({ ...filters, sortBy: e.target.value as 'date' | 'amount' | 'description' })}
+            className="w-full rounded-lg px-3 py-2 text-[13px] h-9"
+            style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
             <option value="date">Date</option>
             <option value="amount">Amount</option>
             <option value="description">Description</option>
           </select>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="sortOrder" className="text-foreground">
-            Order
-          </Label>
-          <select
-            id="sortOrder"
-            value={filters.sortOrder || 'desc'}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                sortOrder: e.target.value as 'asc' | 'desc',
-              })
-            }
-            className="w-full bg-elevated border border-border text-foreground rounded px-3 py-2"
-          >
+        <div className="space-y-1.5">
+          <Label htmlFor="sortOrder" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Order</Label>
+          <select id="sortOrder" value={filters.sortOrder || 'desc'}
+            onChange={e => setFilters({ ...filters, sortOrder: e.target.value as 'asc' | 'desc' })}
+            className="w-full rounded-lg px-3 py-2 text-[13px] h-9"
+            style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
           </select>
         </div>
       </div>
 
-      {/* Search Button */}
-      <Button
-        onClick={handleSearch}
-        disabled={isLoading}
-        className="w-full bg-primary hover:opacity-90 text-primary-foreground font-semibold py-2"
-      >
-        {isLoading ? 'Searching...' : 'Search Transactions'}
+      <Button onClick={handleSearch} disabled={isLoading} className="w-full h-9 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+        {isLoading ? 'Searching…' : 'Search Transactions'}
       </Button>
         </>
       )}
-    </Card>
+    </div>
   );
 }

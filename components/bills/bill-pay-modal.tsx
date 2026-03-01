@@ -465,35 +465,39 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col bg-card border-border">
+      <DialogContent
+        className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col"
+        style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}
+      >
         <DialogHeader>
-          <DialogTitle className="text-foreground flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
+            <CreditCard className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
             Bill Pay
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
             Pay bills for the selected budget period
           </DialogDescription>
         </DialogHeader>
 
         {/* Period Navigation */}
-        <div className="flex items-center justify-between px-4 py-3 bg-elevated rounded-lg">
+        <div className="flex items-center justify-between px-4 py-3 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setPeriodOffset(periodOffset - 1)}
             disabled={loading}
-            className="text-muted-foreground hover:text-foreground"
+            className="hover:text-[var(--color-foreground)]"
+            style={{ color: 'var(--color-muted-foreground)' }}
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             {navigation?.previous.label || 'Previous'}
           </Button>
 
           <div className="text-center">
-            <p className="font-medium text-foreground">
+            <p className="font-medium" style={{ color: 'var(--color-foreground)' }}>
               {period?.label || 'Loading...'}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               {period && `${format(parseISO(period.start), 'MMM d')} - ${format(parseISO(period.end), 'MMM d')}`}
             </p>
           </div>
@@ -503,7 +507,8 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
             size="sm"
             onClick={() => setPeriodOffset(periodOffset + 1)}
             disabled={loading}
-            className="text-muted-foreground hover:text-foreground"
+            className="hover:text-[var(--color-foreground)]"
+            style={{ color: 'var(--color-muted-foreground)' }}
           >
             {navigation?.next.label || 'Next'}
             <ChevronRight className="w-4 h-4 ml-1" />
@@ -512,28 +517,28 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
 
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-3 px-1">
-          <div className="bg-elevated rounded-lg p-3 text-center">
-            <p className="text-xs text-muted-foreground">Due</p>
-            <p className="text-lg font-bold text-warning">
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: 'var(--color-elevated)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Due</p>
+            <p className="text-lg font-bold" style={{ color: 'var(--color-warning)' }}>
               ${new Decimal(summary.pendingAmount).toFixed(2)}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               {summary.pendingCount + summary.overdueCount} bills
             </p>
           </div>
-          <div className="bg-elevated rounded-lg p-3 text-center">
-            <p className="text-xs text-muted-foreground">Overdue</p>
-            <p className="text-lg font-bold text-error">
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: 'var(--color-elevated)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Overdue</p>
+            <p className="text-lg font-bold" style={{ color: 'var(--color-destructive)' }}>
               {summary.overdueCount}
             </p>
-            <p className="text-xs text-muted-foreground">bills</p>
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>bills</p>
           </div>
-          <div className="bg-elevated rounded-lg p-3 text-center">
-            <p className="text-xs text-muted-foreground">Paid</p>
-            <p className="text-lg font-bold text-income">
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: 'var(--color-elevated)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Paid</p>
+            <p className="text-lg font-bold" style={{ color: 'var(--color-income)' }}>
               ${new Decimal(summary.paidAmount).toFixed(2)}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               {summary.paidCount} bills
             </p>
           </div>
@@ -543,14 +548,14 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
         <div className="flex-1 overflow-y-auto space-y-4 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--color-muted-foreground)' }} />
             </div>
           ) : (
             <>
               {/* Unpaid Bills */}
               {unpaidBills.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <h3 className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
                     <Clock className="w-4 h-4" />
                     Bills Due ({unpaidBills.length})
                   </h3>
@@ -575,29 +580,33 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
               {/* Paid Bills */}
               {paidBills.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-income" />
+                  <h3 className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
+                    <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-income)' }} />
                     Paid This Period ({paidBills.length})
                   </h3>
                   <div className="space-y-2 opacity-75">
                     {paidBills.map((item) => (
                       <div
                         key={`${item.instance.id}-${item.allocation?.id || 'full'}`}
-                        className="flex items-center justify-between p-3 bg-elevated rounded-lg border border-income/20"
+                        className="flex items-center justify-between p-3 rounded-lg border"
+                        style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'color-mix(in oklch, var(--color-income) 20%, transparent)' }}
                       >
                         <div className="flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-income" />
+                          <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--color-income)' }} />
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="font-medium text-foreground">{item.bill.name}</p>
+                              <p className="font-medium" style={{ color: 'var(--color-foreground)' }}>{item.bill.name}</p>
                               {item.isSplit && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary flex items-center gap-1">
+                                <span
+                                  className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1"
+                                  style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', color: 'var(--color-primary)' }}
+                                >
                                   <Split className="w-3 h-3" />
                                   P{item.allocation?.periodNumber}
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                               Paid ${new Decimal(item.displayPaidAmount || item.instance.actualAmount || item.instance.expectedAmount).toFixed(2)}
                               {item.isSplit && ` of $${new Decimal(item.instance.expectedAmount).toFixed(2)}`}
                             </p>
@@ -612,9 +621,9 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
               {/* Empty State */}
               {unpaidBills.length === 0 && paidBills.length === 0 && (
                 <div className="text-center py-8">
-                  <CheckCircle2 className="w-12 h-12 text-income mx-auto mb-3" />
-                  <p className="text-foreground font-medium">No bills for this period</p>
-                  <p className="text-sm text-muted-foreground">
+                  <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-income)' }} />
+                  <p className="font-medium" style={{ color: 'var(--color-foreground)' }}>No bills for this period</p>
+                  <p className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     All caught up! Use the arrows to navigate to other periods.
                   </p>
                 </div>
@@ -661,59 +670,67 @@ function BillItem({
 
   return (
     <div
-      className={`rounded-lg border transition-all ${
-        isPayFormOpen
-          ? 'bg-card border-primary'
-          : isOverdue
-          ? 'bg-elevated border-error/30'
-          : 'bg-elevated border-border'
-      }`}
+      className="rounded-lg border transition-all"
+      style={{
+        backgroundColor: isPayFormOpen ? 'var(--color-background)' : 'var(--color-elevated)',
+        borderColor: isPayFormOpen ? 'var(--color-primary)' : isOverdue ? 'color-mix(in oklch, var(--color-destructive) 30%, transparent)' : 'var(--color-border)',
+      }}
     >
       <div className="flex items-center justify-between p-3">
         <div className="flex items-center gap-3 flex-1">
           <div className="mt-0.5">
             {isOverdue ? (
-              <AlertCircle className="w-5 h-5 text-error" />
+              <AlertCircle className="w-5 h-5" style={{ color: 'var(--color-destructive)' }} />
             ) : isIncome ? (
-              <ArrowDownCircle className="w-5 h-5 text-income/50" />
+              <ArrowDownCircle className="w-5 h-5" style={{ color: 'color-mix(in oklch, var(--color-income) 50%, transparent)' }} />
             ) : isPartiallyPaid ? (
-              <Clock className="w-5 h-5 text-primary" />
+              <Clock className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
             ) : (
-              <Clock className="w-5 h-5 text-warning" />
+              <Clock className="w-5 h-5" style={{ color: 'var(--color-warning)' }} />
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-medium text-foreground truncate">{item.bill.name}</p>
+              <p className="font-medium truncate" style={{ color: 'var(--color-foreground)' }}>{item.bill.name}</p>
               {item.isSplit && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary flex items-center gap-1">
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1"
+                  style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', color: 'var(--color-primary)' }}
+                >
                   <Split className="w-3 h-3" />
                   P{item.allocation?.periodNumber}
                 </span>
               )}
               {item.periodAssignment.isOverride && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)', color: 'var(--color-primary)' }}
+                >
                   Override
                 </span>
               )}
               {item.periodAssignment.isBillDefault && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: 'var(--color-muted)', color: 'var(--color-muted-foreground)' }}
+                >
                   Fixed
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               {isIncome ? 'Expected' : 'Due'}: {format(dueDate, 'MMM d')}
               {item.category && ` - ${item.category.name}`}
               {item.isSplit && ` (of $${new Decimal(item.instance.expectedAmount).toFixed(2)} total)`}
             </p>
             {isPartiallyPaid && (
               <div className="mt-1">
-                <div className="h-1.5 bg-background rounded-full overflow-hidden w-24">
-                  <div 
-                    className="h-full bg-success transition-all duration-300"
-                    style={{ 
-                      width: `${((item.allocation?.paidAmount || item.instance.paidAmount || 0) / displayAmount) * 100}%` 
+                <div className="h-1.5 rounded-full overflow-hidden w-24" style={{ backgroundColor: 'var(--color-background)' }}>
+                  <div
+                    className="h-full transition-all duration-300"
+                    style={{
+                      backgroundColor: 'var(--color-success)',
+                      width: `${((item.allocation?.paidAmount || item.instance.paidAmount || 0) / displayAmount) * 100}%`,
                     }}
                   />
                 </div>
@@ -723,11 +740,11 @@ function BillItem({
         </div>
         <div className="flex items-center gap-2">
           <div className="text-right">
-            <p className={`font-medium ${isIncome ? 'text-income' : 'text-foreground'}`}>
+            <p className="font-medium" style={{ color: isIncome ? 'var(--color-income)' : 'var(--color-foreground)' }}>
               {isIncome ? '+' : ''}${new Decimal(displayAmount).toFixed(2)}
             </p>
             {isPartiallyPaid && (
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[10px]" style={{ color: 'var(--color-muted-foreground)' }}>
                 ${new Decimal(displayRemaining).toFixed(2)} left
               </p>
             )}
@@ -737,7 +754,8 @@ function BillItem({
               size="sm"
               onClick={onOpenPayForm}
               disabled={processing}
-              className="bg-primary hover:bg-primary/90 text-white"
+              className="hover:opacity-90"
+              style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
             >
               <DollarSign className="w-4 h-4 mr-1" />
               Pay
@@ -748,7 +766,7 @@ function BillItem({
 
       {/* Pay Form */}
       {isPayFormOpen && (
-        <div className="border-t border-border p-3">
+        <div className="p-3" style={{ borderTop: '1px solid var(--color-border)' }}>
           <BillPayForm
             instance={item.instance}
             bill={{

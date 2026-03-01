@@ -186,30 +186,30 @@ export default function SalesTaxPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'accepted':
-        return <CheckCircle2 className="w-4 h-4 text-success" />;
+        return <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-success)' }} />;
       case 'submitted':
-        return <Calendar className="w-4 h-4 text-transfer" />;
+        return <Calendar className="w-4 h-4" style={{ color: 'var(--color-transfer)' }} />;
       case 'pending':
-        return <AlertCircle className="w-4 h-4 text-warning" />;
+        return <AlertCircle className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />;
       case 'rejected':
-        return <AlertCircle className="w-4 h-4 text-error" />;
+        return <AlertCircle className="w-4 h-4" style={{ color: 'var(--color-destructive)' }} />;
       default:
         return null;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): React.CSSProperties => {
     switch (status) {
       case 'accepted':
-        return 'text-success';
+        return { color: 'var(--color-success)' };
       case 'submitted':
-        return 'text-transfer';
+        return { color: 'var(--color-transfer)' };
       case 'pending':
-        return 'text-warning';
+        return { color: 'var(--color-warning)' };
       case 'rejected':
-        return 'text-error';
+        return { color: 'var(--color-destructive)' };
       default:
-        return 'text-muted-foreground';
+        return { color: 'var(--color-muted-foreground)' };
     }
   };
 
@@ -294,8 +294,8 @@ export default function SalesTaxPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading sales tax information...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: 'var(--color-primary)' }}></div>
+          <p style={{ color: 'var(--color-muted-foreground)' }}>Loading sales tax information...</p>
         </div>
       </div>
     );
@@ -305,8 +305,8 @@ export default function SalesTaxPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-error font-medium mb-2">Error</p>
-          <p className="text-muted-foreground mb-4">{error || 'Unknown error'}</p>
+          <p className="font-medium mb-2" style={{ color: 'var(--color-destructive)' }}>Error</p>
+          <p className="mb-4" style={{ color: 'var(--color-muted-foreground)' }}>{error || 'Unknown error'}</p>
           <Button onClick={fetchSalesTaxData}>Try Again</Button>
         </div>
       </div>
@@ -328,8 +328,8 @@ export default function SalesTaxPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Sales Tax Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Track quarterly filings and prepare reports</p>
+            <h1 className="text-3xl font-bold" style={{ color: 'var(--color-foreground)' }}>Sales Tax Dashboard</h1>
+          <p className="mt-1" style={{ color: 'var(--color-muted-foreground)' }}>Track quarterly filings and prepare reports</p>
         </div>
         <div className="flex gap-2 flex-col md:flex-row">
           <Select value={year} onValueChange={setYear}>
@@ -360,11 +360,11 @@ export default function SalesTaxPage() {
       </div>
 
       {/* Tax Rate Configuration */}
-      <Card className="bg-card border-border">
+      <Card style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-foreground">
-              <Settings className="w-5 h-5 text-primary" />
+            <span className="flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
+              <Settings className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
               Sales Tax Configuration
             </span>
             {!isEditingRate && (
@@ -372,7 +372,8 @@ export default function SalesTaxPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditingRate(true)}
-                className="text-muted-foreground hover:text-foreground"
+                className="hover:[color:var(--color-foreground)]"
+                style={{ color: 'var(--color-muted-foreground)' }}
               >
                 <Pencil className="w-4 h-4 mr-2" />
                 Edit
@@ -390,7 +391,7 @@ export default function SalesTaxPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* State Rate */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">State</label>
+                  <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>State</label>
                   <input
                     type="number"
                     step="0.01"
@@ -398,21 +399,23 @@ export default function SalesTaxPage() {
                     max="100"
                     value={stateRate}
                     onChange={(e) => setStateRate(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                    className="w-full px-3 py-2 rounded-lg text-sm"
+                    style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     placeholder="Rate %"
                   />
                   <input
                     type="text"
                     value={stateName}
                     onChange={(e) => setStateName(e.target.value)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                    className="w-full px-3 py-2 rounded-lg text-sm"
+                    style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     placeholder="e.g., Texas"
                   />
                 </div>
 
                 {/* County Rate */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">County</label>
+                  <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>County</label>
                   <input
                     type="number"
                     step="0.01"
@@ -420,21 +423,23 @@ export default function SalesTaxPage() {
                     max="100"
                     value={countyRate}
                     onChange={(e) => setCountyRate(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                    className="w-full px-3 py-2 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     placeholder="Rate %"
                   />
                   <input
                     type="text"
                     value={countyName}
                     onChange={(e) => setCountyName(e.target.value)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                    className="w-full px-3 py-2 rounded-lg text-sm"
+                    style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     placeholder="e.g., Travis County"
                   />
                 </div>
 
                 {/* City Rate */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">City</label>
+                  <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>City</label>
                   <input
                     type="number"
                     step="0.01"
@@ -442,21 +447,23 @@ export default function SalesTaxPage() {
                     max="100"
                     value={cityRate}
                     onChange={(e) => setCityRate(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                    className="w-full px-3 py-2 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     placeholder="Rate %"
                   />
                   <input
                     type="text"
                     value={cityName}
                     onChange={(e) => setCityName(e.target.value)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                    className="w-full px-3 py-2 rounded-lg text-sm"
+                    style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     placeholder="e.g., Austin"
                   />
                 </div>
 
                 {/* Special District Rate */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Special District</label>
+                  <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Special District</label>
                   <input
                     type="number"
                     step="0.01"
@@ -464,30 +471,32 @@ export default function SalesTaxPage() {
                     max="100"
                     value={specialDistrictRate}
                     onChange={(e) => setSpecialDistrictRate(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                    className="w-full px-3 py-2 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     placeholder="Rate %"
                   />
                   <input
                     type="text"
                     value={specialDistrictName}
                     onChange={(e) => setSpecialDistrictName(e.target.value)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                    className="w-full px-3 py-2 rounded-lg text-sm"
+                    style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     placeholder="e.g., Transit"
                   />
                 </div>
               </div>
 
               {/* Total Rate Display */}
-              <div className="p-3 bg-elevated rounded-lg border border-border">
+              <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Combined Total Rate:</span>
-                  <span className="text-xl font-bold text-primary">
+                  <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Combined Total Rate:</span>
+                  <span className="text-xl font-bold" style={{ color: 'var(--color-primary)' }}>
                     {totalTaxRate.toFixed(2)}%
                   </span>
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 Enter each jurisdiction&apos;s tax rate as a percentage (e.g., 6.25 for 6.25%). 
                 Leave unused jurisdictions at 0.
               </p>
@@ -496,7 +505,8 @@ export default function SalesTaxPage() {
                 <Button
                   onClick={saveTaxRateSettings}
                   disabled={isSavingRate}
-                  className="bg-primary text-white hover:opacity-90"
+                  className="hover:opacity-90"
+                  style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
                 >
                   {isSavingRate ? 'Saving...' : 'Save Settings'}
                 </Button>
@@ -515,9 +525,9 @@ export default function SalesTaxPage() {
           ) : (
             <div className="space-y-4">
               {/* Total Rate Display */}
-              <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
-                <span className="text-muted-foreground">Combined Tax Rate</span>
-                <span className="text-2xl font-bold text-primary">
+              <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                <span style={{ color: 'var(--color-muted-foreground)' }}>Combined Tax Rate</span>
+                <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
                   {totalTaxRate.toFixed(2)}%
                 </span>
               </div>
@@ -528,41 +538,41 @@ export default function SalesTaxPage() {
                   {stateRate > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                        <span className="text-xs text-muted-foreground">State</span>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />
+                        <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>State</span>
                       </div>
-                      <p className="text-sm font-medium text-foreground">{stateRate.toFixed(2)}%</p>
-                      {stateName && <p className="text-xs text-muted-foreground">{stateName}</p>}
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{stateRate.toFixed(2)}%</p>
+                      {stateName && <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{stateName}</p>}
                     </div>
                   )}
                   {countyRate > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-success" />
-                        <span className="text-xs text-muted-foreground">County</span>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-success)' }} />
+                        <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>County</span>
                       </div>
-                      <p className="text-sm font-medium text-foreground">{countyRate.toFixed(2)}%</p>
-                      {countyName && <p className="text-xs text-muted-foreground">{countyName}</p>}
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{countyRate.toFixed(2)}%</p>
+                      {countyName && <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{countyName}</p>}
                     </div>
                   )}
                   {cityRate > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-warning" />
-                        <span className="text-xs text-muted-foreground">City</span>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-warning)' }} />
+                        <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>City</span>
                       </div>
-                      <p className="text-sm font-medium text-foreground">{cityRate.toFixed(2)}%</p>
-                      {cityName && <p className="text-xs text-muted-foreground">{cityName}</p>}
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{cityRate.toFixed(2)}%</p>
+                      {cityName && <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{cityName}</p>}
                     </div>
                   )}
                   {specialDistrictRate > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-transfer" />
-                        <span className="text-xs text-muted-foreground">Special</span>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-transfer)' }} />
+                        <span className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Special</span>
                       </div>
-                      <p className="text-sm font-medium text-foreground">{specialDistrictRate.toFixed(2)}%</p>
-                      {specialDistrictName && <p className="text-xs text-muted-foreground">{specialDistrictName}</p>}
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{specialDistrictRate.toFixed(2)}%</p>
+                      {specialDistrictName && <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>{specialDistrictName}</p>}
                     </div>
                   )}
                 </div>
@@ -571,14 +581,14 @@ export default function SalesTaxPage() {
           )}
 
           {totalTaxRate === 0 && !isEditingRate && (
-            <div className="mt-4 p-3 bg-warning/10 border border-warning rounded-lg">
+            <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'color-mix(in oklch, var(--color-warning) 10%, transparent)', border: '1px solid var(--color-warning)' }}>
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
                 <div className="text-sm">
-                  <p className="text-foreground font-medium mb-1">
+                  <p className="font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>
                     Configure Your Tax Rates
                   </p>
-                  <p className="text-muted-foreground">
+                  <p style={{ color: 'var(--color-muted-foreground)' }}>
                     Set your sales tax rates by jurisdiction to see accurate quarterly reports.
                     You can configure State, County, City, and Special District rates separately.
                   </p>
@@ -593,31 +603,31 @@ export default function SalesTaxPage() {
       {!hasData && (
         <Card className="text-center py-12">
           <CardContent>
-            <DollarSign className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">
+            <DollarSign className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-muted-foreground)' }} />
+            <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-foreground)' }}>
               No Sales Tax Data Available
             </h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="mb-4" style={{ color: 'var(--color-muted-foreground)' }}>
               There are no taxable sales for {year}.
             </p>
-            <p className="text-sm text-muted-foreground mb-2">
+            <p className="text-sm mb-2" style={{ color: 'var(--color-muted-foreground)' }}>
               To track sales tax:
             </p>
-            <ul className="text-sm text-muted-foreground text-left max-w-md mx-auto space-y-2">
+            <ul className="text-sm text-left max-w-md mx-auto space-y-2" style={{ color: 'var(--color-muted-foreground)' }}>
               <li className="flex items-start gap-2">
-                <span className="text-primary mt-1 font-bold">1.</span>
+                <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>1.</span>
                 <span>Configure your sales tax rate above</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-primary mt-1 font-bold">2.</span>
+                <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>2.</span>
                 <span>Create income transactions in any account</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-primary mt-1 font-bold">3.</span>
+                <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>3.</span>
                 <span>Check &quot;Subject to sales tax&quot; when creating income</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-primary mt-1 font-bold">4.</span>
+                <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>4.</span>
                 <span>Or use rules to automatically mark income as taxable</span>
               </li>
             </ul>
@@ -630,13 +640,13 @@ export default function SalesTaxPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+            <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
               <TrendingUp className="w-4 h-4" />
               Total Sales
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-income">
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-income)' }}>
               ${data.totalSales.toFixed(2)}
             </p>
           </CardContent>
@@ -644,13 +654,13 @@ export default function SalesTaxPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+            <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
               <DollarSign className="w-4 h-4" />
               Total Sales Tax
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-success">
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-success)' }}>
               ${data.totalTax.toFixed(2)}
             </p>
           </CardContent>
@@ -658,13 +668,13 @@ export default function SalesTaxPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+            <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
               <AlertCircle className="w-4 h-4" />
               Total Due
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-warning">
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-warning)' }}>
               ${data.totalDue.toFixed(2)}
             </p>
           </CardContent>
@@ -672,13 +682,13 @@ export default function SalesTaxPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+            <CardTitle className="text-sm flex items-center gap-2" style={{ color: 'var(--color-muted-foreground)' }}>
               <Calendar className="w-4 h-4" />
               Effective Rate
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-warning">
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-warning)' }}>
               {data.totalSales > 0
                 ? ((data.totalTax / data.totalSales) * 100).toFixed(2)
                 : '0.00'}
@@ -691,10 +701,10 @@ export default function SalesTaxPage() {
 
       {/* Quarterly Estimated Payment Breakdown */}
       {hasData && data.taxBreakdown && totalTaxRate > 0 && (
-        <Card className="bg-card border-border">
+        <Card style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <DollarSign className="w-5 h-5 text-warning" />
+            <CardTitle className="flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
+              <DollarSign className="w-5 h-5" style={{ color: 'var(--color-warning)' }} />
               Estimated Quarterly Payment Breakdown
             </CardTitle>
             <CardDescription>
@@ -705,19 +715,19 @@ export default function SalesTaxPage() {
             <div className="space-y-3">
               {/* State */}
               {data.taxBreakdown.state.rate > 0 && (
-                <div className="flex items-center justify-between py-3 border-b border-border">
+                <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />
                     <div>
-                      <span className="text-foreground font-medium">
+                      <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                         {data.taxBreakdown.state.name}
                       </span>
-                      <span className="text-muted-foreground text-sm ml-2">
+                      <span className="text-sm ml-2" style={{ color: 'var(--color-muted-foreground)' }}>
                         ({data.taxBreakdown.state.rate.toFixed(2)}%)
                       </span>
                     </div>
                   </div>
-                  <span className="font-mono font-medium text-foreground">
+                  <span className="font-mono font-medium" style={{ color: 'var(--color-foreground)' }}>
                     ${data.taxBreakdown.state.amount.toFixed(2)}
                   </span>
                 </div>
@@ -725,19 +735,19 @@ export default function SalesTaxPage() {
 
               {/* County */}
               {data.taxBreakdown.county.rate > 0 && (
-                <div className="flex items-center justify-between py-3 border-b border-border">
+                <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-success" />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--color-success)' }} />
                     <div>
-                      <span className="text-foreground font-medium">
+                      <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                         {data.taxBreakdown.county.name}
                       </span>
-                      <span className="text-muted-foreground text-sm ml-2">
+                      <span className="text-sm ml-2" style={{ color: 'var(--color-muted-foreground)' }}>
                         ({data.taxBreakdown.county.rate.toFixed(2)}%)
                       </span>
                     </div>
                   </div>
-                  <span className="font-mono font-medium text-foreground">
+                  <span className="font-mono font-medium" style={{ color: 'var(--color-foreground)' }}>
                     ${data.taxBreakdown.county.amount.toFixed(2)}
                   </span>
                 </div>
@@ -745,19 +755,19 @@ export default function SalesTaxPage() {
 
               {/* City */}
               {data.taxBreakdown.city.rate > 0 && (
-                <div className="flex items-center justify-between py-3 border-b border-border">
+                <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-warning" />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--color-warning)' }} />
                     <div>
-                      <span className="text-foreground font-medium">
+                      <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                         {data.taxBreakdown.city.name}
                       </span>
-                      <span className="text-muted-foreground text-sm ml-2">
+                      <span className="text-sm ml-2" style={{ color: 'var(--color-muted-foreground)' }}>
                         ({data.taxBreakdown.city.rate.toFixed(2)}%)
                       </span>
                     </div>
                   </div>
-                  <span className="font-mono font-medium text-foreground">
+                  <span className="font-mono font-medium" style={{ color: 'var(--color-foreground)' }}>
                     ${data.taxBreakdown.city.amount.toFixed(2)}
                   </span>
                 </div>
@@ -765,19 +775,19 @@ export default function SalesTaxPage() {
 
               {/* Special District */}
               {data.taxBreakdown.specialDistrict.rate > 0 && (
-                <div className="flex items-center justify-between py-3 border-b border-border">
+                <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-transfer" />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--color-transfer)' }} />
                     <div>
-                      <span className="text-foreground font-medium">
+                      <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                         {data.taxBreakdown.specialDistrict.name}
                       </span>
-                      <span className="text-muted-foreground text-sm ml-2">
+                      <span className="text-sm ml-2" style={{ color: 'var(--color-muted-foreground)' }}>
                         ({data.taxBreakdown.specialDistrict.rate.toFixed(2)}%)
                       </span>
                     </div>
                   </div>
-                  <span className="font-mono font-medium text-foreground">
+                  <span className="font-mono font-medium" style={{ color: 'var(--color-foreground)' }}>
                     ${data.taxBreakdown.specialDistrict.amount.toFixed(2)}
                   </span>
                 </div>
@@ -786,12 +796,12 @@ export default function SalesTaxPage() {
               {/* Total */}
               <div className="flex items-center justify-between pt-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-foreground font-bold text-lg">Total Estimated Due</span>
-                  <span className="text-muted-foreground text-sm">
+                  <span className="font-bold text-lg" style={{ color: 'var(--color-foreground)' }}>Total Estimated Due</span>
+                  <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
                     ({data.taxBreakdown.total.rate.toFixed(2)}%)
                   </span>
                 </div>
-                <span className="font-mono font-bold text-xl text-warning">
+                <span className="font-mono font-bold text-xl" style={{ color: 'var(--color-warning)' }}>
                   ${data.taxBreakdown.total.amount.toFixed(2)}
                 </span>
               </div>
@@ -829,51 +839,51 @@ export default function SalesTaxPage() {
               return (
                 <div
                   key={quarter.quarter}
-                  className="border border-border rounded-lg p-4 hover:border-border transition-colors"
+                  className="rounded-lg p-4 transition-colors"
+                  style={{ border: '1px solid var(--color-border)' }}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       {getStatusIcon(quarter.status)}
                       <div>
-                        <p className="text-foreground font-semibold">Q{quarter.quarter} {year}</p>
-                        <p className={`text-sm ${getStatusColor(quarter.status)}`}>
+                        <p className="font-semibold" style={{ color: 'var(--color-foreground)' }}>Q{quarter.quarter} {year}</p>
+                        <p className="text-sm" style={getStatusColor(quarter.status)}>
                           {quarter.status.charAt(0).toUpperCase() +
                             quarter.status.slice(1)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-foreground font-semibold">
+                      <p className="font-semibold" style={{ color: 'var(--color-foreground)' }}>
                         ${quarter.totalTax.toFixed(2)}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                         Tax collected
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 text-sm mb-3 pt-3 border-t border-border">
+                  <div className="grid grid-cols-3 gap-4 text-sm mb-3 pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
                     <div>
-                      <p className="text-muted-foreground">Sales</p>
-                      <p className="text-foreground font-medium">
+                      <p style={{ color: 'var(--color-muted-foreground)' }}>Sales</p>
+                      <p className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                         ${quarter.totalSales.toFixed(2)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Tax Rate</p>
-                      <p className="text-foreground font-medium">
+                      <p style={{ color: 'var(--color-muted-foreground)' }}>Tax Rate</p>
+                      <p className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                         {(quarter.taxRate * 100).toFixed(2)}%
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                         (configured)
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Due</p>
+                      <p style={{ color: 'var(--color-muted-foreground)' }}>Due</p>
                       <p
-                        className={`font-medium ${
-                          overdue ? 'text-error' : 'text-foreground'
-                        }`}
+                        className="font-medium"
+                        style={{ color: overdue ? 'var(--color-destructive)' : 'var(--color-foreground)' }}
                       >
                         {quarter.dueDate}
                       </p>
@@ -881,19 +891,19 @@ export default function SalesTaxPage() {
                   </div>
 
                   {quarter.status !== 'accepted' && (
-                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
                       <div className="flex items-center gap-2">
                         {quarter.status === 'submitted' ? (
-                          <span className="text-xs text-success">
+                          <span className="text-xs" style={{ color: 'var(--color-success)' }}>
                             Filed successfully
                           </span>
                         ) : overdue ? (
-                          <span className="flex items-center gap-1 text-xs text-error">
+                          <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--color-destructive)' }}>
                             <AlertCircle className="w-3 h-3" />
                             {Math.abs(daysUntil)} days overdue
                           </span>
                         ) : daysUntil > 0 ? (
-                          <span className="text-xs text-warning">
+                          <span className="text-xs" style={{ color: 'var(--color-warning)' }}>
                             {daysUntil} days until due
                           </span>
                         ) : null}
@@ -908,7 +918,8 @@ export default function SalesTaxPage() {
                             handleUndoFiling(quarter.quarter);
                           }}
                           disabled={isMarkingFiled === `Q${quarter.quarter}`}
-                          className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+                          className="hover:[color:var(--color-foreground)] hover:[background-color:var(--color-elevated)]"
+                          style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
                         >
                           {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Undo Filing'}
                         </Button>
@@ -921,7 +932,8 @@ export default function SalesTaxPage() {
                             handleMarkFiled(quarter.quarter);
                           }}
                           disabled={isMarkingFiled === `Q${quarter.quarter}`}
-                          className="bg-primary hover:opacity-90 text-primary-foreground"
+                          className="hover:opacity-90"
+                          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
                         >
                           {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Mark Filed'}
                         </Button>
@@ -950,15 +962,16 @@ export default function SalesTaxPage() {
             {data.quarters.map((quarter) => (
               <div
                 key={quarter.quarter}
-                className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                className="flex items-center justify-between py-2 border-b last:border-0"
+                style={{ borderColor: 'var(--color-border)' }}
               >
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-foreground font-medium">
+                  <Calendar className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+                  <span className="font-medium" style={{ color: 'var(--color-foreground)' }}>
                     Q{quarter.quarter} {year} Filing Due
                   </span>
                 </div>
-                <span className="text-muted-foreground text-sm">{quarter.dueDate}</span>
+                <span className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>{quarter.dueDate}</span>
               </div>
             ))}
           </div>
@@ -968,14 +981,14 @@ export default function SalesTaxPage() {
 
       {/* Tax Compliance Tips */}
       {hasData && (
-      <Card className="bg-transfer/10 border-transfer/30">
+      <Card style={{ backgroundColor: 'color-mix(in oklch, var(--color-transfer) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-transfer) 30%, transparent)' }}>
         <CardHeader>
-          <CardTitle className="text-transfer flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2" style={{ color: 'var(--color-transfer)' }}>
             <AlertCircle className="w-5 h-5" />
             Sales Tax Compliance Checklist
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-foreground">
+        <CardContent className="space-y-2 text-sm" style={{ color: 'var(--color-foreground)' }}>
           <p>✓ Keep all sales invoices and receipts organized</p>
           <p>✓ Track sales by tax jurisdiction/rate</p>
           <p>✓ File quarterly returns by the due date</p>

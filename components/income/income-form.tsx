@@ -249,141 +249,79 @@ export function IncomeForm({
     }
   };
 
+  const fs = { backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' };
+  const lbl = 'text-[11px] font-medium uppercase tracking-wide block mb-1.5';
+  const lblStyle = { color: 'var(--color-muted-foreground)' };
+  const errStyle = { color: 'var(--color-destructive)' };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Name and Amount */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.name ? 'text-error' : 'text-muted-foreground'}`}>
-            Income Source Name*
-          </Label>
+          <Label htmlFor="income-name" className={lbl} style={errors.name ? errStyle : lblStyle}>Income Source Name*</Label>
           <Input
             id="income-name"
             name="name"
             value={formData.name}
-            onChange={(e) => {
-              handleChange(e);
-              if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
-            }}
+            onChange={(e) => { handleChange(e); if (errors.name) setErrors(prev => ({ ...prev, name: '' })); }}
             placeholder="e.g., Monthly Salary, Rental Income"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.name ? 'border-error' : 'border-border'
-            }`}
+            className="h-9 text-[13px]"
+            style={{ ...fs, borderColor: errors.name ? 'var(--color-destructive)' : 'var(--color-border)' }}
           />
-          {errors.name && (
-            <p className="text-error text-xs mt-1">{errors.name}</p>
-          )}
+          {errors.name && <p className="text-[11px] mt-1" style={errStyle}>{errors.name}</p>}
         </div>
         <div>
-          <Label className={`text-sm mb-2 block ${errors.expectedAmount ? 'text-error' : 'text-muted-foreground'}`}>
-            Expected Amount*
-          </Label>
+          <Label className={lbl} style={errors.expectedAmount ? errStyle : lblStyle}>Expected Amount*</Label>
           <Input
             name="expectedAmount"
             type="number"
             value={formData.expectedAmount}
-            onChange={(e) => {
-              handleChange(e);
-              if (errors.expectedAmount) setErrors(prev => ({ ...prev, expectedAmount: '' }));
-            }}
-            placeholder="Enter amount"
+            onChange={(e) => { handleChange(e); if (errors.expectedAmount) setErrors(prev => ({ ...prev, expectedAmount: '' })); }}
+            placeholder="0.00"
             step="0.01"
-            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.expectedAmount ? 'border-error' : 'border-border'
-            }`}
+            className="h-9 text-[13px] tabular-nums"
+            style={{ ...fs, borderColor: errors.expectedAmount ? 'var(--color-destructive)' : 'var(--color-border)' }}
           />
-          {errors.expectedAmount && (
-            <p className="text-error text-xs mt-1">{errors.expectedAmount}</p>
-          )}
+          {errors.expectedAmount && <p className="text-[11px] mt-1" style={errStyle}>{errors.expectedAmount}</p>}
         </div>
       </div>
 
       {/* Frequency and Expected Date */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Frequency*</Label>
-          <Select value={formData.frequency} onValueChange={(value) => handleSelectChange('frequency', value)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              <SelectItem value="one-time" className="text-foreground">{FREQUENCY_LABELS['one-time']}</SelectItem>
-              <SelectItem value="weekly" className="text-foreground">{FREQUENCY_LABELS['weekly']}</SelectItem>
-              <SelectItem value="biweekly" className="text-foreground">{FREQUENCY_LABELS['biweekly']}</SelectItem>
-              <SelectItem value="monthly" className="text-foreground">{FREQUENCY_LABELS['monthly']}</SelectItem>
-              <SelectItem value="quarterly" className="text-foreground">{FREQUENCY_LABELS['quarterly']}</SelectItem>
-              <SelectItem value="semi-annual" className="text-foreground">{FREQUENCY_LABELS['semi-annual']}</SelectItem>
-              <SelectItem value="annual" className="text-foreground">{FREQUENCY_LABELS['annual']}</SelectItem>
+          <Label className={lbl} style={lblStyle}>Frequency*</Label>
+          <Select value={formData.frequency} onValueChange={v => handleSelectChange('frequency', v)}>
+            <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {['one-time','weekly','biweekly','monthly','quarterly','semi-annual','annual'].map(f => (
+                <SelectItem key={f} value={f}>{FREQUENCY_LABELS[f as keyof typeof FREQUENCY_LABELS]}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">
-            {getDueDateLabel(formData.frequency).replace('Due', 'Expected')}*
-          </Label>
-
+          <Label className={lbl} style={lblStyle}>{getDueDateLabel(formData.frequency).replace('Due', 'Expected')}*</Label>
           {isOneTimeFrequency(formData.frequency) ? (
-            <Input
-              name="specificDueDate"
-              type="date"
-              value={formData.specificDueDate}
-              onChange={handleChange}
-              className="bg-elevated border-border text-foreground"
-              required
-            />
+            <Input name="specificDueDate" type="date" value={formData.specificDueDate} onChange={handleChange} className="h-9 text-[13px]" style={fs} required />
           ) : isWeekBasedFrequency(formData.frequency) ? (
-            <Select
-              value={formData.dueDate}
-              onValueChange={(value) => handleSelectChange('dueDate', value)}
-            >
-              <SelectTrigger className="bg-elevated border-border text-foreground">
-                <SelectValue placeholder="Select day of week" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                {DAY_OF_WEEK_OPTIONS.map((day) => (
-                  <SelectItem key={day.value} value={day.value.toString()} className="text-foreground">
-                    {day.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <Select value={formData.dueDate} onValueChange={v => handleSelectChange('dueDate', v)}>
+              <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select day of week" /></SelectTrigger>
+              <SelectContent>{DAY_OF_WEEK_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
             </Select>
           ) : (
-            <Input
-              name="dueDate"
-              type="number"
-              value={formData.dueDate}
-              onChange={handleChange}
-              placeholder="1"
-              min="1"
-              max="31"
-              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-            />
+            <Input name="dueDate" type="number" value={formData.dueDate} onChange={handleChange} placeholder="1" min="1" max="31" className="h-9 text-[13px]" style={fs} />
           )}
         </div>
       </div>
 
-      {/* Start Month - Only for quarterly/semi-annual/annual */}
+      {/* Start Month */}
       {isNonMonthlyPeriodic(formData.frequency) && (
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Start Month*</Label>
-          <Select
-            value={formData.startMonth}
-            onValueChange={(value) => handleSelectChange('startMonth', value)}
-          >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue placeholder="Select month" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              {MONTH_OPTIONS.map((month) => (
-                <SelectItem 
-                  key={month.value} 
-                  value={month.value.toString()} 
-                  className="text-foreground"
-                >
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
+          <Label className={lbl} style={lblStyle}>Start Month*</Label>
+          <Select value={formData.startMonth} onValueChange={v => handleSelectChange('startMonth', v)}>
+            <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select month" /></SelectTrigger>
+            <SelectContent>{MONTH_OPTIONS.map(m => <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       )}
@@ -391,152 +329,82 @@ export function IncomeForm({
       {/* Classification and Category */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Income Type</Label>
-          <Select
-            value={formData.billClassification}
-            onValueChange={(value) => handleSelectChange('billClassification', value)}
-          >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              {INCOME_CLASSIFICATION_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value} className="text-foreground">
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
+          <Label className={lbl} style={lblStyle}>Income Type</Label>
+          <Select value={formData.billClassification} onValueChange={v => handleSelectChange('billClassification', v)}>
+            <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select type" /></SelectTrigger>
+            <SelectContent>{INCOME_CLASSIFICATION_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Category</Label>
-          <Select value={formData.categoryId} onValueChange={(value) => handleSelectChange('categoryId', value)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
+          <Label className={lbl} style={lblStyle}>Category</Label>
+          <Select value={formData.categoryId} onValueChange={v => handleSelectChange('categoryId', v)}>
+            <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select category" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="">None</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
+              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Account */}
+      {/* Receiving Account */}
       <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Receiving Account</Label>
-        <Select value={formData.accountId} onValueChange={(value) => handleSelectChange('accountId', value)}>
-          <SelectTrigger className="bg-elevated border-border text-foreground">
-            <SelectValue placeholder="Select account" />
-          </SelectTrigger>
+        <Label className={lbl} style={lblStyle}>Receiving Account</Label>
+        <Select value={formData.accountId} onValueChange={v => handleSelectChange('accountId', v)}>
+          <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select account" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="">None</SelectItem>
-            {accounts.map((account) => (
-              <SelectItem key={account.id} value={account.id}>
-                {account.name}
-              </SelectItem>
-            ))}
+            {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground mt-1">The account where you receive this income</p>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>The account where you receive this income</p>
       </div>
 
       {/* Toggles */}
-      <div className="space-y-3 p-4 bg-card rounded-lg border border-border">
-        <div className="flex items-center justify-between">
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-elevated)' }}>
+        <div className="flex items-center justify-between px-3 py-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
           <div>
-            <Label className="text-muted-foreground text-sm block">Variable Amount</Label>
-            <p className="text-xs text-muted-foreground">Amount varies each time</p>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Variable Amount</p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Amount varies each time</p>
           </div>
-          <button
-            type="button"
-            onClick={() => handleCheckboxChange('isVariableAmount')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isVariableAmount ? 'bg-income' : 'bg-border'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
-                formData.isVariableAmount ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+          <button type="button" onClick={() => handleCheckboxChange('isVariableAmount')}
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+            style={{ backgroundColor: formData.isVariableAmount ? 'var(--color-income)' : 'var(--color-border)' }}>
+            <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform" style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData.isVariableAmount ? '18px' : '2px'})` }} />
           </button>
         </div>
-
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between px-3 py-3">
           <div>
-            <Label className="text-muted-foreground text-sm block">Auto-mark Received</Label>
-            <p className="text-xs text-muted-foreground">Mark as received when matching transaction is created</p>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Auto-mark Received</p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>Mark as received when matching transaction is created</p>
           </div>
-          <button
-            type="button"
-            onClick={() => handleCheckboxChange('autoMarkPaid')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.autoMarkPaid ? 'bg-income' : 'bg-border'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
-                formData.autoMarkPaid ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+          <button type="button" onClick={() => handleCheckboxChange('autoMarkPaid')}
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+            style={{ backgroundColor: formData.autoMarkPaid ? 'var(--color-income)' : 'var(--color-border)' }}>
+            <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform" style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData.autoMarkPaid ? '18px' : '2px'})` }} />
           </button>
         </div>
       </div>
 
       {/* Notes */}
       <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Notes</Label>
-        <Textarea
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          placeholder="Add any additional notes..."
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground resize-none"
-          rows={3}
-        />
+        <Label className={lbl} style={lblStyle}>Notes</Label>
+        <Textarea name="notes" value={formData.notes} onChange={handleChange} placeholder="Add any additional notes..." className="text-[13px] resize-none" style={fs} rows={3} />
       </div>
 
       {/* Actions */}
-      <div className="space-y-2 pt-4 border-t border-border">
+      <div className="flex flex-col gap-2 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
         <div className="flex gap-2">
-          <Button
-            type="submit"
-            onClick={() => setSaveMode('save')}
-            disabled={isLoading}
-            className="flex-1 text-white hover:opacity-90 font-medium bg-income"
-          >
-            {income
-              ? isLoading && saveMode === 'save'
-                ? 'Updating...'
-                : 'Update Income'
-              : isLoading && saveMode === 'save'
-              ? 'Saving...'
-              : 'Save Income'}
+          <Button type="submit" onClick={() => setSaveMode('save')} disabled={isLoading} className="flex-1 h-9 text-[13px]" style={{ backgroundColor: 'var(--color-income)', color: 'white' }}>
+            {income ? (isLoading && saveMode === 'save' ? 'Updating…' : 'Update Income') : (isLoading && saveMode === 'save' ? 'Saving…' : 'Save Income')}
           </Button>
           {!income && (
-            <Button
-              type="submit"
-              onClick={() => setSaveMode('saveAndAdd')}
-              disabled={isLoading}
-              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium"
-            >
-              {isLoading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
+            <Button type="submit" onClick={() => setSaveMode('saveAndAdd')} disabled={isLoading} variant="outline" className="flex-1 h-9 text-[13px]">
+              {isLoading && saveMode === 'saveAndAdd' ? 'Saving…' : 'Save & Add Another'}
             </Button>
           )}
         </div>
-        <Button
-          type="button"
-          onClick={onCancel}
-          variant="outline"
-          className="w-full bg-elevated border-border text-foreground hover:bg-elevated"
-        >
-          Cancel
-        </Button>
+        <Button type="button" onClick={onCancel} variant="outline" className="h-9 text-[13px]">Cancel</Button>
       </div>
     </form>
   );

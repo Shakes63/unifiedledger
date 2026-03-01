@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2, Copy, Check, Edit, Settings } from 'lucide-react';
+import {
+  Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2,
+  Copy, Check, Edit, Settings, Home,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useHousehold } from '@/contexts/household-context';
@@ -51,6 +52,49 @@ interface HouseholdMembersTabProps {
   householdId: string;
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+function Section({
+  icon: Icon,
+  label,
+  accent = 'var(--color-primary)',
+  action,
+  children,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 60%, transparent)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 55%, transparent)', borderLeft: `3px solid ${accent}` }}>
+        {Icon && <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: accent, opacity: 0.85 }} />}
+        <span className="text-[11px] font-semibold uppercase tracking-widest flex-1" style={{ color: accent }}>{label}</span>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const ROLE_COLORS: Record<string, string> = {
+  owner:  'var(--color-warning)',
+  admin:  'var(--color-primary)',
+  viewer: 'var(--color-muted-foreground)',
+  member: 'var(--color-foreground)',
+};
+
+function RoleIcon({ role }: { role: string }) {
+  if (role === 'owner')  return <Crown  className="w-3.5 h-3.5" style={{ color: ROLE_COLORS.owner }} />;
+  if (role === 'admin')  return <Shield className="w-3.5 h-3.5" style={{ color: ROLE_COLORS.admin }} />;
+  if (role === 'viewer') return <Eye    className="w-3.5 h-3.5" style={{ color: ROLE_COLORS.viewer }} />;
+  return <Users className="w-3.5 h-3.5" style={{ color: ROLE_COLORS.member }} />;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
   const { selectedHousehold, refreshHouseholds } = useHousehold();
   const [members, setMembers] = useState<HouseholdMember[]>([]);
@@ -69,395 +113,292 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [permissionManagerOpen, setPermissionManagerOpen] = useState(false);
   const [selectedMemberForPermissions, setSelectedMemberForPermissions] = useState<{
-    id: string;
-    name: string;
-    role: 'owner' | 'admin' | 'member' | 'viewer';
+    id: string; name: string; role: 'owner' | 'admin' | 'member' | 'viewer';
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchHouseholdDetails = useCallback(async () => {
     try {
       setLoading(true);
-      // Fetch members, invitations, and permissions in parallel
-      const [membersResponse, invitationsResponse, permissionsResponse] = await Promise.all([
-        fetch(`/api/households/${householdId}/members`, { credentials: 'include' }),
+      const [membersRes, invitationsRes, permissionsRes] = await Promise.all([
+        fetch(`/api/households/${householdId}/members`,     { credentials: 'include' }),
         fetch(`/api/households/${householdId}/invitations`, { credentials: 'include' }),
         fetch(`/api/households/${householdId}/permissions`, { credentials: 'include' }),
       ]);
 
-      if (membersResponse.ok) {
-        const membersData = await membersResponse.json();
-        setMembers(membersData);
-
-        // Find current user's role from the members list
-        const currentMember = membersData.find((m: HouseholdMember) =>
-          m.userId === selectedHousehold?.createdBy
-        );
-        if (currentMember) {
-          setCurrentUserRole(currentMember.role);
-        }
+      if (membersRes.ok) {
+        const data = await membersRes.json();
+        setMembers(data);
+        const currentMember = data.find((m: HouseholdMember) => m.userId === selectedHousehold?.createdBy);
+        if (currentMember) setCurrentUserRole(currentMember.role);
       }
-
-      if (invitationsResponse.ok) {
-        setInvitations(await invitationsResponse.json());
-      }
-
-      if (permissionsResponse.ok) {
-        setUserPermissions(await permissionsResponse.json());
-      }
-    } catch (_error) {
+      if (invitationsRes.ok) setInvitations(await invitationsRes.json());
+      if (permissionsRes.ok) setUserPermissions(await permissionsRes.json());
+    } catch {
       toast.error('Failed to load household details');
     } finally {
       setLoading(false);
     }
   }, [householdId, selectedHousehold?.createdBy]);
 
-  // Fetch household details when householdId changes
   useEffect(() => {
-    if (householdId) {
-      fetchHouseholdDetails();
-    }
+    if (householdId) fetchHouseholdDetails();
   }, [householdId, fetchHouseholdDetails]);
 
   async function inviteMember() {
-    if (!inviteEmail.trim()) {
-      toast.error('Email is required');
-      return;
-    }
-
+    if (!inviteEmail.trim()) { toast.error('Email is required'); return; }
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${householdId}/invitations`, {
+      const res = await fetch(`/api/households/${householdId}/invitations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          invitedEmail: inviteEmail,
-          role: inviteRole,
-        }),
+        body: JSON.stringify({ invitedEmail: inviteEmail, role: inviteRole }),
       });
-
-      if (response.ok) {
-        toast.success('Invitation sent successfully');
-        setInviteDialogOpen(false);
-        setInviteEmail('');
-        setInviteRole('member');
-        fetchHouseholdDetails(); // Refresh
+      if (res.ok) {
+        toast.success('Invitation sent');
+        setInviteDialogOpen(false); setInviteEmail(''); setInviteRole('member');
+        fetchHouseholdDetails();
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to send invitation');
+        const d = await res.json();
+        toast.error(d.error || 'Failed to send invitation');
       }
-    } catch (_error) {
-      toast.error('Failed to send invitation');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { toast.error('Failed to send invitation'); }
+    finally { setSubmitting(false); }
   }
 
   async function leaveHousehold() {
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${householdId}/leave`, {
-        credentials: 'include',
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        toast.success('Left household successfully');
+      const res = await fetch(`/api/households/${householdId}/leave`, { credentials: 'include', method: 'POST' });
+      if (res.ok) {
+        toast.success('Left household');
         setLeaveDialogOpen(false);
         await refreshHouseholds();
-        // Redirect to first household or account settings
         window.location.href = '/dashboard/settings?section=account&tab=profile';
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to leave household');
+        const d = await res.json();
+        toast.error(d.error || 'Failed to leave');
       }
-    } catch (_error) {
-      toast.error('Failed to leave household');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { toast.error('Failed to leave household'); }
+    finally { setSubmitting(false); }
   }
 
   async function renameHousehold() {
-    if (!newHouseholdName.trim()) {
-      toast.error('Household name is required');
-      return;
-    }
-
+    if (!newHouseholdName.trim()) { toast.error('Name is required'); return; }
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${householdId}`, {
+      const res = await fetch(`/api/households/${householdId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newHouseholdName }),
       });
-
-      if (response.ok) {
-        toast.success('Household renamed successfully');
+      if (res.ok) {
+        toast.success('Household renamed');
         await refreshHouseholds();
-        setRenameDialogOpen(false);
-        setNewHouseholdName('');
+        setRenameDialogOpen(false); setNewHouseholdName('');
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to rename household');
+        const d = await res.json();
+        toast.error(d.error || 'Failed to rename');
       }
-    } catch (_error) {
-      toast.error('Failed to rename household');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { toast.error('Failed to rename household'); }
+    finally { setSubmitting(false); }
   }
 
   async function deleteHousehold() {
-    if (!selectedHousehold) return;
-
-    if (deleteConfirmName !== selectedHousehold.name) {
-      toast.error('Household name does not match');
-      return;
+    if (!selectedHousehold || deleteConfirmName !== selectedHousehold.name) {
+      toast.error('Household name does not match'); return;
     }
-
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${householdId}`, {
-        credentials: 'include',
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        toast.success('Household deleted successfully');
-        setDeleteDialogOpen(false);
-        setDeleteConfirmName('');
+      const res = await fetch(`/api/households/${householdId}`, { credentials: 'include', method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Household deleted');
+        setDeleteDialogOpen(false); setDeleteConfirmName('');
         await refreshHouseholds();
-        // Redirect to account settings
         window.location.href = '/dashboard/settings?section=account&tab=profile';
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to delete household');
+        const d = await res.json();
+        toast.error(d.error || 'Failed to delete');
       }
-    } catch (_error) {
-      toast.error('Failed to delete household');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { toast.error('Failed to delete household'); }
+    finally { setSubmitting(false); }
   }
 
   async function changeMemberRole(memberId: string, newRole: string) {
     try {
-      const response = await fetch(`/api/households/${householdId}/members/${memberId}`, {
+      const res = await fetch(`/api/households/${householdId}/members/${memberId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       });
-
-      if (response.ok) {
-        toast.success('Member role updated');
-        setMembers(
-          members.map((m) =>
-            m.id === memberId ? { ...m, role: newRole as HouseholdMember['role'] } : m
-          )
-        );
+      if (res.ok) {
+        toast.success('Role updated');
+        setMembers(members.map(m => m.id === memberId ? { ...m, role: newRole as HouseholdMember['role'] } : m));
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to update role');
+        const d = await res.json();
+        toast.error(d.error || 'Failed to update role');
       }
-    } catch (_error) {
-      toast.error('Failed to update role');
-    }
+    } catch { toast.error('Failed to update role'); }
   }
 
   async function removeMember(memberId: string) {
     if (!confirm('Are you sure you want to remove this member?')) return;
-
     try {
-      const response = await fetch(`/api/households/${householdId}/members/${memberId}`, {
-        credentials: 'include',
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        toast.success('Member removed successfully');
-        setMembers(members.filter((m) => m.id !== memberId));
+      const res = await fetch(`/api/households/${householdId}/members/${memberId}`, { credentials: 'include', method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Member removed');
+        setMembers(members.filter(m => m.id !== memberId));
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to remove member');
+        const d = await res.json();
+        toast.error(d.error || 'Failed to remove');
       }
-    } catch (_error) {
-      toast.error('Failed to remove member');
-    }
+    } catch { toast.error('Failed to remove member'); }
   }
 
   async function copyInviteLink(token: string) {
     const link = `${window.location.origin}/invite/${token}`;
-
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
+      if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(link);
         setCopiedToken(token);
-        toast.success('Invitation link copied');
+        toast.success('Link copied');
         setTimeout(() => setCopiedToken(null), 2000);
         return;
       }
-      toast.error(`Could not copy automatically. Link: ${link}`, { duration: 10000 });
-    } catch (err) {
-      console.error('Clipboard copy failed:', err);
-      toast.error(`Could not copy automatically. Link: ${link}`, { duration: 10000 });
+      toast.error(`Link: ${link}`, { duration: 10000 });
+    } catch {
+      toast.error(`Link: ${link}`, { duration: 10000 });
     }
   }
 
-  function getRoleIcon(role: string) {
-    switch (role) {
-      case 'owner':
-        return <Crown className="w-4 h-4 text-warning" />;
-      case 'admin':
-        return <Shield className="w-4 h-4 text-primary" />;
-      case 'viewer':
-        return <Eye className="w-4 h-4 text-muted-foreground" />;
-      default:
-        return <Users className="w-4 h-4 text-muted-foreground" />;
-    }
-  }
-
-  function getRoleBadgeColor(role: string) {
-    switch (role) {
-      case 'owner':
-        return 'bg-warning text-white';
-      case 'admin':
-        return 'bg-primary text-white';
-      case 'viewer':
-        return 'bg-elevated text-muted-foreground';
-      default:
-        return 'bg-card text-foreground';
-    }
-  }
-
-  const canInvite = userPermissions.invite_members;
-  const canLeave = currentUserRole !== 'owner';
+  const canInvite           = userPermissions.invite_members;
+  const canLeave            = currentUserRole !== 'owner';
   const canManagePermissions = userPermissions.manage_permissions;
-  const canRemoveMembers = userPermissions.remove_members;
-  const isOwner = currentUserRole === 'owner';
+  const canRemoveMembers    = userPermissions.remove_members;
+  const isOwner             = currentUserRole === 'owner';
 
+  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-4">
+        <div className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }} />
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', animationDelay: `${i * 80}ms` }} />
+        ))}
       </div>
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">Members & Access</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage household members, roles, and permissions
-        </p>
-      </div>
+    <div className="space-y-4">
 
-      {/* Household Actions */}
+      {/* ── Household identity card ──────────────────────────────────────── */}
       {selectedHousehold && (
-        <div className="flex items-center justify-between pb-4 border-b border-border">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">{selectedHousehold.name}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
+        <div
+          className="rounded-xl px-4 py-3 flex items-center gap-3"
+          style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}
+        >
+          <div
+            className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0"
+            style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}
+          >
+            <Home className="w-4.5 h-4.5" style={{ color: 'var(--color-primary)' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-semibold truncate" style={{ color: 'var(--color-foreground)' }}>
+              {selectedHousehold.name}
+            </p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)' }}>
               {members.length} {members.length === 1 ? 'member' : 'members'}
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {isOwner && (
               <>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setNewHouseholdName(selectedHousehold.name);
-                    setRenameDialogOpen(true);
-                  }}
-                  className="border-border"
+                  onClick={() => { setNewHouseholdName(selectedHousehold.name); setRenameDialogOpen(true); }}
+                  className="h-7 px-2 text-[12px]"
+                  style={{ color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}
                 >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Rename
+                  <Edit className="w-3 h-3 mr-1" /> Rename
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => setDeleteDialogOpen(true)}
-                  className="border-error text-error hover:bg-error/10"
+                  className="h-7 px-2 text-[12px]"
+                  style={{ color: 'var(--color-destructive)', border: '1px solid color-mix(in oklch, var(--color-destructive) 30%, transparent)' }}
                 >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
+                  <Trash2 className="w-3 h-3 mr-1" /> Delete
                 </Button>
               </>
             )}
             {canLeave && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setLeaveDialogOpen(true)}
-                className="border-error text-error hover:bg-error/10"
+                className="h-7 px-2 text-[12px]"
+                style={{ color: 'var(--color-destructive)', border: '1px solid color-mix(in oklch, var(--color-destructive) 30%, transparent)' }}
               >
-                <LogOut className="w-4 h-4 mr-1" />
-                Leave
+                <LogOut className="w-3 h-3 mr-1" /> Leave
               </Button>
             )}
           </div>
         </div>
       )}
 
-      {/* Members List */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-medium text-foreground">
-            Members ({members.length})
-          </h4>
-          {canInvite && (
+      {/* ── Members ──────────────────────────────────────────────────────── */}
+      <Section
+        icon={Users}
+        label={`Members · ${members.length}`}
+        action={
+          canInvite ? (
             <Button
               size="sm"
               onClick={() => setInviteDialogOpen(true)}
-              className="bg-primary hover:opacity-90"
+              className="h-6 px-2.5 text-[11px] font-medium"
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
             >
-              <UserPlus className="w-4 h-4 mr-1" />
-              Invite Member
+              <UserPlus className="w-3 h-3 mr-1" /> Invite
             </Button>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          {members.map((member) => (
-            <Card
-              key={member.id}
-              className="p-4 bg-elevated border-border"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <UserAvatar
-                    userId={member.userId}
-                    userName={member.userName || member.userEmail}
-                    avatarUrl={member.userAvatarUrl}
-                    size="md"
-                    className="shrink-0"
-                  />
-
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground truncate">
-                      {member.userName || 'Unknown'}
-                    </div>
-                    <div className="text-sm text-muted-foreground truncate">
-                      {member.userEmail}
-                    </div>
-                  </div>
+          ) : undefined
+        }
+      >
+        {members.length === 0 ? (
+          <div className="px-4 py-8 text-center">
+            <p className="text-[13px]" style={{ color: 'var(--color-muted-foreground)' }}>No members yet.</p>
+          </div>
+        ) : (
+          <div className="divide-y" style={{ borderColor: 'color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+            {members.map(member => (
+              <div key={member.id} className="px-4 py-3 flex items-center gap-3 group">
+                <UserAvatar
+                  userId={member.userId}
+                  userName={member.userName || member.userEmail}
+                  avatarUrl={member.userAvatarUrl}
+                  size="sm"
+                  className="shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium truncate" style={{ color: 'var(--color-foreground)' }}>
+                    {member.userName || 'Unknown'}
+                  </p>
+                  <p className="text-[11px] truncate" style={{ color: 'var(--color-muted-foreground)' }}>
+                    {member.userEmail}
+                  </p>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {canManagePermissions ? (
-                    <Select
-                      value={member.role}
-                      onValueChange={(newRole) => changeMemberRole(member.id, newRole)}
-                    >
-                      <SelectTrigger className="w-32 bg-card border-border text-foreground text-sm">
+                    <Select value={member.role} onValueChange={v => changeMemberRole(member.id, v)}>
+                      <SelectTrigger className="h-7 w-28 text-[12px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
+                      <SelectContent>
                         <SelectItem value="owner">Owner</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="member">Member</SelectItem>
@@ -465,329 +406,194 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Badge className={getRoleBadgeColor(member.role)}>
-                      <div className="flex items-center gap-1">
-                        {getRoleIcon(member.role)}
-                        {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                      </div>
-                    </Badge>
+                    <span
+                      className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full"
+                      style={{
+                        backgroundColor: `color-mix(in oklch, ${ROLE_COLORS[member.role]} 12%, transparent)`,
+                        color: ROLE_COLORS[member.role],
+                      }}
+                    >
+                      <RoleIcon role={member.role} />
+                      {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                    </span>
                   )}
 
                   {canManagePermissions && member.role !== 'owner' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => {
-                        setSelectedMemberForPermissions({
-                          id: member.id,
-                          name: member.userName || member.userEmail,
-                          role: member.role,
-                        });
+                        setSelectedMemberForPermissions({ id: member.id, name: member.userName || member.userEmail, role: member.role });
                         setPermissionManagerOpen(true);
                       }}
-                      className="text-foreground hover:bg-elevated"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: 'var(--color-muted-foreground)' }}
                       title="Manage Permissions"
                     >
-                      <Settings className="w-4 h-4" />
-                    </Button>
+                      <Settings className="w-3.5 h-3.5" />
+                    </button>
                   )}
 
                   {canRemoveMembers && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => removeMember(member.id)}
-                      className="text-error hover:bg-error/10"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: 'var(--color-destructive)' }}
+                      title="Remove member"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Pending Invitations */}
-      {invitations.length > 0 && (
-        <div>
-          <h4 className="font-medium text-foreground mb-4">
-            Pending Invitations ({invitations.length})
-          </h4>
-
-          <div className="space-y-2">
-            {invitations.map((invitation) => (
-              <Card
-                key={invitation.id}
-                className="p-4 bg-elevated border-border border-warning/30"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground truncate">
-                      {invitation.invitedEmail}
-                    </div>
-                    <div className="text-sm text-muted-foreground capitalize">
-                      Role: {invitation.role}
-                    </div>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyInviteLink(invitation.invitationToken)}
-                    className="border-border text-muted-foreground shrink-0"
-                  >
-                    {copiedToken === invitation.invitationToken ? (
-                      <>
-                        <Check className="w-4 h-4 mr-1" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy Link
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </Card>
             ))}
           </div>
-        </div>
+        )}
+      </Section>
+
+      {/* ── Pending Invitations ───────────────────────────────────────────── */}
+      {invitations.length > 0 && (
+        <Section
+          icon={UserPlus}
+          label={`Pending Invitations · ${invitations.length}`}
+          accent="var(--color-warning)"
+        >
+          <div className="divide-y" style={{ borderColor: 'color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+            {invitations.map(inv => (
+              <div key={inv.id} className="px-4 py-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium truncate" style={{ color: 'var(--color-foreground)' }}>{inv.invitedEmail}</p>
+                  <p className="text-[11px] capitalize" style={{ color: 'var(--color-muted-foreground)' }}>Role: {inv.role}</p>
+                </div>
+                <button
+                  onClick={() => copyInviteLink(inv.invitationToken)}
+                  className="flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-lg transition-colors shrink-0"
+                  style={{ border: '1px solid var(--color-border)', color: copiedToken === inv.invitationToken ? 'var(--color-success)' : 'var(--color-muted-foreground)', backgroundColor: 'var(--color-elevated)' }}
+                >
+                  {copiedToken === inv.invitationToken
+                    ? <><Check className="w-3 h-3" /> Copied</>
+                    : <><Copy className="w-3 h-3" /> Copy Link</>
+                  }
+                </button>
+              </div>
+            ))}
+          </div>
+        </Section>
       )}
 
-      {/* Invite Dialog */}
+      {/* ── Dialogs ───────────────────────────────────────────────────────── */}
+
+      {/* Invite */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: '1rem', maxWidth: '26rem', boxShadow: '0 24px 64px -12px color-mix(in oklch, var(--color-foreground) 18%, transparent)' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Invite Member</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Send an invitation to join your household
-            </DialogDescription>
+            <DialogTitle className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>Invite Member</DialogTitle>
+            <DialogDescription className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Send an invitation to join your household.</DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="inviteEmail" className="text-foreground">Email</Label>
-              <Input
-                id="inviteEmail"
-                name="inviteEmail"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="member@example.com"
-                className="mt-1 bg-elevated border-border"
-              />
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="inviteEmail" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Email</Label>
+              <Input id="inviteEmail" name="inviteEmail" type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="member@example.com" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }} />
             </div>
-
-            <div>
-              <Label htmlFor="inviteRole" className="text-foreground">Role</Label>
-              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as 'admin' | 'member' | 'viewer')}>
-                <SelectTrigger id="inviteRole" className="mt-1 bg-elevated border-border">
+            <div className="space-y-1.5">
+              <Label htmlFor="inviteRole" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>Role</Label>
+              <Select value={inviteRole} onValueChange={v => setInviteRole(v as 'admin' | 'member' | 'viewer')}>
+                <SelectTrigger id="inviteRole" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin - Full access</SelectItem>
-                  <SelectItem value="member">Member - Standard access</SelectItem>
-                  <SelectItem value="viewer">Viewer - Read only</SelectItem>
+                  <SelectItem value="admin">Admin — Full access</SelectItem>
+                  <SelectItem value="member">Member — Standard access</SelectItem>
+                  <SelectItem value="viewer">Viewer — Read only</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setInviteDialogOpen(false);
-                setInviteEmail('');
-                setInviteRole('member');
-              }}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button onClick={inviteMember} disabled={!inviteEmail.trim() || submitting}>
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <UserPlus className="w-4 h-4 mr-2" />
-              )}
+            <Button variant="ghost" onClick={() => { setInviteDialogOpen(false); setInviteEmail(''); setInviteRole('member'); }} className="text-[13px]" style={{ color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}>Cancel</Button>
+            <Button onClick={inviteMember} disabled={!inviteEmail.trim() || submitting} className="text-[13px] font-medium" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5 mr-1.5" />}
               Send Invitation
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Leave Dialog */}
+      {/* Leave */}
       <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: '1rem', maxWidth: '26rem', boxShadow: '0 24px 64px -12px color-mix(in oklch, var(--color-foreground) 18%, transparent)' }}>
           <DialogHeader>
-            <DialogTitle className="text-error">
-              Leave Household
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle className="text-base font-semibold" style={{ color: 'var(--color-destructive)' }}>Leave Household</DialogTitle>
+            <DialogDescription className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
               Are you sure you want to leave &quot;{selectedHousehold?.name}&quot;? You&apos;ll lose access to all shared data.
             </DialogDescription>
           </DialogHeader>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setLeaveDialogOpen(false)}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={leaveHousehold}
-              disabled={submitting}
-              className="bg-error hover:bg-error/90"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <LogOut className="w-4 h-4 mr-2" />
-              )}
-              Leave Household
+            <Button variant="ghost" onClick={() => setLeaveDialogOpen(false)} className="text-[13px]" style={{ color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}>Cancel</Button>
+            <Button onClick={leaveHousehold} disabled={submitting} className="text-[13px] font-medium" style={{ backgroundColor: 'var(--color-destructive)', color: '#fff' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5 mr-1.5" />}
+              Leave
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Rename Household Dialog */}
+      {/* Rename */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: '1rem', maxWidth: '26rem', boxShadow: '0 24px 64px -12px color-mix(in oklch, var(--color-foreground) 18%, transparent)' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">
-              Rename Household
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Enter a new name for your household
-            </DialogDescription>
+            <DialogTitle className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>Rename Household</DialogTitle>
+            <DialogDescription className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>Enter a new name for your household.</DialogDescription>
           </DialogHeader>
-
-          <div className="py-4">
-            <Label htmlFor="newHouseholdName" className="text-foreground">
-              Household Name
-            </Label>
-            <Input
-              id="newHouseholdName"
-              name="newHouseholdName"
-              type="text"
-              value={newHouseholdName}
-              onChange={(e) => setNewHouseholdName(e.target.value)}
-              placeholder="e.g., The Smiths"
-              className="mt-2 bg-elevated border-border"
-              autoFocus
-            />
+          <div className="py-2 space-y-1.5">
+            <Label htmlFor="newHouseholdName" className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-muted-foreground)' }}>New Name</Label>
+            <Input id="newHouseholdName" name="newHouseholdName" type="text" value={newHouseholdName} onChange={e => setNewHouseholdName(e.target.value)} placeholder="e.g., The Smiths" className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }} autoFocus />
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRenameDialogOpen(false);
-                setNewHouseholdName('');
-              }}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={renameHousehold}
-              disabled={!newHouseholdName.trim() || submitting}
-              className="bg-primary hover:opacity-90"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Edit className="w-4 h-4 mr-2" />
-              )}
-              Rename Household
+            <Button variant="ghost" onClick={() => { setRenameDialogOpen(false); setNewHouseholdName(''); }} className="text-[13px]" style={{ color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}>Cancel</Button>
+            <Button onClick={renameHousehold} disabled={!newHouseholdName.trim() || submitting} className="text-[13px] font-medium" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Edit className="w-3.5 h-3.5 mr-1.5" />}
+              Rename
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Household Dialog */}
+      {/* Delete */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent style={{ backgroundColor: 'var(--color-background)', border: '1px solid color-mix(in oklch, var(--color-destructive) 35%, var(--color-border))', borderRadius: '1rem', maxWidth: '28rem', boxShadow: '0 24px 64px -12px color-mix(in oklch, var(--color-destructive) 20%, transparent)' }}>
           <DialogHeader>
-            <DialogTitle className="text-error">
-              Delete Household
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              This action is permanent and cannot be undone. All household data including transactions,
-              budgets, and bills will be permanently deleted.
+            <DialogTitle className="text-base font-semibold" style={{ color: 'var(--color-destructive)' }}>Delete Household</DialogTitle>
+            <DialogDescription className="text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
+              This is permanent and cannot be undone. All household data including transactions, budgets, and bills will be deleted.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="py-4">
-            <Label htmlFor="deleteConfirm" className="text-foreground">
-              Type the household name <span className="font-semibold">&quot;{selectedHousehold?.name}&quot;</span> to confirm
+          <div className="py-2 space-y-1.5">
+            <Label htmlFor="deleteConfirm" className="text-[11px] font-medium" style={{ color: 'var(--color-muted-foreground)' }}>
+              Type <strong style={{ color: 'var(--color-foreground)' }}>&quot;{selectedHousehold?.name}&quot;</strong> to confirm
             </Label>
-            <Input
-              id="deleteConfirm"
-              name="deleteConfirm"
-              type="text"
-              value={deleteConfirmName}
-              onChange={(e) => setDeleteConfirmName(e.target.value)}
-              placeholder={selectedHousehold?.name}
-              className="mt-2 bg-elevated border-border"
-            />
+            <Input id="deleteConfirm" name="deleteConfirm" type="text" value={deleteConfirmName} onChange={e => setDeleteConfirmName(e.target.value)} placeholder={selectedHousehold?.name} className="h-9 text-[13px]" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }} />
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                setDeleteConfirmName('');
-              }}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={deleteHousehold}
-              disabled={deleteConfirmName !== selectedHousehold?.name || submitting}
-              className="bg-error hover:bg-error/90"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Delete Household
+            <Button variant="ghost" onClick={() => { setDeleteDialogOpen(false); setDeleteConfirmName(''); }} className="text-[13px]" style={{ color: 'var(--color-muted-foreground)', border: '1px solid var(--color-border)' }}>Cancel</Button>
+            <Button onClick={deleteHousehold} disabled={deleteConfirmName !== selectedHousehold?.name || submitting} className="text-[13px] font-medium" style={{ backgroundColor: 'var(--color-destructive)', color: '#fff' }}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />}
+              Delete Permanently
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Permission Manager Dialog */}
+      {/* Permission Manager */}
       {selectedMemberForPermissions && (
         <PermissionManager
           open={permissionManagerOpen}
-          onOpenChange={(open) => {
-            setPermissionManagerOpen(open);
-            if (!open) {
-              setSelectedMemberForPermissions(null);
-            }
-          }}
+          onOpenChange={open => { setPermissionManagerOpen(open); if (!open) setSelectedMemberForPermissions(null); }}
           householdId={householdId}
           memberId={selectedMemberForPermissions.id}
           memberName={selectedMemberForPermissions.name}
           memberRole={selectedMemberForPermissions.role}
-          onSave={() => {
-            fetchHouseholdDetails();
-          }}
+          onSave={fetchHouseholdDetails}
         />
       )}
     </div>
   );
 }
-

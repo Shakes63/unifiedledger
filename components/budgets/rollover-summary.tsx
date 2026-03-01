@@ -184,10 +184,10 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = 
 
   if (loading) {
     return (
-      <div className="bg-card border border-border rounded-xl p-4">
+      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="animate-pulse">
-          <div className="h-5 bg-muted rounded w-1/3 mb-3"></div>
-          <div className="h-4 bg-muted rounded w-1/2"></div>
+          <div className="h-5 rounded w-1/3 mb-3" style={{ backgroundColor: 'var(--color-muted)' }}></div>
+          <div className="h-4 rounded w-1/2" style={{ backgroundColor: 'var(--color-muted)' }}></div>
         </div>
       </div>
     );
@@ -204,37 +204,40 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = 
   const showContent = hideHeader || isExpanded;
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
       {/* Header - Only visible when not hideHeader */}
       {!hideHeader && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-elevated transition-colors"
+          className="w-full px-4 py-3 flex items-center justify-between transition-colors"
+          style={{ backgroundColor: 'transparent' }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
         >
           <div className="flex items-center gap-3">
-            <RefreshCcw className="w-5 h-5 text-primary" />
+            <RefreshCcw className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
             <div className="text-left">
-              <h3 className="text-sm font-medium text-foreground">Budget Rollover</h3>
-              <p className="text-xs text-muted-foreground">
+              <h3 className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Budget Rollover</h3>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 {categoriesWithRollover.length} categories with ${data.totalRolloverBalance.toFixed(2)} total
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {data.totalRolloverBalance > 0 && (
-              <span className="px-2 py-1 text-xs font-medium rounded-full bg-success/20 text-success">
+              <span className="px-2 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)', color: 'var(--color-success)' }}>
                 +${data.totalRolloverBalance.toFixed(2)}
               </span>
             )}
             {data.totalRolloverBalance < 0 && (
-              <span className="px-2 py-1 text-xs font-medium rounded-full bg-error/20 text-error">
+              <span className="px-2 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)', color: 'var(--color-destructive)' }}>
                 ${data.totalRolloverBalance.toFixed(2)}
               </span>
             )}
             {isExpanded ? (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
             ) : (
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              <ChevronRight className="w-5 h-5" style={{ color: 'var(--color-muted-foreground)' }} />
             )}
           </div>
         </button>
@@ -242,37 +245,36 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = 
 
       {/* Content - Shown when expanded or when hideHeader is true */}
       {showContent && (
-        <div className="border-t border-border">
+        <div style={{ borderTop: '1px solid var(--color-border)' }}>
           {/* Info Banner */}
-          <div className="px-4 py-2 bg-muted/50 text-xs text-muted-foreground">
+          <div className="px-4 py-2 text-xs" style={{ backgroundColor: 'color-mix(in oklch, var(--color-muted) 50%, transparent)', color: 'var(--color-muted-foreground)' }}>
             Rollover allows unused budget from one month to carry forward to the next.
             {data.allowNegativeRollover && (
-              <span className="ml-1 text-warning">
+              <span className="ml-1" style={{ color: 'var(--color-warning)' }}>
                 Negative rollover is enabled for this household.
               </span>
             )}
           </div>
 
           {/* Category List */}
-          <div className="divide-y divide-border">
-            {expenseCategories.map(category => (
-              <div key={category.id} className="px-4 py-3 flex items-center justify-between">
+          <div>
+            {expenseCategories.map((category, index) => (
+              <div key={category.id} className="px-4 py-3 flex items-center justify-between" style={{ borderTop: index > 0 ? '1px solid var(--color-border)' : undefined }}>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground">{category.name}</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>{category.name}</span>
                     {category.rolloverEnabled && category.rolloverBalance !== 0 && (
                       <span 
-                        className={`px-1.5 py-0.5 text-xs rounded ${
-                          category.rolloverBalance > 0
-                            ? 'bg-success/20 text-success'
-                            : 'bg-error/20 text-error'
-                        }`}
+                        className="px-1.5 py-0.5 text-xs rounded"
+                        style={category.rolloverBalance > 0
+                          ? { backgroundColor: 'color-mix(in oklch, var(--color-success) 20%, transparent)', color: 'var(--color-success)' }
+                          : { backgroundColor: 'color-mix(in oklch, var(--color-destructive) 20%, transparent)', color: 'var(--color-destructive)' }}
                       >
                         {category.rolloverBalance >= 0 ? '+' : ''}${category.rolloverBalance.toFixed(2)}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                     Budget: ${category.monthlyBudget.toFixed(2)}
                     {category.rolloverEnabled && category.rolloverLimit !== null && (
                       <span className="ml-2">
@@ -293,19 +295,24 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = 
                             value={editLimit}
                             onChange={e => setEditLimit(e.target.value)}
                             placeholder="No limit"
-                            className="w-20 bg-input border border-border rounded px-2 py-1 text-xs"
+                            className="w-20 rounded px-2 py-1 text-xs"
+                            style={{ backgroundColor: 'var(--color-input)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                             min="0"
                             step="0.01"
                           />
                           <button
                             onClick={() => handleSaveLimit(category.id)}
-                            className="px-2 py-1 text-xs bg-primary text-white rounded hover:opacity-90"
+                            className="px-2 py-1 text-xs rounded hover:opacity-90"
+                            style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
                           >
                             Save
                           </button>
                           <button
                             onClick={() => setEditingCategory(null)}
-                            className="px-2 py-1 text-xs bg-muted text-foreground rounded hover:bg-elevated"
+                            className="px-2 py-1 text-xs rounded"
+                            style={{ backgroundColor: 'var(--color-muted)', color: 'var(--color-foreground)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-muted)'; }}
                           >
                             Cancel
                           </button>
@@ -317,7 +324,10 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = 
                               setEditingCategory(category.id);
                               setEditLimit(category.rolloverLimit?.toString() || '');
                             }}
-                            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                            className="p-1 transition-colors"
+                            style={{ color: 'var(--color-muted-foreground)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
                             title="Edit rollover limit"
                           >
                             <Settings2 className="w-4 h-4" />
@@ -325,7 +335,10 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = 
                           {category.rolloverBalance !== 0 && (
                             <button
                               onClick={() => handleResetRollover(category.id, category.name)}
-                              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                              className="px-2 py-1 text-xs transition-colors"
+                              style={{ color: 'var(--color-muted-foreground)' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)'; }}
                             >
                               Reset
                             </button>
@@ -338,11 +351,8 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = 
                   {/* Toggle */}
                   <button
                     onClick={() => handleToggleRollover(category.id, !category.rolloverEnabled)}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${
-                      category.rolloverEnabled 
-                        ? 'bg-primary' 
-                        : 'bg-muted'
-                    }`}
+                    className="relative w-10 h-5 rounded-full transition-colors"
+                    style={{ backgroundColor: category.rolloverEnabled ? 'var(--color-primary)' : 'var(--color-muted)' }}
                     title={category.rolloverEnabled ? 'Disable rollover' : 'Enable rollover'}
                   >
                     <span
@@ -358,7 +368,7 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = 
 
           {/* Empty State */}
           {expenseCategories.length === 0 && (
-            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+            <div className="px-4 py-6 text-center text-sm" style={{ color: 'var(--color-muted-foreground)' }}>
               No expense categories available for rollover.
             </div>
           )}

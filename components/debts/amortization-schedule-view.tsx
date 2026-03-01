@@ -61,8 +61,8 @@ export function AmortizationScheduleView({
     <div className={className}>
       {/* Debt Selector (if multiple debts) */}
       {hasMultipleDebts && (
-        <div className="mb-6 bg-card rounded-xl border border-border p-4">
-          <label className="block text-sm font-semibold text-muted-foreground uppercase mb-3">
+        <div className="mb-6 rounded-xl p-4" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+          <label className="block text-sm font-semibold uppercase mb-3" style={{ color: 'var(--color-muted-foreground)' }}>
             Select Debt
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -74,24 +74,23 @@ export function AmortizationScheduleView({
                 <button
                   key={schedule.debtId}
                   onClick={() => setActiveDebtIndex(index)}
-                  className={`
-                    p-3 rounded-lg border transition-all text-left
-                    ${isActive
-                      ? 'bg-accent/20 border-accent ring-2 ring-accent/50'
-                      : 'bg-elevated border-border hover:bg-(--border)/20'
-                    }
-                  `}
+                  className="p-3 rounded-lg border transition-all text-left"
+                  style={
+                    isActive
+                      ? { backgroundColor: 'color-mix(in oklch, var(--color-accent) 20%, transparent)', border: '1px solid var(--color-accent)', boxShadow: '0 0 0 2px color-mix(in oklch, var(--color-accent) 50%, transparent)' }
+                      : { backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }
+                  }
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <CreditCard className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-muted-foreground">
+                    <CreditCard className="w-4 h-4" style={{ color: 'var(--color-muted-foreground)' }} />
+                    <span className="text-xs font-semibold" style={{ color: 'var(--color-muted-foreground)' }}>
                       #{payoffOrder.order}
                     </span>
                   </div>
-                  <div className="text-sm font-semibold text-foreground truncate">
+                  <div className="text-sm font-semibold truncate" style={{ color: 'var(--color-foreground)' }}>
                     {schedule.debtName}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
+                  <div className="text-xs mt-1" style={{ color: 'var(--color-muted-foreground)' }}>
                     ${schedule.originalBalance.toLocaleString()} • {schedule.monthsToPayoff}mo
                   </div>
                 </button>
@@ -102,43 +101,37 @@ export function AmortizationScheduleView({
       )}
 
       {/* View Tabs */}
-      <div className="mb-6 bg-card rounded-xl border border-border p-2">
+      <div className="mb-6 rounded-xl p-2" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex gap-2">
           <button
             onClick={() => setView('overview')}
-            className={`
-              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2
-              ${view === 'overview'
-                ? 'bg-accent text-accent-foreground shadow-lg'
-                : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-              }
-            `}
+            className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            style={{
+              backgroundColor: view === 'overview' ? 'var(--color-accent)' : 'transparent',
+              color: view === 'overview' ? 'var(--color-accent-foreground)' : 'var(--color-muted-foreground)',
+            }}
           >
             <Calendar className="w-4 h-4" />
             Overview
           </button>
           <button
             onClick={() => setView('table')}
-            className={`
-              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2
-              ${view === 'table'
-                ? 'bg-accent text-accent-foreground shadow-lg'
-                : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-              }
-            `}
+            className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            style={{
+              backgroundColor: view === 'table' ? 'var(--color-accent)' : 'transparent',
+              color: view === 'table' ? 'var(--color-accent-foreground)' : 'var(--color-muted-foreground)',
+            }}
           >
             <ClipboardList className="w-4 h-4" />
             Full Schedule
           </button>
           <button
             onClick={() => setView('chart')}
-            className={`
-              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2
-              ${view === 'chart'
-                ? 'bg-accent text-accent-foreground shadow-lg'
-                : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-              }
-            `}
+            className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            style={{
+              backgroundColor: view === 'chart' ? 'var(--color-accent)' : 'transparent',
+              color: view === 'chart' ? 'var(--color-accent-foreground)' : 'var(--color-muted-foreground)',
+            }}
           >
             <BarChart3 className="w-4 h-4" />
             Charts
@@ -153,14 +146,14 @@ export function AmortizationScheduleView({
           <div className="space-y-6">
             <PayoffTimeline strategy={strategy} />
 
-            <div className="bg-accent/10 border border-accent/30 rounded-xl p-4">
+            <div className="rounded-xl p-4" style={{ backgroundColor: 'color-mix(in oklch, var(--color-accent) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--color-accent) 30%, transparent)' }}>
               <div className="flex items-start gap-3">
-                <Lightbulb className="w-6 h-6 text-accent shrink-0" />
+                <Lightbulb className="w-6 h-6 shrink-0" style={{ color: 'var(--color-accent)' }} />
                 <div>
-                  <h4 className="text-sm font-semibold text-accent mb-1">
+                  <h4 className="text-sm font-semibold mb-1" style={{ color: 'var(--color-accent)' }}>
                     Interactive Amortization Schedule
                   </h4>
-                  <p className="text-sm text-foreground">
+                  <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>
                     Switch to <span className="font-semibold">Full Schedule</span> to see all {activeSchedule.monthlyBreakdown.length} months,
                     or view <span className="font-semibold">Charts</span> to visualize how your payments split between principal and interest over time.
                     Click any month to see detailed breakdowns and projections.

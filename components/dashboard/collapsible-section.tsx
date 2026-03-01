@@ -42,38 +42,38 @@ export function CollapsibleSection({
   };
 
   return (
-    <div className="mb-8">
-      {/* Header */}
+    <div className="mb-6">
       <button
         onClick={toggleExpanded}
-        className="w-full flex items-center justify-between p-4 rounded-xl border transition-all hover:bg-elevated"
+        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all hover:bg-[var(--color-elevated)] group"
         style={{
-          backgroundColor: 'var(--color-card)',
+          backgroundColor: 'var(--color-background)',
           borderColor: 'var(--color-border)',
         }}
       >
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         <div
-          className="transition-transform duration-300"
+          className="w-1 h-5 rounded-full transition-colors duration-300"
           style={{
-            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            backgroundColor: isExpanded ? 'var(--color-primary)' : 'var(--color-border)',
           }}
-        >
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
-        </div>
+        />
+        <h2 className="text-base font-semibold flex-1 text-left" style={{ color: 'var(--color-foreground)' }}>
+          {title}
+        </h2>
+        <ChevronDown
+          className="w-4 h-4 transition-transform duration-300"
+          style={{ color: 'var(--color-muted-foreground)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
       </button>
 
-      {/* Content */}
       <div
-        className="overflow-hidden transition-all duration-300"
+        className="overflow-hidden transition-all duration-300 ease-out"
         style={{
           maxHeight: isExpanded ? '2000px' : '0',
           opacity: isExpanded ? 1 : 0,
         }}
       >
-        <div className="pt-4">
-          {children}
-        </div>
+        <div className="pt-4">{children}</div>
       </div>
     </div>
   );

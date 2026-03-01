@@ -50,6 +50,14 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
     return "Congratulations! You've completed the onboarding. Here's what you can do next.";
   };
 
+  const tipItems = isInvitedUser
+    ? ['View shared accounts and their balances', 'See transactions from all household members', 'Track bills and upcoming payments', 'Monitor progress on shared goals']
+    : demoDataCleared
+    ? ['Create your first account to track your finances', 'Add transactions to start building history', 'Set up bills for recurring expenses', 'Create savings goals to work towards']
+    : ['Import transactions from CSV files', 'Set up categorization rules for automatic organization', 'Create budgets to track your spending', 'Invite family members to share households'];
+
+  const tipTitle = isInvitedUser ? 'What You Can Do' : demoDataCleared ? 'Getting Started' : 'Pro Tips';
+
   return (
     <OnboardingStep
       stepNumber={totalSteps}
@@ -61,101 +69,46 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
       isLoading={isLoading}
       nextLabel={isInvitedUser ? "Go to Dashboard" : "Start Using Unified Ledger"}
     >
-      <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
-        <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center">
-          <CheckCircle2 className="w-10 h-10 text-success" />
-        </div>
-
-        <div className="space-y-4 max-w-md">
-          {isInvitedUser ? (
-            <>
-              <h3 className="text-xl font-semibold text-foreground">
-                Welcome to the Team!
-              </h3>
-              <p className="text-muted-foreground">
-                You&apos;ve successfully joined the household. You can now view shared accounts, 
-                transactions, and collaborate on budgets and goals.
-              </p>
-            </>
-          ) : demoDataCleared ? (
-            <>
-              <h3 className="text-xl font-semibold text-foreground">
-                Welcome to Unified Ledger!
-              </h3>
-              <p className="text-muted-foreground">
-                You&apos;ve chosen to start fresh. Create your first account and begin tracking your finances right away.
-              </p>
-            </>
-          ) : (
-            <>
-              <h3 className="text-xl font-semibold text-foreground">
-                Welcome to Unified Ledger!
-              </h3>
-              <p className="text-muted-foreground">
-                You&apos;ve set up the basics. Now you can start tracking your finances, managing budgets,
-                and achieving your financial goals.
-              </p>
-            </>
-          )}
+      <div className="flex flex-col items-center py-6 space-y-6">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 12%, transparent)', border: '1px solid color-mix(in oklch, var(--color-success) 20%, transparent)' }}>
+          <CheckCircle2 className="w-8 h-8" style={{ color: 'var(--color-success)' }} />
         </div>
 
         <div className="w-full max-w-md space-y-4">
-          <h4 className="text-sm font-semibold text-foreground text-left">
-            Quick Links
-          </h4>
-          <div className="grid grid-cols-2 gap-3">
-            {quickLinks.map((link) => (
-              <Link key={link.href} href={link.href}>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start border-border text-foreground hover:bg-elevated"
-                >
-                  <link.icon className="w-4 h-4 mr-2" />
-                  {link.label}
-                </Button>
-              </Link>
-            ))}
+          {/* Quick Links */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--color-muted-foreground)' }}>Quick Links</p>
+            <div className="grid grid-cols-2 gap-2">
+              {quickLinks.map(link => (
+                <Link key={link.href} href={link.href}>
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-colors hover:opacity-80" style={{ backgroundColor: 'var(--color-elevated)', border: '1px solid var(--color-border)' }}>
+                    <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 10%, transparent)' }}>
+                      <link.icon className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+                    </div>
+                    <span className="text-[12px] font-medium" style={{ color: 'var(--color-foreground)' }}>{link.label}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Tips */}
+          <div className="rounded-xl px-4 py-4" style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+            <p className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--color-muted-foreground)' }}>{tipTitle}</p>
+            <div className="space-y-2">
+              {tipItems.map(item => (
+                <div key={item} className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: 'color-mix(in oklch, var(--color-success) 12%, transparent)' }}>
+                    <span className="text-[9px] font-bold" style={{ color: 'var(--color-success)' }}>✓</span>
+                  </div>
+                  <span className="text-[12px]" style={{ color: 'var(--color-muted-foreground)' }}>{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {isInvitedUser ? (
-          <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
-            <p className="text-sm font-medium text-foreground mb-2">What You Can Do:</p>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>View shared accounts and their balances</li>
-              <li>See transactions from all household members</li>
-              <li>Track bills and upcoming payments</li>
-              <li>Monitor progress on shared goals</li>
-            </ul>
-          </div>
-        ) : demoDataCleared ? (
-          <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
-            <p className="text-sm font-medium text-foreground mb-2">Getting Started:</p>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Create your first account to track your finances</li>
-              <li>Add transactions to start building your history</li>
-              <li>Set up bills for recurring expenses</li>
-              <li>Create savings goals to work towards</li>
-            </ul>
-          </div>
-        ) : (
-          <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
-            <p className="text-sm font-medium text-foreground mb-2">Pro Tips:</p>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Import transactions from CSV files</li>
-              <li>Set up categorization rules for automatic organization</li>
-              <li>Create budgets to track your spending</li>
-              <li>Invite family members to share households</li>
-            </ul>
-          </div>
-        )}
-
-        <Button
-          onClick={handleComplete}
-          className="mt-6 bg-primary text-background hover:opacity-90"
-          size="lg"
-          disabled={isLoading}
-        >
+        <Button onClick={handleComplete} disabled={isLoading} className="h-10 px-6 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
           {isInvitedUser ? 'Go to Dashboard' : 'Start Using Unified Ledger'}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
