@@ -1095,8 +1095,7 @@ export function RuleBuilder({
                                     {acc.color && (
                                       <div
                                         className="w-3 h-3 rounded-full"
-                                        style={{ border: '1px solid var(--color-border)' }}
-                                        style={{ backgroundColor: acc.color }}
+                                        style={{ border: '1px solid var(--color-border)', backgroundColor: acc.color }}
                                       />
                                     )}
                                     <span style={{ color: 'var(--color-foreground)' }}>{acc.name}</span>
@@ -1622,8 +1621,7 @@ export function RuleBuilder({
                                       {account.color && (
                                         <div
                                           className="w-3 h-3 rounded-full"
-                                        style={{ border: '1px solid var(--color-border)' }}
-                                          style={{ backgroundColor: account.color }}
+                                          style={{ border: '1px solid var(--color-border)', backgroundColor: account.color }}
                                         />
                                       )}
                                       <span style={{ color: 'var(--color-foreground)' }}>{account.name}</span>

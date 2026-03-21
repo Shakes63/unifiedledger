@@ -9,6 +9,7 @@ import {
 } from 'date-fns';
 import { Check, Target, CreditCard, Trophy } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface GoalSummary {
   id: string;
@@ -103,13 +104,16 @@ interface CalendarWeekProps {
   currentDate: Date;
   daySummaries?: Record<string, DayTransactionSummary>;
   onDayClick?: (date: Date) => void;
+  billDisplayMode: 'due-date' | 'budget-cycle';
 }
 
 export function CalendarWeek({
   currentDate,
   daySummaries = {},
   onDayClick: _onDayClick,
+  billDisplayMode,
 }: CalendarWeekProps) {
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const currentDateTime = currentDate.getTime();
   const weekStart = useMemo(() => startOfWeek(new Date(currentDateTime)), [currentDateTime]);
   const weekEnd = useMemo(() => endOfWeek(new Date(currentDateTime)), [currentDateTime]);
@@ -120,6 +124,12 @@ export function CalendarWeek({
   // Fetch transactions for the week
   useEffect(() => {
     const fetchWeekTransactions = async () => {
+      if (!selectedHouseholdId) {
+        setWeekTransactions({});
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const transactions: Record<string, Transaction[]> = {};
       // Calculate days inside the effect to avoid stale closure
@@ -128,7 +138,9 @@ export function CalendarWeek({
       for (const day of effectDays) {
         const dayKey = format(day, 'yyyy-MM-dd');
         try {
-          const response = await fetch(`/api/calendar/day?date=${day.toISOString()}`, { credentials: 'include' });
+          const response = await fetchWithHousehold(
+            `/api/calendar/day?date=${day.toISOString()}&billDisplayMode=${billDisplayMode}`
+          );
           if (response.ok) {
             const data = await response.json();
             transactions[dayKey] = data.transactions || [];
@@ -144,7 +156,7 @@ export function CalendarWeek({
     };
 
     fetchWeekTransactions();
-  }, [weekStart, weekEnd]);
+  }, [billDisplayMode, fetchWithHousehold, selectedHouseholdId, weekEnd, weekStart]);
 
   return (
     <div className="space-y-4">

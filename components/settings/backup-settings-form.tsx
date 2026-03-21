@@ -34,7 +34,7 @@ function Section({
   footer,
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   accent?: string;
   footer?: React.ReactNode;

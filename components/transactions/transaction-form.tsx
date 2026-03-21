@@ -1478,8 +1478,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               return tag ? (
                 <Badge
                   key={tag.id}
-                  style={{ color: 'var(--color-foreground)' }}
-                  style={{ backgroundColor: tag.color }}
+                  style={{ color: 'var(--color-foreground)', backgroundColor: tag.color }}
                 >
                   {tag.name}
                   <button

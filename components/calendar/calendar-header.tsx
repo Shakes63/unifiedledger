@@ -15,6 +15,8 @@ interface CalendarHeaderProps {
   onDateChange: (date: Date) => void;
   viewMode: 'month' | 'week';
   onViewModeChange: (mode: 'month' | 'week') => void;
+  billDisplayMode: 'due-date' | 'budget-cycle';
+  onBillDisplayModeChange: (mode: 'due-date' | 'budget-cycle') => void;
 }
 
 export function CalendarHeader({
@@ -22,9 +24,11 @@ export function CalendarHeader({
   onDateChange,
   viewMode,
   onViewModeChange,
+  billDisplayMode,
+  onBillDisplayModeChange,
 }: CalendarHeaderProps) {
   return (
-    <div className="flex items-center gap-2 sm:gap-3">
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
       {/* Month/Week navigation */}
       <div className="flex items-center gap-0.5">
         <Button
@@ -79,6 +83,43 @@ export function CalendarHeader({
           }}
         >
           Week
+        </button>
+      </div>
+
+      <div
+        className="flex rounded-lg overflow-hidden"
+        style={{ border: '1px solid var(--color-border)' }}
+      >
+        <button
+          onClick={() => onBillDisplayModeChange('due-date')}
+          className="px-2.5 py-1 text-[11px] font-medium transition-colors"
+          style={{
+            backgroundColor:
+              billDisplayMode === 'due-date' ? 'var(--color-primary)' : 'transparent',
+            color:
+              billDisplayMode === 'due-date'
+                ? 'var(--color-primary-foreground)'
+                : 'var(--color-muted-foreground)',
+          }}
+        >
+          Due Dates
+        </button>
+        <button
+          onClick={() => onBillDisplayModeChange('budget-cycle')}
+          className="px-2.5 py-1 text-[11px] font-medium transition-colors"
+          style={{
+            backgroundColor:
+              billDisplayMode === 'budget-cycle'
+                ? 'var(--color-primary)'
+                : 'transparent',
+            color:
+              billDisplayMode === 'budget-cycle'
+                ? 'var(--color-primary-foreground)'
+                : 'var(--color-muted-foreground)',
+            borderLeft: '1px solid var(--color-border)',
+          }}
+        >
+          Budget Cycle
         </button>
       </div>
     </div>

@@ -600,10 +600,7 @@ export function TransactionsList({
               onClick={() => void onPreviousPage()}
               disabled={paginationOffset === 0 || searchLoading}
               className="h-8 px-3 rounded-lg disabled:opacity-30"
-              style={{ color: 'var(--color-foreground)' }}
-              style={{
-                backgroundColor: paginationOffset === 0 ? 'transparent' : 'var(--color-elevated)',
-              }}
+              style={{ color: 'var(--color-foreground)', backgroundColor: paginationOffset === 0 ? 'transparent' : 'var(--color-elevated)' }}
             >
               <ChevronLeft className="w-3.5 h-3.5 mr-1" />
               Prev
@@ -614,10 +611,7 @@ export function TransactionsList({
               onClick={() => void onNextPage()}
               disabled={!hasMore || searchLoading}
               className="h-8 px-3 rounded-lg disabled:opacity-30"
-              style={{ color: 'var(--color-foreground)' }}
-              style={{
-                backgroundColor: !hasMore ? 'transparent' : 'var(--color-elevated)',
-              }}
+              style={{ color: 'var(--color-foreground)', backgroundColor: !hasMore ? 'transparent' : 'var(--color-elevated)' }}
             >
               Next
               <ChevronRight className="w-3.5 h-3.5 ml-1" />

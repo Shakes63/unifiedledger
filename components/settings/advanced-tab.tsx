@@ -32,7 +32,7 @@ function Section({
   accent = 'var(--color-primary)',
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   accent?: string;
   children: React.ReactNode;
@@ -49,7 +49,7 @@ function Section({
 }
 
 function SwitchRow({ id, icon: Icon, label, description, checked, onCheckedChange, disabled }: {
-  id: string; icon?: React.ComponentType<{ className?: string }>; label: string; description?: string;
+  id: string; icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; description?: string;
   checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean;
 }) {
   return (

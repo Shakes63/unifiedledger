@@ -13,6 +13,7 @@ import {
   endOfMonth,
   getDate,
   setDate,
+  parseISO,
   addMonths,
 } from 'date-fns';
 
@@ -380,7 +381,7 @@ export function calculateAvailableAmount(
  * Check if a date falls within a budget period
  */
 export function isDateInPeriod(date: Date | string, period: BudgetPeriod): boolean {
-  const checkDate = typeof date === 'string' ? new Date(date) : date;
+  const checkDate = typeof date === 'string' ? parseISO(date) : date;
   const startOfCheckDate = startOfDay(checkDate);
   
   return (

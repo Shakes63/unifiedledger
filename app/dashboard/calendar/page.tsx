@@ -11,6 +11,8 @@ import { CalendarWeek } from '@/components/calendar/calendar-week';
 import { CalendarDayModal } from '@/components/calendar/calendar-day-modal';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
+const CALENDAR_BILL_DISPLAY_MODE_STORAGE_KEY = 'calendar-bill-display-mode';
+
 interface GoalSummary {
   id: string;
   name: string;
@@ -183,6 +185,7 @@ export default function CalendarPage() {
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const [billDisplayMode, setBillDisplayMode] = useState<'due-date' | 'budget-cycle'>('due-date');
   const [daySummaries, setDaySummaries] = useState<Record<string, DayTransactionSummary>>({});
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedDayTransactions, setSelectedDayTransactions] = useState<Transaction[]>([]);
@@ -197,6 +200,17 @@ export default function CalendarPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
+    const storedMode = window.localStorage.getItem(CALENDAR_BILL_DISPLAY_MODE_STORAGE_KEY);
+    if (storedMode === 'due-date' || storedMode === 'budget-cycle') {
+      setBillDisplayMode(storedMode);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(CALENDAR_BILL_DISPLAY_MODE_STORAGE_KEY, billDisplayMode);
+  }, [billDisplayMode]);
+
+  useEffect(() => {
     if (!selectedHouseholdId) {
       setDaySummaries({});
       setIsLoading(false);
@@ -209,7 +223,7 @@ export default function CalendarPage() {
         const monthStart = startOfMonth(currentDate);
         const monthEnd = endOfMonth(currentDate);
         const response = await fetchWithHousehold(
-          `/api/calendar/month?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`
+          `/api/calendar/month?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}&billDisplayMode=${billDisplayMode}`
         );
         if (response.ok) {
           const data = await response.json();
@@ -223,14 +237,16 @@ export default function CalendarPage() {
     };
 
     loadCalendarData();
-  }, [currentDate, fetchWithHousehold, selectedHouseholdId]);
+  }, [billDisplayMode, currentDate, fetchWithHousehold, selectedHouseholdId]);
 
   const handleDayClick = async (date: Date) => {
     if (!selectedHouseholdId) return;
     try {
       setIsLoading(true);
       setSelectedDay(date);
-      const response = await fetchWithHousehold(`/api/calendar/day?date=${date.toISOString()}`);
+      const response = await fetchWithHousehold(
+        `/api/calendar/day?date=${date.toISOString()}&billDisplayMode=${billDisplayMode}`
+      );
       if (response.ok) {
         const data = await response.json();
         setSelectedDayTransactions(data.transactions || []);
@@ -267,12 +283,14 @@ export default function CalendarPage() {
               </Link>
               <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--color-foreground)' }}>Calendar</h1>
             </div>
-            <CalendarHeader
-              currentDate={currentDate}
-              onDateChange={setCurrentDate}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
+          <CalendarHeader
+            currentDate={currentDate}
+            onDateChange={setCurrentDate}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            billDisplayMode={billDisplayMode}
+            onBillDisplayModeChange={setBillDisplayMode}
+          />
           </div>
         </div>
         <div
@@ -310,27 +328,28 @@ export default function CalendarPage() {
         {/* Calendar View */}
         {!isLoading && selectedHouseholdId && (
           <>
-            {viewMode === 'month' ? (
-              <CalendarMonth
-                currentMonth={currentDate}
-                daySummaries={daySummaries}
-                onDayClick={handleDayClick}
-              />
-            ) : (
-              <CalendarWeek
-                currentDate={currentDate}
-                daySummaries={daySummaries}
-                onDayClick={handleDayClick}
-              />
-            )}
+                {viewMode === 'month' ? (
+                  <CalendarMonth
+                    currentMonth={currentDate}
+                    daySummaries={daySummaries}
+                    onDayClick={handleDayClick}
+                  />
+                ) : (
+                  <CalendarWeek
+                    currentDate={currentDate}
+                    daySummaries={daySummaries}
+                    billDisplayMode={billDisplayMode}
+                    onDayClick={handleDayClick}
+                  />
+                )}
           </>
         )}
 
         {/* Day Detail Modal */}
         {selectedDay && (
-          <CalendarDayModal
-            open={isModalOpen}
-            onOpenChange={setIsModalOpen}
+        <CalendarDayModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
             date={selectedDay}
             transactions={selectedDayTransactions}
             bills={selectedDayBills}
@@ -338,9 +357,9 @@ export default function CalendarPage() {
             debts={selectedDayDebts}
             autopayEvents={selectedDayAutopay}
             payoffDates={selectedDayPayoffDates}
-            billMilestones={selectedDayBillMilestones}
-            transactionCounts={selectedDayInfo || undefined}
-          />
+          billMilestones={selectedDayBillMilestones}
+          transactionCounts={selectedDayInfo || undefined}
+        />
         )}
       </main>
     </div>

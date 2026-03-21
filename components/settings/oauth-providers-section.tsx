@@ -51,7 +51,7 @@ function Section({
   accent = 'var(--color-primary)',
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   accent?: string;
   children: React.ReactNode;

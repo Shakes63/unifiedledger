@@ -19,6 +19,7 @@ import {
   type BudgetScheduleSettings,
   type BudgetCycleFrequency,
 } from '@/lib/budgets/budget-schedule';
+import { calculateDiscretionaryAmounts } from '@/lib/budgets/discretionary-calculation';
 import { getPeriodBillsForBudgetPeriod } from '@/lib/budgets/period-bills-service';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 
@@ -311,33 +312,18 @@ export async function GET(request: Request) {
     // ========================================================================
     // 5. Calculate discretionary amounts
     // ========================================================================
-    // Formula: Account Balance + Expected Income - Bills - Remaining Budget = Discretionary
-    
-    const expectedDiscretionary = new Decimal(includedBalance)
-      .plus(expectedIncome)
-      .minus(billsTotal)
-      .minus(periodAllocation)
-      .toDecimalPlaces(2)
-      .toNumber();
-
-    const currentDiscretionary = new Decimal(includedBalance)
-      .plus(actualIncome)
-      .minus(billsPaid)
-      .minus(actualSpent)
-      .toDecimalPlaces(2)
-      .toNumber();
-
-    // What's actually available right now (balance - pending obligations)
-    const projectedDiscretionary = new Decimal(includedBalance)
-      .minus(billsPending)
-      .minus(Math.max(0, budgetRemaining))
-      .toDecimalPlaces(2)
-      .toNumber();
-
-    const discretionaryVariance = new Decimal(actualIncome)
-      .minus(expectedIncome)
-      .toDecimalPlaces(2)
-      .toNumber();
+    const {
+      currentDiscretionary,
+      projectedDiscretionary,
+      expectedDiscretionary,
+      variance: discretionaryVariance,
+    } = calculateDiscretionaryAmounts({
+      includedBalance,
+      expectedIncome,
+      actualIncome,
+      billsPending,
+      budgetRemaining,
+    });
 
     return NextResponse.json({
       currentPeriod: {

@@ -42,7 +42,7 @@ function Section({
   badge,
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   accent?: string;
   badge?: React.ReactNode;

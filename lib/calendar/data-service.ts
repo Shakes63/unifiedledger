@@ -1,4 +1,4 @@
-import { addDays, addMonths, format, subDays } from 'date-fns';
+import { addDays, addMonths, format, parseISO, subDays } from 'date-fns';
 import { and, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -14,7 +14,20 @@ import {
   merchants,
   savingsGoals,
   transactions,
+  userHouseholdPreferences,
 } from '@/lib/db/schema';
+import {
+  getCurrentBudgetPeriod,
+  getDefaultBudgetScheduleSettings,
+  type BudgetCycleFrequency,
+  type BudgetScheduleSettings,
+} from '@/lib/budgets/budget-schedule';
+import { instanceBelongsToPeriod } from '@/lib/budgets/bill-period-assignment';
+import {
+  getBillCalendarDate,
+  getBillCalendarQueryEndDate,
+  type CalendarBillDisplayMode,
+} from '@/lib/calendar/bill-display-mode';
 import { parseLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 
@@ -117,6 +130,9 @@ export interface CalendarBillDetail {
   description: string;
   amount: number;
   dueDate: string;
+  displayDate?: string;
+  isAssignedToBudgetPeriod?: boolean;
+  hasManualBudgetPeriodAssignment?: boolean;
   status: 'pending' | 'paid' | 'overdue';
   isDebt?: boolean;
   isAutopayEnabled?: boolean;
@@ -236,14 +252,60 @@ function centsToDollars(cents: number | null | undefined): number {
   return (cents ?? 0) / 100;
 }
 
+async function getBudgetSettings(
+  userId: string,
+  householdId: string
+): Promise<BudgetScheduleSettings> {
+  const [prefs] = await db
+    .select()
+    .from(userHouseholdPreferences)
+    .where(
+      and(
+        eq(userHouseholdPreferences.userId, userId),
+        eq(userHouseholdPreferences.householdId, householdId)
+      )
+    )
+    .limit(1);
+
+  const defaults = getDefaultBudgetScheduleSettings();
+  if (!prefs) {
+    return defaults;
+  }
+
+  return {
+    budgetCycleFrequency:
+      (prefs.budgetCycleFrequency as BudgetCycleFrequency) || defaults.budgetCycleFrequency,
+    budgetCycleStartDay: prefs.budgetCycleStartDay ?? defaults.budgetCycleStartDay,
+    budgetCycleReferenceDate:
+      prefs.budgetCycleReferenceDate ?? defaults.budgetCycleReferenceDate,
+    budgetCycleSemiMonthlyDays:
+      prefs.budgetCycleSemiMonthlyDays ?? defaults.budgetCycleSemiMonthlyDays,
+    budgetPeriodRollover: prefs.budgetPeriodRollover ?? defaults.budgetPeriodRollover,
+    budgetPeriodManualAmount:
+      prefs.budgetPeriodManualAmount ?? defaults.budgetPeriodManualAmount,
+  };
+}
+
 export async function getMonthCalendarSummary(params: {
   userId: string;
   householdId: string;
   startDate: string;
   endDate: string;
+  billDisplayMode?: CalendarBillDisplayMode;
 }): Promise<Record<string, DayTransactionSummary>> {
-  const { userId, householdId, startDate, endDate } = params;
+  const {
+    userId,
+    householdId,
+    startDate,
+    endDate,
+    billDisplayMode = 'due-date',
+  } = params;
   const daySummaries: Record<string, DayTransactionSummary> = {};
+  const budgetSettings =
+    billDisplayMode === 'budget-cycle'
+      ? await getBudgetSettings(userId, householdId)
+      : undefined;
+  const billQueryEndDate = getBillCalendarQueryEndDate(endDate, billDisplayMode);
 
   const [monthTransactions, occurrencesWithTemplates, monthGoals, monthDebts, monthMilestones, unifiedMilestones] =
     await Promise.all([
@@ -270,7 +332,7 @@ export async function getMonthCalendarSummary(params: {
             eq(billOccurrences.householdId, householdId),
             eq(billTemplates.householdId, householdId),
             gte(billOccurrences.dueDate, startDate),
-            lte(billOccurrences.dueDate, endDate)
+            lte(billOccurrences.dueDate, billQueryEndDate)
           )
         ),
       db
@@ -386,7 +448,18 @@ export async function getMonthCalendarSummary(params: {
 
   for (const row of occurrencesWithTemplates) {
     const { occurrence, template } = row;
-    const summary = upsertSummary(daySummaries, occurrence.dueDate);
+    const displayDate = getBillCalendarDate(
+      occurrence.dueDate,
+      billDisplayMode,
+      budgetSettings,
+      template.budgetPeriodAssignment,
+      occurrence.budgetPeriodOverride
+    );
+    if (displayDate < startDate || displayDate > endDate) {
+      continue;
+    }
+
+    const summary = upsertSummary(daySummaries, displayDate);
     const linkedAccountName = template.linkedLiabilityAccountId
       ? accountMap.get(template.linkedLiabilityAccountId)?.name
       : undefined;
@@ -632,13 +705,39 @@ export async function getDayCalendarDetails(params: {
   userId: string;
   householdId: string;
   dateKey: string;
+  billDisplayMode?: CalendarBillDisplayMode;
 }) {
-  const { userId, householdId, dateKey } = params;
+  const {
+    userId,
+    householdId,
+    dateKey,
+    billDisplayMode = 'due-date',
+  } = params;
   // Milestones are stored as UTC timestamps, but calendar day selection is local-date based.
   // Query a small surrounding window and then filter by local date to avoid day-boundary mismatches.
   const selectedLocalDate = parseLocalDateString(dateKey);
   const milestoneWindowStart = format(subDays(selectedLocalDate, 1), 'yyyy-MM-dd');
   const milestoneWindowEnd = format(addDays(selectedLocalDate, 1), 'yyyy-MM-dd');
+  const budgetSettings =
+    billDisplayMode === 'budget-cycle'
+      ? await getBudgetSettings(userId, householdId)
+      : undefined;
+  const selectedPeriod =
+    billDisplayMode === 'budget-cycle' && budgetSettings
+      ? getCurrentBudgetPeriod(budgetSettings, parseISO(dateKey))
+      : null;
+  const billDateRange =
+    billDisplayMode === 'budget-cycle'
+      ? selectedPeriod && selectedPeriod.startStr === dateKey
+        ? {
+            start: format(subDays(selectedPeriod.start, 31), 'yyyy-MM-dd'),
+            end: format(addDays(selectedPeriod.end, 31), 'yyyy-MM-dd'),
+          }
+        : null
+      : {
+          start: dateKey,
+          end: dateKey,
+        };
 
   const [dayTransactions, dayOccurrencesRows, dayGoals, dayDebts, dayMilestones, dayBillMilestones] = await Promise.all([
     db
@@ -653,11 +752,18 @@ export async function getDayCalendarDetails(params: {
       .from(billOccurrences)
       .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
       .where(
-        and(
-          eq(billOccurrences.householdId, householdId),
-          eq(billTemplates.householdId, householdId),
-          eq(billOccurrences.dueDate, dateKey)
-        )
+        billDateRange
+          ? and(
+              eq(billOccurrences.householdId, householdId),
+              eq(billTemplates.householdId, householdId),
+              gte(billOccurrences.dueDate, billDateRange.start),
+              lte(billOccurrences.dueDate, billDateRange.end)
+            )
+          : and(
+              eq(billOccurrences.householdId, householdId),
+              eq(billTemplates.householdId, householdId),
+              eq(billOccurrences.id, '__no-calendar-bills__')
+            )
       ),
     db
       .select()
@@ -699,14 +805,27 @@ export async function getDayCalendarDetails(params: {
       ),
   ]);
 
+  const filteredDayOccurrencesRows =
+    billDisplayMode === 'budget-cycle' && selectedPeriod && budgetSettings
+      ? dayOccurrencesRows.filter((row) =>
+          instanceBelongsToPeriod({
+            dueDate: row.occurrence.dueDate,
+            settings: budgetSettings,
+            period: selectedPeriod,
+            billPeriodAssignment: row.template.budgetPeriodAssignment,
+            instancePeriodOverride: row.occurrence.budgetPeriodOverride,
+          })
+        )
+      : dayOccurrencesRows;
+
   const categoryIds = [...new Set(dayTransactions.map((txn) => txn.categoryId).filter((id): id is string => Boolean(id)))];
   const merchantIds = [...new Set(dayTransactions.map((txn) => txn.merchantId).filter((id): id is string => Boolean(id)))];
   const accountIdsFromTx = [...new Set(dayTransactions.map((txn) => txn.accountId).filter((id): id is string => Boolean(id)))];
 
-  const templateIds = [...new Set(dayOccurrencesRows.map((row) => row.template.id))];
+  const templateIds = [...new Set(filteredDayOccurrencesRows.map((row) => row.template.id))];
   const linkedAccountIds = [
     ...new Set(
-      dayOccurrencesRows.map((row) => row.template.linkedLiabilityAccountId).filter((id): id is string => Boolean(id))
+      filteredDayOccurrencesRows.map((row) => row.template.linkedLiabilityAccountId).filter((id): id is string => Boolean(id))
     ),
   ];
   const autopayRulesRows =
@@ -768,16 +887,31 @@ export async function getDayCalendarDetails(params: {
     accountName: txn.accountId ? accountMap.get(txn.accountId)?.name : undefined,
   }));
 
-  const enrichedBills: CalendarBillDetail[] = dayOccurrencesRows.map((row) => {
+  const enrichedBills: CalendarBillDetail[] = filteredDayOccurrencesRows.map((row) => {
     const linkedAccountName = row.template.linkedLiabilityAccountId
       ? accountMap.get(row.template.linkedLiabilityAccountId)?.name
       : undefined;
+    const displayDate =
+      billDisplayMode === 'budget-cycle'
+        ? getBillCalendarDate(
+            row.occurrence.dueDate,
+            billDisplayMode,
+            budgetSettings,
+            row.template.budgetPeriodAssignment,
+            row.occurrence.budgetPeriodOverride
+          )
+        : row.occurrence.dueDate;
     return {
       id: row.occurrence.id,
       billId: row.template.id,
       description: row.template.name,
       amount: centsToDollars(row.occurrence.amountDueCents),
       dueDate: row.occurrence.dueDate,
+      displayDate,
+      isAssignedToBudgetPeriod: displayDate !== row.occurrence.dueDate,
+      hasManualBudgetPeriodAssignment:
+        row.template.budgetPeriodAssignment !== null ||
+        row.occurrence.budgetPeriodOverride !== null,
       status: mapOccurrenceStatusToLegacy(row.occurrence.status),
       isDebt: row.template.debtEnabled || false,
       isAutopayEnabled: autopayRuleMap.has(row.template.id),
@@ -786,7 +920,7 @@ export async function getDayCalendarDetails(params: {
     };
   });
 
-  const autopayEvents = dayOccurrencesRows
+  const autopayEvents = filteredDayOccurrencesRows
     .map<CalendarAutopayEventDetail | null>((row) => {
       const rule = autopayRuleMap.get(row.template.id);
       if (!rule) return null;
@@ -1000,8 +1134,8 @@ export async function getDayCalendarDetails(params: {
     expenseCount: enrichedTransactions.filter((txn) => txn.type === 'expense').length,
     transferCount: enrichedTransactions.filter((txn) => txn.type === 'transfer_in' || txn.type === 'transfer_out').length,
     totalSpent: enrichedTransactions.filter((txn) => txn.type === 'expense').reduce((sum, txn) => sum + Math.abs(txn.amount), 0),
-    billDueCount: dayOccurrencesRows.filter((row) => row.occurrence.status === 'unpaid' || row.occurrence.status === 'partial').length,
-    billOverdueCount: dayOccurrencesRows.filter((row) => row.occurrence.status === 'overdue').length,
+    billDueCount: filteredDayOccurrencesRows.filter((row) => row.occurrence.status === 'unpaid' || row.occurrence.status === 'partial').length,
+    billOverdueCount: filteredDayOccurrencesRows.filter((row) => row.occurrence.status === 'overdue').length,
     goalCount: enrichedGoals.length,
     debtCount: enrichedDebts.length,
     autopayCount: autopayEvents.length,

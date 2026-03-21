@@ -270,8 +270,7 @@ export function FinancialTab() {
               id="showCents"
               name="showCents"
               aria-label="Select whether to show cents"
-              style={{ backgroundColor: 'var(--color-background)' }}
-              style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+              style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
             >
               <SelectValue />
             </SelectTrigger>
@@ -293,8 +292,7 @@ export function FinancialTab() {
               id="negativeFormat"
               name="negativeFormat"
               aria-label="Select negative number format"
-              style={{ backgroundColor: 'var(--color-background)' }}
-              style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+              style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
             >
               <SelectValue />
             </SelectTrigger>
@@ -432,8 +430,7 @@ export function FinancialTab() {
                 id="budgetCycleFrequency"
                 name="budgetCycleFrequency"
                 aria-label="Select budget cycle frequency"
-                style={{ backgroundColor: 'var(--color-background)' }}
-                style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -468,8 +465,7 @@ export function FinancialTab() {
                   id="budgetCycleStartDay"
                   name="budgetCycleStartDay"
                   aria-label="Select budget cycle start day"
-                  style={{ backgroundColor: 'var(--color-background)' }}
-                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                  style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -514,8 +510,7 @@ export function FinancialTab() {
                 onChange={(e) =>
                   setScheduleSettings({ ...scheduleSettings, budgetCycleReferenceDate: e.target.value })
                 }
-                style={{ backgroundColor: 'var(--color-background)' }}
-                style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
               />
               <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
                 A known date when your budget cycle starts (e.g., your next payday)
@@ -540,8 +535,7 @@ export function FinancialTab() {
                       id="semiMonthlyDay1"
                       name="semiMonthlyDay1"
                       aria-label="Select first semi-monthly day"
-                      style={{ backgroundColor: 'var(--color-background)' }}
-                      style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                      style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -566,8 +560,7 @@ export function FinancialTab() {
                       id="semiMonthlyDay2"
                       name="semiMonthlyDay2"
                       aria-label="Select second semi-monthly day"
-                      style={{ backgroundColor: 'var(--color-background)' }}
-                      style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+                      style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -654,8 +647,7 @@ export function FinancialTab() {
                   budgetPeriodManualAmount: e.target.value ? parseFloat(e.target.value) : null,
                 })
               }
-              style={{ backgroundColor: 'var(--color-background)' }}
-              style={{ border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
+              style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
             />
             <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>
               Set a specific amount for each budget period, or leave empty to divide monthly budget automatically

@@ -143,7 +143,7 @@ function mapOccurrenceRowsToBillInstances(rows: BillOccurrenceWithTemplateDto[])
 const FILTER_OPTIONS: Array<{
   value: ClassificationFilter;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color: string;
 }> = [
   { value: 'all',           label: 'All',           icon: MoreHorizontal, color: '#6b7280' },

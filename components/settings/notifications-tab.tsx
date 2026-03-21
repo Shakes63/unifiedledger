@@ -26,7 +26,7 @@ type PreferenceValue = any;
 const CHANNELS: Array<{
   id: NotificationChannel;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   available: boolean;
   description: string;
 }> = [
@@ -42,7 +42,7 @@ function Section({
   accent = 'var(--color-primary)',
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   accent?: string;
   children: React.ReactNode;

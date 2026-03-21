@@ -101,7 +101,7 @@ function AnalyticsRow({
   onToggle,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   description: string;
   accentColor: string;

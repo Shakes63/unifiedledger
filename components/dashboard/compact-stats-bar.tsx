@@ -32,10 +32,12 @@ interface DiscretionaryData {
   periodLabel: string;
   daysRemaining: number;
   frequency: string;
+  incomePending: number;
   incomeExpected: number;
   incomeActual: number;
   billsTotal: number;
   billsPending: number;
+  budgetRemaining: number;
   budgetAllocation: number;
   accountBalance: number;
 }
@@ -224,10 +226,12 @@ export function CompactStatsBar() {
               periodLabel: periodData.currentPeriod?.label || 'This Period',
               daysRemaining: periodData.currentPeriod?.daysRemaining ?? 0,
               frequency: periodData.settings?.frequency || 'monthly',
+              incomePending: periodData.income?.pending ?? 0,
               incomeExpected: periodData.income?.expected ?? 0,
               incomeActual: periodData.income?.actual ?? 0,
               billsTotal: periodData.bills?.total ?? 0,
               billsPending: periodData.bills?.pending ?? 0,
+              budgetRemaining: periodData.discretionary?.budgetRemaining ?? 0,
               budgetAllocation: periodData.budget?.periodAllocation ?? 0,
               accountBalance: periodData.accounts?.includedBalance ?? 0,
             });
@@ -334,22 +338,23 @@ export function CompactStatsBar() {
       `  Account Balance: $${discretionaryData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
     ];
     
-    if (discretionaryData.incomeExpected > 0) {
-      const incomeStatus = discretionaryData.incomeActual > 0 
-        ? `$${discretionaryData.incomeActual.toLocaleString('en-US', { minimumFractionDigits: 2 })} received`
-        : `$${discretionaryData.incomeExpected.toLocaleString('en-US', { minimumFractionDigits: 2 })} expected`;
-      tooltipLines.push(`  + Income: ${incomeStatus}`);
+    if (discretionaryData.incomePending > 0) {
+      tooltipLines.push(
+        `  + Pending Income: $${discretionaryData.incomePending.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+      );
     }
     
-    if (discretionaryData.billsTotal > 0) {
+    if (discretionaryData.billsPending > 0) {
       const billsStatus = discretionaryData.billsPending > 0
         ? `$${discretionaryData.billsPending.toLocaleString('en-US', { minimumFractionDigits: 2 })} pending`
         : 'all paid';
-      tooltipLines.push(`  - Bills: ${billsStatus}`);
+      tooltipLines.push(`  - Pending Bills: ${billsStatus}`);
     }
     
-    if (discretionaryData.budgetAllocation > 0) {
-      tooltipLines.push(`  - Budget: $${discretionaryData.budgetAllocation.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+    if (discretionaryData.budgetRemaining > 0) {
+      tooltipLines.push(
+        `  - Remaining Budget: $${Math.max(0, discretionaryData.budgetRemaining).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+      );
     }
     
     stats.unshift({

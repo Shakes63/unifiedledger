@@ -99,7 +99,7 @@ interface UnifiedDebtCardProps {
   milestones?: Milestone[];
 }
 
-const DEBT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+const DEBT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   credit:        CreditCard,
   credit_card:   CreditCard,
   line_of_credit: Wallet,

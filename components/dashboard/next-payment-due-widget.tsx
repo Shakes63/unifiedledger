@@ -59,6 +59,12 @@ interface NextDueResponse {
 }
 
 const CREDIT_ACCOUNT_TYPES = new Set(['credit', 'line_of_credit']);
+const panelBorderStyle = {
+  borderTopColor: 'var(--color-border)',
+  borderRightColor: 'var(--color-border)',
+  borderBottomColor: 'var(--color-border)',
+  borderLeftColor: 'var(--color-border)',
+} as const;
 
 export function NextPaymentDueWidget() {
   const { selectedHouseholdId } = useHousehold();
@@ -196,7 +202,7 @@ export function NextPaymentDueWidget() {
       <div
         className="relative overflow-hidden rounded-xl border p-4"
         style={{
-          borderColor: 'var(--color-border)',
+          ...panelBorderStyle,
           backgroundColor: 'var(--color-background)',
           boxShadow: 'inset 0 0 80px 0 rgba(0,0,0,0.03)',
         }}
@@ -222,7 +228,7 @@ export function NextPaymentDueWidget() {
       <div
         className="relative overflow-hidden rounded-xl border p-4"
         style={{
-          borderColor: 'var(--color-border)',
+          ...panelBorderStyle,
           backgroundColor: 'var(--color-background)',
           boxShadow: 'inset 0 0 80px 0 rgba(0,0,0,0.03)',
         }}
@@ -248,7 +254,7 @@ export function NextPaymentDueWidget() {
       <div
         className="relative overflow-hidden rounded-xl border p-4"
         style={{
-          borderColor: 'var(--color-border)',
+          ...panelBorderStyle,
           backgroundColor: 'var(--color-background)',
           boxShadow: 'inset 0 0 80px 0 rgba(0,0,0,0.03)',
         }}
@@ -302,7 +308,7 @@ export function NextPaymentDueWidget() {
       className="relative overflow-hidden rounded-xl border p-4"
       style={{
         position: 'relative',
-        borderColor: 'var(--color-border)',
+        ...panelBorderStyle,
         backgroundColor: 'var(--color-background)',
         borderTopWidth: '2px',
         borderTopColor: 'var(--color-primary)',
@@ -427,4 +433,3 @@ export function NextPaymentDueWidget() {
     </div>
   );
 }
-

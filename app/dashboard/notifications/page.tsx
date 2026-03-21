@@ -45,7 +45,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 interface TypeMeta {
-  Icon: React.ComponentType<{ className?: string }>;
+  Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color: string;
 }
 

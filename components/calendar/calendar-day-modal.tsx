@@ -41,6 +41,9 @@ interface Bill {
   description: string;
   amount: number;
   dueDate: string;
+  displayDate?: string;
+  isAssignedToBudgetPeriod?: boolean;
+  hasManualBudgetPeriodAssignment?: boolean;
   status: 'pending' | 'paid' | 'overdue';
   isDebt?: boolean;
   isAutopayEnabled?: boolean;
@@ -925,6 +928,11 @@ function BillRow({ bill, index, offset = 0 }: { bill: Bill; index: number; offse
             {bill.linkedAccountName && ` · ${bill.linkedAccountName}`}
             {bill.isDebt && ' · Debt payment'}
           </p>
+          {bill.isAssignedToBudgetPeriod && bill.hasManualBudgetPeriodAssignment && (
+            <p className="text-[10px]" style={{ color: 'var(--color-primary)' }}>
+              Assigned to this budget period
+            </p>
+          )}
         </div>
         <div className="text-right shrink-0">
           <p

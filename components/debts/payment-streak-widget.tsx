@@ -132,7 +132,7 @@ export function PaymentStreakWidget() {
     );
   }
 
-  const streakGradient = getStreakColor(data.currentStreak);
+  const streakGradient = getStreakGradient(data.currentStreak);
   const motivationalMessage = getMotivationalMessage(data.currentStreak, data.isActive);
 
   // Calculate progress to next milestone

@@ -78,7 +78,7 @@ function Section({
   headerRight,
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   accent?: string;
   headerRight?: React.ReactNode;

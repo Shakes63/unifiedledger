@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
 
@@ -133,8 +134,6 @@ export function ReportFilters({
                       onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
                       onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--color-elevated)'; }}
                       onClick={() => handleAccountToggle(account.id)}
-                      role="button"
-                      tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();

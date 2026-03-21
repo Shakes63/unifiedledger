@@ -243,7 +243,10 @@ export function PaycheckBalanceWidget() {
     );
   }
 
-  const discretionary = data.discretionary.projectedDiscretionary;
+  const discretionary = data.discretionary.expectedDiscretionary;
+  const pendingIncome = Math.max(0, data.income.pending);
+  const pendingBills = data.bills.pending;
+  const remainingBudgetReserve = Math.max(0, data.budget.remaining);
   const isPositive = discretionary >= 0;
   const hasIncomeVariance = data.income.variance !== 0;
   const accentColor = isPositive ? 'var(--color-income)' : 'var(--color-destructive)';
@@ -291,7 +294,7 @@ export function PaycheckBalanceWidget() {
           Discretionary This Period
         </p>
         <p className="text-[10px] mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: 'var(--color-muted-foreground)' }}>
-          = Account − Income − Bills − Budget
+          = Current Balance + Pending Income − Pending Bills − Remaining Budget
         </p>
 
         {/* Variance indicator */}
@@ -371,7 +374,7 @@ export function PaycheckBalanceWidget() {
         {(data.income.expected > 0 || data.income.actual > 0) && (
           <CollapsibleSection
             title="Income"
-            amount={data.income.expected}
+            amount={pendingIncome}
             isAddition={true}
             icon={<DollarSign className="w-5 h-5" />}
             badge={
@@ -455,7 +458,7 @@ export function PaycheckBalanceWidget() {
         {data.bills.total > 0 && (
           <CollapsibleSection
             title="Bills"
-            amount={data.bills.total}
+            amount={pendingBills}
             isAddition={false}
             icon={<Receipt className="w-5 h-5" />}
             badge={
@@ -565,8 +568,8 @@ export function PaycheckBalanceWidget() {
         {/* Budget */}
         {data.budget.periodAllocation > 0 && (
           <CollapsibleSection
-            title="Budgeted Expenses"
-            amount={data.budget.periodAllocation}
+            title="Budgeted Expenses Remaining"
+            amount={remainingBudgetReserve}
             isAddition={false}
             icon={<Receipt className="w-5 h-5" />}
             defaultOpen={false}

@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { normalizeCalendarBillDisplayMode } from '@/lib/calendar/bill-display-mode';
 import { format } from 'date-fns';
 import { getDayCalendarDetails } from '@/lib/calendar/data-service';
 
@@ -17,6 +18,9 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get('date');
+    const billDisplayMode = normalizeCalendarBillDisplayMode(
+      searchParams.get('billDisplayMode')
+    );
 
     if (!dateStr) {
       return Response.json(
@@ -40,6 +44,7 @@ export async function GET(request: Request) {
       userId,
       householdId,
       dateKey,
+      billDisplayMode,
     });
 
     return Response.json({

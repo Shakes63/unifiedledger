@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { requireAuth } from '@/lib/auth-helpers';
+import { normalizeCalendarBillDisplayMode } from '@/lib/calendar/bill-display-mode';
 import { getMonthCalendarSummary } from '@/lib/calendar/data-service';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const startDateStr = searchParams.get('startDate');
     const endDateStr = searchParams.get('endDate');
+    const billDisplayMode = normalizeCalendarBillDisplayMode(
+      searchParams.get('billDisplayMode')
+    );
 
     if (!startDateStr || !endDateStr) {
       return Response.json(
@@ -34,6 +38,7 @@ export async function GET(request: Request) {
       householdId,
       startDate: format(startDate, 'yyyy-MM-dd'),
       endDate: format(endDate, 'yyyy-MM-dd'),
+      billDisplayMode,
     });
 
     return Response.json({
