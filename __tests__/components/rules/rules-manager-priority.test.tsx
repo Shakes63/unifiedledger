@@ -90,14 +90,15 @@ describe('RulesManager priority reordering', () => {
     await screen.findByText('Rule 1');
     await screen.findByText('Rule 2');
 
-    const moveDownButtons = screen.getAllByTitle(/move down \(lower priority\)/i);
+    const moveDownButtons = screen.getAllByTitle(/lower priority/i);
     expect(moveDownButtons.length).toBeGreaterThan(0);
 
     fireEvent.click(moveDownButtons[0]);
 
     await waitFor(() => {
-      expect(screen.getAllByText(/Priority 1/i)).toHaveLength(1);
-      expect(screen.getAllByText(/Priority 2/i)).toHaveLength(1);
+      // After swap, both priority numbers should still appear exactly once (01 and 02)
+      expect(screen.getAllByText('01')).toHaveLength(1);
+      expect(screen.getAllByText('02')).toHaveLength(1);
     });
 
     expect(putWithHouseholdMock).toHaveBeenNthCalledWith(1, '/api/rules', {

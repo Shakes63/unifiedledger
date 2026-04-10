@@ -103,20 +103,6 @@ export function TransactionTemplatesManager({
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'income':
-        return 'bg-income/20 text-income';
-      case 'expense':
-        return 'bg-expense/20 text-expense';
-      case 'transfer_in':
-      case 'transfer_out':
-        return 'bg-transfer/20 text-transfer';
-      default:
-        return 'bg-muted/20 text-muted-foreground';
-    }
-  };
-
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'transfer_in':

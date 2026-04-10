@@ -18,6 +18,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Check, Loader2, Palette, DollarSign, Calendar, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { type Theme } from '@/lib/themes/theme-config';
 import { getAllThemes, getTheme, applyTheme } from '@/lib/themes/theme-utils';
@@ -127,10 +137,23 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     budgetCycleReferenceDate: null,
     budgetCycleSemiMonthlyDays: '[1, 15]',
   });
+  const [savedScheduleSettings, setSavedScheduleSettings] = useState<BudgetScheduleSettings>({
+    budgetCycleFrequency: 'monthly',
+    budgetCycleStartDay: null,
+    budgetCycleReferenceDate: null,
+    budgetCycleSemiMonthlyDays: '[1, 15]',
+  });
   const [currentPeriod, setCurrentPeriod] = useState<PeriodInfo | null>(null);
   const [savingSchedule, setSavingSchedule] = useState(false);
+  const [showScheduleConfirm, setShowScheduleConfirm] = useState(false);
 
   const allThemes = getAllThemes();
+
+  const budgetCycleChanged =
+    savedScheduleSettings.budgetCycleFrequency !== scheduleSettings.budgetCycleFrequency ||
+    savedScheduleSettings.budgetCycleStartDay !== scheduleSettings.budgetCycleStartDay ||
+    savedScheduleSettings.budgetCycleReferenceDate !== scheduleSettings.budgetCycleReferenceDate ||
+    savedScheduleSettings.budgetCycleSemiMonthlyDays !== scheduleSettings.budgetCycleSemiMonthlyDays;
 
   const parseSemiMonthlyDays = (jsonStr: string): [number, number] => {
     try {
@@ -147,6 +170,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
       if (res.ok) {
         const d = await res.json();
         setScheduleSettings(d.settings);
+        setSavedScheduleSettings(d.settings);
         setCurrentPeriod(d.currentPeriod);
       }
     } catch { toast.error('Failed to load budget schedule'); }
@@ -221,21 +245,44 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     finally { setSaving(false); }
   };
 
-  const handleSaveSchedule = async () => {
+  const saveSchedule = async (confirmResetAssignments: boolean) => {
     setSavingSchedule(true);
     try {
       const res = await fetch('/api/budget-schedule', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ householdId, ...scheduleSettings }),
+        body: JSON.stringify({
+          householdId,
+          ...scheduleSettings,
+          confirmResetAssignments,
+        }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
       const d = await res.json();
       setCurrentPeriod(d.currentPeriod);
-      toast.success('Budget schedule saved');
+      setSavedScheduleSettings(scheduleSettings);
+      toast.success(
+        d.assignmentsReset
+          ? 'Budget schedule saved and bill period assignments reset'
+          : 'Budget schedule saved'
+      );
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save budget schedule'); }
     finally { setSavingSchedule(false); }
+  };
+
+  const handleSaveSchedule = async () => {
+    if (budgetCycleChanged) {
+      setShowScheduleConfirm(true);
+      return;
+    }
+
+    await saveSchedule(false);
+  };
+
+  const handleConfirmScheduleChange = async () => {
+    setShowScheduleConfirm(false);
+    await saveSchedule(true);
   };
 
   const handleFrequencyChange = (frequency: BudgetCycleFrequency) => {
@@ -280,6 +327,37 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
 
   return (
     <div className="space-y-4">
+      <AlertDialog open={showScheduleConfirm} onOpenChange={setShowScheduleConfirm}>
+        <AlertDialogContent
+          className="max-w-md"
+          style={{
+            backgroundColor: 'var(--color-background)',
+            borderColor: 'var(--color-border)',
+            borderRadius: '16px',
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ color: 'var(--color-foreground)' }}>
+              Reset bill period assignments?
+            </AlertDialogTitle>
+            <AlertDialogDescription style={{ color: 'var(--color-muted-foreground)' }}>
+              Changing the budget cycle will reset all budget period assignments on bills back to Automatic, including any per-bill or per-occurrence overrides.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-[12px]">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmScheduleChange}
+              className="text-[12px]"
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}
+            >
+              Change Budget Cycle
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Theme ────────────────────────────────────────────────────── */}
       <Section

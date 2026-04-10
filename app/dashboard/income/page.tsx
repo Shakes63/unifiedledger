@@ -6,7 +6,7 @@ import {
   startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth,
 } from 'date-fns';
 import {
-  ArrowDownCircle, CheckCircle2, Clock, TrendingUp,
+  ArrowDownCircle, CheckCircle2, TrendingUp,
   Plus, ChevronLeft, ChevronRight, AlertTriangle,
   ArrowLeft, Settings2,
 } from 'lucide-react';

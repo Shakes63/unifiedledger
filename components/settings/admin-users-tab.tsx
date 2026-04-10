@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -131,12 +129,12 @@ export function AdminUsersTab() {
   const [formRole, setFormRole] = useState<string>('member');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => { fetchUsers(); fetchHouseholds(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { fetchUsers(); fetchHouseholds(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const t = setTimeout(() => { setPagination(p => ({ ...p, offset: 0 })); fetchUsers(searchQuery, 0); }, 300);
     return () => clearTimeout(t);
-    /* eslint-disable-next-line */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   async function fetchUsers(search?: string, offsetOverride?: number) {

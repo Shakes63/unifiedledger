@@ -303,7 +303,7 @@ export default function ReportsPage() {
   // Toggle a filter item
   const toggleFilter = (ids: string[], id: string, setter: (ids: string[]) => void) => {
     const s = new Set(ids);
-    s.has(id) ? s.delete(id) : s.add(id);
+    if (s.has(id)) s.delete(id); else s.add(id);
     setter(Array.from(s));
   };
 

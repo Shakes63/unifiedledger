@@ -71,13 +71,15 @@ interface DayTransactionSummary {
   totalSpent: number;
   billDueCount: number;
   billOverdueCount: number;
-  bills?: Array<{ 
-    name: string; 
-    status: string; 
+  bills?: Array<{
+    name: string;
+    status: string;
     amount: number;
     isDebt?: boolean;
     isAutopayEnabled?: boolean;
     linkedAccountName?: string;
+    isSplitAcrossPeriods?: boolean;
+    allocatedAmount?: number;
   }>;
   goalCount: number;
   goals?: GoalSummary[];
@@ -218,7 +220,7 @@ export function CalendarWeek({
                       {bill.status === 'paid' && <Check className="w-2.5 h-2.5 shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <div className="truncate font-medium">{bill.name}</div>
-                        <div className="text-[9px] opacity-75">${bill.amount.toFixed(2)}</div>
+                        <div className="text-[9px] opacity-75">${(bill.allocatedAmount ?? bill.amount).toFixed(2)}{bill.isSplitAcrossPeriods && bill.allocatedAmount != null ? ` of $${bill.amount.toFixed(2)}` : ''}</div>
                       </div>
                     </div>
                   ))}

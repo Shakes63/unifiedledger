@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import { ArrowLeft, CalendarDays, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CalendarHeader } from '@/components/calendar/calendar-header';
@@ -222,8 +222,10 @@ export default function CalendarPage() {
         setIsLoading(true);
         const monthStart = startOfMonth(currentDate);
         const monthEnd = endOfMonth(currentDate);
+        const visibleStart = startOfWeek(monthStart);
+        const visibleEnd = endOfWeek(monthEnd);
         const response = await fetchWithHousehold(
-          `/api/calendar/month?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}&billDisplayMode=${billDisplayMode}`
+          `/api/calendar/month?startDate=${visibleStart.toISOString()}&endDate=${visibleEnd.toISOString()}&billDisplayMode=${billDisplayMode}`
         );
         if (response.ok) {
           const data = await response.json();

@@ -75,7 +75,7 @@ function daysAgo(n: number): string {
   return ymd(d);
 }
 
-function daysFromNow(n: number): string {
+function _daysFromNow(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() + n);
   return ymd(d);
@@ -94,7 +94,7 @@ async function seed() {
   // --------------------------------------------------------------------------
   console.log('💸 Creating transactions...');
 
-  const txRows: Parameters<typeof db.insert<typeof transactions>>[0] extends (table: typeof transactions) => { values: (rows: infer R) => unknown } ? R : never[] = [];
+  const _txRows: Parameters<typeof db.insert<typeof transactions>>[0] extends (table: typeof transactions) => { values: (rows: infer R) => unknown } ? R : never[] = [];
 
   const txData: Array<{
     date: string;

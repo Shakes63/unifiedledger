@@ -68,6 +68,7 @@ describe('GET /api/calendar/day household scoping', () => {
       userId: 'user_1',
       householdId: 'hh_1',
       dateKey: expectedDateKey,
+      billDisplayMode: 'due-date',
     });
   });
 });

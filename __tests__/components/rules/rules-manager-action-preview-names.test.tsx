@@ -104,10 +104,10 @@ describe('RulesManager action preview name hydration', () => {
 
     await screen.findByText('Merchant rule');
 
-    expect(await screen.findByText(/Merchant: Acme Market/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Transfer to Checking/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Move to Savings/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Acme Market/i)).toBeInTheDocument();
+    expect(await screen.findByText(/→ Checking/i)).toBeInTheDocument();
+    expect(await screen.findByText(/→ Savings/i)).toBeInTheDocument();
 
-    expect(screen.queryByText(/Merchant: Unknown/i)).toBeNull();
+    expect(screen.queryByText(/Set Merchant/i)).toBeNull();
   });
 });

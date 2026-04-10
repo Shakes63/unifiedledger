@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { userHouseholdPreferences } from '@/lib/db/schema';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import { billOccurrences, billTemplates, userHouseholdPreferences } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { isMemberOfHousehold } from '@/lib/household/permissions';
@@ -20,6 +21,50 @@ export const dynamic = 'force-dynamic';
 
 // Default budget schedule settings
 const DEFAULT_BUDGET_SCHEDULE: BudgetScheduleSettings = getDefaultBudgetScheduleSettings();
+
+function extractSettings(
+  preferences: (typeof userHouseholdPreferences.$inferSelect) | undefined
+): BudgetScheduleSettings {
+  return preferences
+    ? {
+        budgetCycleFrequency:
+          (preferences.budgetCycleFrequency as BudgetCycleFrequency) ||
+          DEFAULT_BUDGET_SCHEDULE.budgetCycleFrequency,
+        budgetCycleStartDay:
+          preferences.budgetCycleStartDay ?? DEFAULT_BUDGET_SCHEDULE.budgetCycleStartDay,
+        budgetCycleReferenceDate:
+          preferences.budgetCycleReferenceDate ??
+          DEFAULT_BUDGET_SCHEDULE.budgetCycleReferenceDate,
+        budgetCycleSemiMonthlyDays:
+          preferences.budgetCycleSemiMonthlyDays ??
+          DEFAULT_BUDGET_SCHEDULE.budgetCycleSemiMonthlyDays,
+        budgetPeriodRollover:
+          preferences.budgetPeriodRollover ?? DEFAULT_BUDGET_SCHEDULE.budgetPeriodRollover,
+        budgetPeriodManualAmount:
+          preferences.budgetPeriodManualAmount ??
+          DEFAULT_BUDGET_SCHEDULE.budgetPeriodManualAmount,
+      }
+    : DEFAULT_BUDGET_SCHEDULE;
+}
+
+function didBudgetCycleDefinitionChange(
+  previous: BudgetScheduleSettings,
+  next: Partial<BudgetScheduleSettings>
+): boolean {
+  const nextFrequency = next.budgetCycleFrequency ?? previous.budgetCycleFrequency;
+  const nextStartDay = next.budgetCycleStartDay ?? previous.budgetCycleStartDay;
+  const nextReferenceDate =
+    next.budgetCycleReferenceDate ?? previous.budgetCycleReferenceDate;
+  const nextSemiMonthlyDays =
+    next.budgetCycleSemiMonthlyDays ?? previous.budgetCycleSemiMonthlyDays;
+
+  return (
+    previous.budgetCycleFrequency !== nextFrequency ||
+    previous.budgetCycleStartDay !== nextStartDay ||
+    previous.budgetCycleReferenceDate !== nextReferenceDate ||
+    previous.budgetCycleSemiMonthlyDays !== nextSemiMonthlyDays
+  );
+}
 
 /**
  * GET /api/budget-schedule
@@ -119,7 +164,7 @@ export async function PUT(request: NextRequest) {
     const { userId } = await requireAuth();
     const body = await request.json();
 
-    const { householdId, ...updateData } = body;
+    const { householdId, confirmResetAssignments, ...updateData } = body;
     
     if (!householdId) {
       return NextResponse.json(
@@ -157,32 +202,69 @@ export async function PUT(request: NextRequest) {
       )
       .limit(1);
 
-    if (existingPreferences && existingPreferences.length > 0) {
-      // Update existing preferences
-      await db
-        .update(userHouseholdPreferences)
-        .set({
-          ...updateData,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(userHouseholdPreferences.userId, userId),
-            eq(userHouseholdPreferences.householdId, householdId)
-          )
-        );
-    } else {
-      // Create new preferences record with provided data merged with defaults
-      await db.insert(userHouseholdPreferences).values({
-        id: uuidv4(),
-        userId,
-        householdId,
-        ...DEFAULT_BUDGET_SCHEDULE,
-        ...updateData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+    const previousSettings = extractSettings(existingPreferences[0]);
+    const budgetCycleDefinitionChanged = didBudgetCycleDefinitionChange(
+      previousSettings,
+      updateData
+    );
+
+    if (budgetCycleDefinitionChanged && confirmResetAssignments !== true) {
+      return NextResponse.json(
+        {
+          error:
+            'Changing the budget cycle will reset all bill budget period assignments. Confirmation required.',
+          code: 'CONFIRM_RESET_ASSIGNMENTS_REQUIRED',
+        },
+        { status: 409 }
+      );
     }
+
+    await runInDatabaseTransaction(async (tx) => {
+      const now = new Date().toISOString();
+
+      if (existingPreferences && existingPreferences.length > 0) {
+        await tx
+          .update(userHouseholdPreferences)
+          .set({
+            ...updateData,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(userHouseholdPreferences.userId, userId),
+              eq(userHouseholdPreferences.householdId, householdId)
+            )
+          );
+      } else {
+        await tx.insert(userHouseholdPreferences).values({
+          id: uuidv4(),
+          userId,
+          householdId,
+          ...DEFAULT_BUDGET_SCHEDULE,
+          ...updateData,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      if (budgetCycleDefinitionChanged) {
+        await tx
+          .update(billTemplates)
+          .set({
+            budgetPeriodAssignment: null,
+            updatedAt: now,
+          })
+          .where(eq(billTemplates.householdId, householdId));
+
+        await tx
+          .update(billOccurrences)
+          .set({
+            budgetPeriodOverride: null,
+            updatedAt: now,
+          })
+          .where(eq(billOccurrences.householdId, householdId));
+      }
+    });
 
     // Fetch updated preferences
     const updatedPreferences = await db
@@ -197,14 +279,7 @@ export async function PUT(request: NextRequest) {
       .limit(1);
 
     // Extract updated settings
-    const settings: BudgetScheduleSettings = {
-      budgetCycleFrequency: (updatedPreferences[0].budgetCycleFrequency as BudgetCycleFrequency) || DEFAULT_BUDGET_SCHEDULE.budgetCycleFrequency,
-      budgetCycleStartDay: updatedPreferences[0].budgetCycleStartDay ?? DEFAULT_BUDGET_SCHEDULE.budgetCycleStartDay,
-      budgetCycleReferenceDate: updatedPreferences[0].budgetCycleReferenceDate ?? DEFAULT_BUDGET_SCHEDULE.budgetCycleReferenceDate,
-      budgetCycleSemiMonthlyDays: updatedPreferences[0].budgetCycleSemiMonthlyDays ?? DEFAULT_BUDGET_SCHEDULE.budgetCycleSemiMonthlyDays,
-      budgetPeriodRollover: updatedPreferences[0].budgetPeriodRollover ?? DEFAULT_BUDGET_SCHEDULE.budgetPeriodRollover,
-      budgetPeriodManualAmount: updatedPreferences[0].budgetPeriodManualAmount ?? DEFAULT_BUDGET_SCHEDULE.budgetPeriodManualAmount,
-    };
+    const settings: BudgetScheduleSettings = extractSettings(updatedPreferences[0]);
 
     // Calculate current period info
     const currentPeriod = getCurrentBudgetPeriod(settings);
@@ -228,6 +303,7 @@ export async function PUT(request: NextRequest) {
         end: nextPeriod.endStr,
         label: getPeriodLabel(nextPeriod, settings.budgetCycleFrequency),
       },
+      assignmentsReset: budgetCycleDefinitionChanged,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -240,4 +316,3 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
-

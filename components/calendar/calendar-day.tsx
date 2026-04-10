@@ -71,6 +71,8 @@ interface DayTransactionSummary {
     isDebt?: boolean;
     isAutopayEnabled?: boolean;
     linkedAccountName?: string;
+    isSplitAcrossPeriods?: boolean;
+    allocatedAmount?: number;
   }>;
   goalCount: number;
   goals?: GoalSummary[];
@@ -185,7 +187,7 @@ export function CalendarDay({
                       ? 'var(--color-income)'
                       : 'var(--color-warning)',
                   }}
-                  title={`${bill.name} - $${bill.amount.toFixed(2)}${bill.status === 'paid' ? ' (Paid)' : ''}${bill.linkedAccountName ? ` (${bill.linkedAccountName})` : ''}`}
+                  title={`${bill.name} - $${(bill.allocatedAmount ?? bill.amount).toFixed(2)}${bill.isSplitAcrossPeriods && bill.allocatedAmount != null ? ` of $${bill.amount.toFixed(2)}` : ''}${bill.status === 'paid' ? ' (Paid)' : ''}${bill.linkedAccountName ? ` (${bill.linkedAccountName})` : ''}`}
                 >
                   {bill.status === 'paid' && <Check className="w-2 h-2 shrink-0" />}
                   {bill.linkedAccountName && <CreditCard className="w-2 h-2 shrink-0" />}

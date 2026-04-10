@@ -286,7 +286,7 @@ export function PrivacyTab() {
             </p>
           ) : (
             <p className="text-[11px]" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
-              You'll be logged out after {sessionTimeout} {sessionTimeout === 1 ? 'minute' : 'minutes'} of inactivity.
+              You&apos;ll be logged out after {sessionTimeout} {sessionTimeout === 1 ? 'minute' : 'minutes'} of inactivity.
             </p>
           )}
           {savingTimeout && <p className="text-[11px] flex items-center gap-1" style={{ color: 'var(--color-primary)' }}><Loader2 className="w-3 h-3 animate-spin" />Saving…</p>}

@@ -6,6 +6,7 @@ import {
   accounts,
   autopayRules,
   billMilestones,
+  billOccurrenceAllocations,
   billOccurrences,
   billTemplates,
   budgetCategories,
@@ -92,6 +93,8 @@ export interface BillSummary {
   isAutopayEnabled?: boolean;
   linkedAccountName?: string;
   billType?: 'expense' | 'income' | 'savings_transfer';
+  isSplitAcrossPeriods?: boolean;
+  allocatedAmount?: number;
 }
 
 export interface DayTransactionSummary {
@@ -138,6 +141,8 @@ export interface CalendarBillDetail {
   isAutopayEnabled?: boolean;
   linkedAccountName?: string;
   billType?: 'expense' | 'income' | 'savings_transfer';
+  isSplitAcrossPeriods?: boolean;
+  allocatedAmount?: number;
 }
 
 export interface CalendarGoalDetail {
@@ -250,6 +255,33 @@ function upsertSummary(
 
 function centsToDollars(cents: number | null | undefined): number {
   return (cents ?? 0) / 100;
+}
+
+/**
+ * Given budget settings, a bill's due date, and a 1-based period number,
+ * return the YYYY-MM-DD start date of that period within the same month.
+ * Walks forward from period 1 of the due-date's month.
+ */
+function getPeriodStartDate(
+  settings: BudgetScheduleSettings,
+  dueDate: string,
+  periodNumber: number
+): string | null {
+  const dueDateParsed = parseLocalDateString(dueDate);
+  // Start from the 1st of the due date's month to find period 1
+  const firstOfMonth = new Date(dueDateParsed.getFullYear(), dueDateParsed.getMonth(), 1);
+  let period = getCurrentBudgetPeriod(settings, firstOfMonth);
+
+  // Walk forward to find the requested period number
+  for (let i = 1; i < periodNumber; i++) {
+    period = getCurrentBudgetPeriod(settings, addDays(period.end, 1));
+    // Safety: don't walk past the next month
+    if (period.start.getMonth() !== dueDateParsed.getMonth() &&
+        period.start.getMonth() !== (dueDateParsed.getMonth() + 1) % 12) {
+      return null;
+    }
+  }
+  return format(period.start, 'yyyy-MM-dd');
 }
 
 async function getBudgetSettings(
@@ -404,6 +436,9 @@ export async function getMonthCalendarSummary(params: {
   }
 
   const templateIds = [...new Set(occurrencesWithTemplates.map((row) => row.template.id))];
+  const splitOccurrenceIds = occurrencesWithTemplates
+    .filter((row) => row.template.splitAcrossPeriods)
+    .map((row) => row.occurrence.id);
   const linkedAccountIds = [
     ...new Set(
       occurrencesWithTemplates
@@ -411,9 +446,9 @@ export async function getMonthCalendarSummary(params: {
         .filter((id): id is string => Boolean(id))
     ),
   ];
-  const autopayRulesRows =
+  const [autopayRulesRows, allocationRows] = await Promise.all([
     templateIds.length > 0
-      ? await db
+      ? db
           .select()
           .from(autopayRules)
           .where(
@@ -423,7 +458,19 @@ export async function getMonthCalendarSummary(params: {
               inArray(autopayRules.templateId, templateIds)
             )
           )
-      : [];
+      : Promise.resolve([]),
+    splitOccurrenceIds.length > 0
+      ? db
+          .select()
+          .from(billOccurrenceAllocations)
+          .where(
+            and(
+              eq(billOccurrenceAllocations.householdId, householdId),
+              inArray(billOccurrenceAllocations.occurrenceId, splitOccurrenceIds)
+            )
+          )
+      : Promise.resolve([]),
+  ]);
   const autopayAccountIds = [
     ...new Set(autopayRulesRows.map((row) => row.payFromAccountId).filter((id): id is string => Boolean(id))),
   ];
@@ -446,39 +493,80 @@ export async function getMonthCalendarSummary(params: {
   const accountMap = new Map(accountRows.map((row) => [row.id, row]));
   const autopayRuleMap = new Map(autopayRulesRows.map((row) => [row.templateId, row]));
 
+  // Group allocations by occurrence ID for quick lookup
+  const allocationsByOccurrence = new Map<string, typeof allocationRows>();
+  for (const alloc of allocationRows) {
+    const existing = allocationsByOccurrence.get(alloc.occurrenceId) || [];
+    existing.push(alloc);
+    allocationsByOccurrence.set(alloc.occurrenceId, existing);
+  }
+
   for (const row of occurrencesWithTemplates) {
     const { occurrence, template } = row;
-    const displayDate = getBillCalendarDate(
-      occurrence.dueDate,
-      billDisplayMode,
-      budgetSettings,
-      template.budgetPeriodAssignment,
-      occurrence.budgetPeriodOverride
-    );
-    if (displayDate < startDate || displayDate > endDate) {
-      continue;
-    }
-
-    const summary = upsertSummary(daySummaries, displayDate);
+    const isSplit = template.splitAcrossPeriods && allocationsByOccurrence.has(occurrence.id);
+    const allocations = isSplit ? allocationsByOccurrence.get(occurrence.id)! : [];
     const linkedAccountName = template.linkedLiabilityAccountId
       ? accountMap.get(template.linkedLiabilityAccountId)?.name
       : undefined;
+    const fullAmount = centsToDollars(occurrence.amountDueCents);
+    const legacyStatus = mapOccurrenceStatusToLegacy(occurrence.status);
 
-    summary.bills = summary.bills || [];
-    summary.bills.push({
-      name: template.name,
-      status: mapOccurrenceStatusToLegacy(occurrence.status),
-      amount: centsToDollars(occurrence.amountDueCents),
-      isDebt: template.debtEnabled || false,
-      isAutopayEnabled: autopayRuleMap.has(template.id),
-      linkedAccountName,
-      billType: template.billType,
-    });
+    if (isSplit && billDisplayMode === 'budget-cycle' && budgetSettings) {
+      // Show one entry per allocation on its period's start date
+      for (const alloc of allocations) {
+        const periodDate = getPeriodStartDate(budgetSettings, occurrence.dueDate, alloc.periodNumber);
+        if (!periodDate || periodDate < startDate || periodDate > endDate) continue;
 
-    if (occurrence.status === 'overdue') {
-      summary.billOverdueCount++;
-    } else if (occurrence.status === 'unpaid' || occurrence.status === 'partial') {
-      summary.billDueCount++;
+        const summary = upsertSummary(daySummaries, periodDate);
+        summary.bills = summary.bills || [];
+        summary.bills.push({
+          name: template.name,
+          status: legacyStatus,
+          amount: fullAmount,
+          isDebt: template.debtEnabled || false,
+          isAutopayEnabled: autopayRuleMap.has(template.id),
+          linkedAccountName,
+          billType: template.billType,
+          isSplitAcrossPeriods: true,
+          allocatedAmount: centsToDollars(alloc.allocatedAmountCents),
+        });
+
+        if (occurrence.status === 'overdue') {
+          summary.billOverdueCount++;
+        } else if (occurrence.status === 'unpaid' || occurrence.status === 'partial') {
+          summary.billDueCount++;
+        }
+      }
+    } else {
+      const displayDate = getBillCalendarDate(
+        occurrence.dueDate,
+        billDisplayMode,
+        budgetSettings,
+        template.budgetPeriodAssignment,
+        occurrence.budgetPeriodOverride
+      );
+      if (displayDate < startDate || displayDate > endDate) {
+        // still need to check autopay below
+      } else {
+        const summary = upsertSummary(daySummaries, displayDate);
+        summary.bills = summary.bills || [];
+        summary.bills.push({
+          name: template.name,
+          status: legacyStatus,
+          amount: fullAmount,
+          isDebt: template.debtEnabled || false,
+          isAutopayEnabled: autopayRuleMap.has(template.id),
+          linkedAccountName,
+          billType: template.billType,
+          isSplitAcrossPeriods: isSplit || undefined,
+        });
+
+        if (occurrence.status === 'overdue') {
+          summary.billOverdueCount++;
+        } else if (occurrence.status === 'unpaid' || occurrence.status === 'partial') {
+          summary.billDueCount++;
+        }
+      }
     }
 
     const autopayRule = autopayRuleMap.get(template.id);
@@ -823,14 +911,17 @@ export async function getDayCalendarDetails(params: {
   const accountIdsFromTx = [...new Set(dayTransactions.map((txn) => txn.accountId).filter((id): id is string => Boolean(id)))];
 
   const templateIds = [...new Set(filteredDayOccurrencesRows.map((row) => row.template.id))];
+  const daySplitOccurrenceIds = filteredDayOccurrencesRows
+    .filter((row) => row.template.splitAcrossPeriods)
+    .map((row) => row.occurrence.id);
   const linkedAccountIds = [
     ...new Set(
       filteredDayOccurrencesRows.map((row) => row.template.linkedLiabilityAccountId).filter((id): id is string => Boolean(id))
     ),
   ];
-  const autopayRulesRows =
+  const [autopayRulesRows, dayAllocationRows] = await Promise.all([
     templateIds.length > 0
-      ? await db
+      ? db
           .select()
           .from(autopayRules)
           .where(
@@ -840,7 +931,25 @@ export async function getDayCalendarDetails(params: {
               inArray(autopayRules.templateId, templateIds)
             )
           )
-      : [];
+      : Promise.resolve([]),
+    daySplitOccurrenceIds.length > 0
+      ? db
+          .select()
+          .from(billOccurrenceAllocations)
+          .where(
+            and(
+              eq(billOccurrenceAllocations.householdId, householdId),
+              inArray(billOccurrenceAllocations.occurrenceId, daySplitOccurrenceIds)
+            )
+          )
+      : Promise.resolve([]),
+  ]);
+  const dayAllocationsByOccurrence = new Map<string, typeof dayAllocationRows>();
+  for (const alloc of dayAllocationRows) {
+    const existing = dayAllocationsByOccurrence.get(alloc.occurrenceId) || [];
+    existing.push(alloc);
+    dayAllocationsByOccurrence.set(alloc.occurrenceId, existing);
+  }
   const autopayAccountIds = [
     ...new Set(autopayRulesRows.map((row) => row.payFromAccountId).filter((id): id is string => Boolean(id))),
   ];
@@ -901,6 +1010,13 @@ export async function getDayCalendarDetails(params: {
             row.occurrence.budgetPeriodOverride
           )
         : row.occurrence.dueDate;
+    const isSplit = row.template.splitAcrossPeriods && dayAllocationsByOccurrence.has(row.occurrence.id);
+    const allocations = isSplit ? dayAllocationsByOccurrence.get(row.occurrence.id)! : [];
+    // In budget-cycle mode, find the allocation matching this period
+    const periodAllocation =
+      isSplit && selectedPeriod
+        ? allocations.find((a) => a.periodNumber === selectedPeriod.periodNumber)
+        : undefined;
     return {
       id: row.occurrence.id,
       billId: row.template.id,
@@ -917,6 +1033,8 @@ export async function getDayCalendarDetails(params: {
       isAutopayEnabled: autopayRuleMap.has(row.template.id),
       linkedAccountName,
       billType: row.template.billType,
+      isSplitAcrossPeriods: isSplit || undefined,
+      allocatedAmount: periodAllocation ? centsToDollars(periodAllocation.allocatedAmountCents) : undefined,
     };
   });
 

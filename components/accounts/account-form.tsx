@@ -109,6 +109,28 @@ interface AccountFormProps {
   isLoading?: boolean;
 }
 
+function FormToggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button type="button" onClick={onChange}
+      className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+      style={{ backgroundColor: checked ? 'var(--color-primary)' : 'var(--color-border)' }}>
+      <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform"
+        style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${checked ? '18px' : '2px'})` }} />
+    </button>
+  );
+}
+
+function FormSectionHeader({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; title: string }) {
+  return (
+    <div className="flex items-center gap-2 pb-3 mb-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
+      <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}>
+        <Icon className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+      </div>
+      <span className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>{title}</span>
+    </div>
+  );
+}
+
 export function AccountForm({
   account,
   onSubmit,
@@ -259,22 +281,8 @@ export function AccountForm({
   const hint = 'text-[11px] mt-1';
   const hintS = { color: 'var(--color-muted-foreground)', opacity: 0.8 };
 
-  const Toggle = ({ field }: { field: string }) => (
-    <button type="button" onClick={() => handleCheckboxChange(field)}
-      className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
-      style={{ backgroundColor: formData[field as keyof typeof formData] ? 'var(--color-primary)' : 'var(--color-border)' }}>
-      <span className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform"
-        style={{ backgroundColor: 'var(--color-background)', transform: `translateX(${formData[field as keyof typeof formData] ? '18px' : '2px'})` }} />
-    </button>
-  );
-
-  const SectionHeader = ({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>, title: string }) => (
-    <div className="flex items-center gap-2 pb-3 mb-3" style={{ borderBottom: '1px solid color-mix(in oklch, var(--color-border) 50%, transparent)' }}>
-      <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in oklch, var(--color-primary) 12%, transparent)' }}>
-        <Icon className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
-      </div>
-      <span className="text-[13px] font-semibold" style={{ color: 'var(--color-foreground)' }}>{title}</span>
-    </div>
+  const renderToggle = (field: string) => (
+    <FormToggle checked={!!formData[field as keyof typeof formData]} onChange={() => handleCheckboxChange(field)} />
   );
 
   return (
@@ -331,7 +339,7 @@ export function AccountForm({
       {/* Credit Card Details */}
       {formData.type === 'credit' && (
         <div className="rounded-xl px-4 py-4 space-y-4" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
-          <SectionHeader icon={CreditCard} title="Credit Card Details" />
+          <FormSectionHeader icon={CreditCard} title="Credit Card Details" />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className={lbl} style={lblS}>APR (%)</Label>
@@ -374,7 +382,7 @@ export function AccountForm({
       {/* Line of Credit Details */}
       {formData.type === 'line_of_credit' && (
         <div className="rounded-xl px-4 py-4 space-y-4" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
-          <SectionHeader icon={Landmark} title="Line of Credit Details" />
+          <FormSectionHeader icon={Landmark} title="Line of Credit Details" />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className={lbl} style={lblS}>Interest Type</Label>
@@ -416,7 +424,7 @@ export function AccountForm({
               <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>Secured Line of Credit</p>
               <p className="text-[11px]" style={hintS}>Secured by an asset (e.g., HELOC)</p>
             </div>
-            <Toggle field="isSecured" />
+            {renderToggle("isSecured")}
           </div>
           {formData.isSecured && (
             <div>
@@ -459,7 +467,7 @@ export function AccountForm({
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <Toggle field="autoCreatePaymentBill" />
+              {renderToggle("autoCreatePaymentBill")}
             </div>
             {formData.autoCreatePaymentBill && (
               <div>
@@ -490,7 +498,7 @@ export function AccountForm({
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <Toggle field="includeInPayoffStrategy" />
+              {renderToggle("includeInPayoffStrategy")}
             </div>
           </div>
         </div>
@@ -511,7 +519,7 @@ export function AccountForm({
                 <p className="text-[13px] font-medium" style={{ color: 'var(--color-foreground)' }}>{label}</p>
                 <p className="text-[11px]" style={hintS}>{desc}</p>
               </div>
-              <Toggle field={field} />
+              {renderToggle(field)}
             </div>
           ))}
           <div className="flex items-center justify-between px-4 py-3">
@@ -529,7 +537,7 @@ export function AccountForm({
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <Toggle field="includeInDiscretionary" />
+            {renderToggle("includeInDiscretionary")}
           </div>
         </div>
       </div>

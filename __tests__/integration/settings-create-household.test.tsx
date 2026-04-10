@@ -86,7 +86,7 @@ describe('SettingsPage - Create Household', () => {
 
     fireEvent.click(screen.getByText(/create new/i));
     fireEvent.change(screen.getByLabelText(/household name/i), { target: { value: '  My Household  ' } });
-    fireEvent.click(screen.getByRole('button', { name: /create household/i }));
+    fireEvent.click(screen.getByRole('button', { name: /create$/i }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(

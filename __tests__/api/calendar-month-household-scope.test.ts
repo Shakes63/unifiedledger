@@ -49,6 +49,7 @@ describe('GET /api/calendar/month household scoping', () => {
       householdId: 'hh_1',
       startDate: expectedStartDate,
       endDate: expectedEndDate,
+      billDisplayMode: 'due-date',
     });
   });
 });

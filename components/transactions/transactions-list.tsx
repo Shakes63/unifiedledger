@@ -138,12 +138,6 @@ export function TransactionsList({
     }
   };
 
-  const getMerchantName = (merchantId?: string): string | null => {
-    if (!merchantId) return null;
-    const merchant = merchants.find((merchantItem) => merchantItem.id === merchantId);
-    return merchant?.name || null;
-  };
-
   const getAccountName = (accountId?: string | null): string => {
     if (!accountId) return 'Unknown';
     const account = accounts.find((accountItem) => accountItem.id === accountId);
@@ -182,29 +176,6 @@ export function TransactionsList({
       });
     }
     return merchants;
-  };
-
-  const getTransactionDisplay = (transaction: TransactionListItem): { merchant: string | null; description: string } => {
-    if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
-      const sourceAccountId = getTransferSourceAccountId(transaction, transactions);
-      const destinationAccountId = getTransferDestinationAccountId(transaction);
-
-      if (sourceAccountId && destinationAccountId) {
-        return {
-          merchant: `${getAccountName(sourceAccountId)} → ${getAccountName(destinationAccountId)}`,
-          description: transaction.description,
-        };
-      }
-      return {
-        merchant: `Transfer → ${getAccountName(destinationAccountId || transaction.accountId)}`,
-        description: transaction.description,
-      };
-    }
-
-    return {
-      merchant: getMerchantName(transaction.merchantId),
-      description: transaction.description,
-    };
   };
 
   // --- Loading skeleton ---

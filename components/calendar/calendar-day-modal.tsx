@@ -49,6 +49,8 @@ interface Bill {
   isAutopayEnabled?: boolean;
   linkedAccountName?: string;
   billType?: 'expense' | 'income' | 'savings_transfer';
+  isSplitAcrossPeriods?: boolean;
+  allocatedAmount?: number;
 }
 
 interface Goal {
@@ -187,7 +189,7 @@ export function CalendarDayModal({
   autopayEvents = [],
   payoffDates = [],
   billMilestones = [],
-  transactionCounts,
+  transactionCounts: _transactionCounts,
 }: CalendarDayModalProps) {
   const hasMilestones = goals.length > 0 || debts.length > 0 || payoffDates.length > 0 || billMilestones.length > 0;
   const hasBills = bills.length > 0 || autopayEvents.length > 0;
@@ -939,8 +941,13 @@ function BillRow({ bill, index, offset = 0 }: { bill: Bill; index: number; offse
             className="text-sm font-mono font-semibold tabular-nums"
             style={{ color: accentColor }}
           >
-            {isIncome ? '+' : ''}${bill.amount.toFixed(2)}
+            {isIncome ? '+' : ''}${(bill.allocatedAmount ?? bill.amount).toFixed(2)}
           </p>
+          {bill.isSplitAcrossPeriods && bill.allocatedAmount != null && (
+            <p className="text-[10px] font-mono" style={{ color: 'var(--color-muted-foreground)' }}>
+              of ${bill.amount.toFixed(2)}
+            </p>
+          )}
           <span
             className="text-[10px] font-medium capitalize"
             style={{ color: accentColor }}

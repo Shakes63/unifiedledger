@@ -11,6 +11,14 @@ vi.mock('next/image', async () => {
   return { default: (props: unknown) => nextImageMock(props as never) };
 });
 
+vi.mock('next/font/google', async () => {
+  const font = () => ({ className: 'mock-font', variable: '--mock-font', style: { fontFamily: 'mock' } });
+  return {
+    Instrument_Serif: font,
+    Outfit: font,
+  };
+});
+
 vi.mock('next/navigation', async () => {
   return {
     redirect: vi.fn(),
@@ -43,7 +51,8 @@ describe('Home page LCP logo', () => {
   it('marks the above-the-fold logo as priority (eager)', async () => {
     render(await Home());
 
-    expect(screen.getByLabelText(/unifiedledger logo/i)).toBeInTheDocument();
+    const logos = screen.getAllByLabelText(/unified ledger/i);
+    expect(logos.length).toBeGreaterThan(0);
 
     expect(nextImageMock).toHaveBeenCalledWith(
       expect.objectContaining({
