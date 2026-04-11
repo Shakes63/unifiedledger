@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Plus, Check, ArrowDownCircle } from 'lucide-react';
+import { Loader2, Plus, Check, ArrowDownCircle, X } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { DAY_OF_WEEK_OPTIONS } from '@/lib/bills/bill-utils';
@@ -80,6 +80,11 @@ export function QuickAddIncomeModal({
   const [incomeType, setIncomeType] = useState('salary');
   const [categoryId, setCategoryId] = useState('');
 
+  // Category creation state
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -107,6 +112,8 @@ export function QuickAddIncomeModal({
     setExpectedDate('1');
     setIncomeType('salary');
     setCategoryId('');
+    setIsCreatingCategory(false);
+    setNewCategoryName('');
   }, []);
 
   // Reset form when modal closes
@@ -131,6 +138,31 @@ export function QuickAddIncomeModal({
     setShowDiscardConfirm(false);
     onOpenChange(false);
   }, [onOpenChange]);
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) { toast.error('Category name is required'); return; }
+    if (!selectedHouseholdId) { toast.error('Please select a household first'); return; }
+    setCreatingCategory(true);
+    try {
+      const response = await fetchWithHousehold('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCategoryName.trim(), type: 'income', monthlyBudget: 0, householdId: selectedHouseholdId }),
+      });
+      if (response.ok) {
+        const newCategory = await response.json();
+        setCategories(prev => [...prev, newCategory]);
+        setCategoryId(newCategory.id);
+        setNewCategoryName('');
+        setIsCreatingCategory(false);
+        toast.success(`Category "${newCategory.name}" created`);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || 'Failed to create category');
+      }
+    } catch { toast.error('Error creating category'); }
+    finally { setCreatingCategory(false); }
+  };
 
   const handleSubmit = async (saveAndAddAnother: boolean = false) => {
     // Validation
@@ -303,13 +335,26 @@ export function QuickAddIncomeModal({
             {/* Category */}
             <div>
               <Label className={labelCls} style={labelStyle}>Category <span style={{ opacity: 0.6 }}>(optional)</span></Label>
-              <Select value={categoryId || 'none'} onValueChange={val => setCategoryId(val === 'none' ? '' : val)}>
-                <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {!isCreatingCategory ? (
+                <div className="flex gap-2">
+                  <Select value={categoryId || 'none'} onValueChange={val => setCategoryId(val === 'none' ? '' : val)}>
+                    <SelectTrigger className="flex-1 h-9 text-[13px]" style={fieldStyle}><SelectValue placeholder="Select category" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" variant="outline" size="icon" onClick={() => setIsCreatingCategory(true)} className="h-9 w-9 shrink-0" title="Create new category">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input autoFocus type="text" placeholder="New category name..." value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory(); } if (e.key === 'Escape') { setIsCreatingCategory(false); setNewCategoryName(''); } }} className="flex-1 h-9 text-[13px]" style={{ ...fieldStyle, borderColor: 'var(--color-primary)' }} />
+                  <Button type="button" size="icon" onClick={handleCreateCategory} disabled={creatingCategory || !newCategoryName.trim()} className="h-9 w-9 shrink-0" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}><Plus className="w-4 h-4" /></Button>
+                  <Button type="button" variant="outline" size="icon" onClick={() => { setIsCreatingCategory(false); setNewCategoryName(''); }} className="h-9 w-9 shrink-0"><X className="w-4 h-4" /></Button>
+                </div>
+              )}
             </div>
 
             {/* Actions */}

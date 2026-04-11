@@ -783,7 +783,7 @@ export async function createBillTemplate(
     throw new Error('Failed to create template');
   }
 
-  await ensureTemplateOccurrences(created, addDays(new Date(), -45), addDays(new Date(), 180));
+  await ensureTemplateOccurrences(created, startOfDay(new Date()), addDays(new Date(), 180));
   return toBillTemplateDto(created);
 }
 
