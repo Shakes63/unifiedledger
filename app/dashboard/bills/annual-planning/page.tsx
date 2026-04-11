@@ -82,6 +82,7 @@ const NON_MONTHLY_RECURRENCES = new Set(['quarterly', 'semi_annual', 'annual', '
 
 function toFrequency(recurrenceType: BillTemplateDto['recurrenceType']): string {
   if (recurrenceType === 'one_time') return 'one-time';
+  if (recurrenceType === 'semi_monthly') return 'semi-monthly';
   if (recurrenceType === 'semi_annual') return 'semi-annual';
   return recurrenceType;
 }

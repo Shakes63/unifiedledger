@@ -63,6 +63,7 @@ interface IncomeWithInstance extends IncomeSource {
 
 function toFrequency(recurrenceType: RecurrenceType): string {
   if (recurrenceType === 'one_time') return 'one-time';
+  if (recurrenceType === 'semi_monthly') return 'semi-monthly';
   if (recurrenceType === 'semi_annual') return 'semi-annual';
   return recurrenceType;
 }

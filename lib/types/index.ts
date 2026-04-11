@@ -143,6 +143,7 @@ export type BillFrequency =
   | 'one-time'
   | 'weekly'
   | 'biweekly'
+  | 'semi-monthly'
   | 'monthly'
   | 'quarterly'
   | 'semi-annual'

@@ -192,6 +192,8 @@ export function IncomeForm({
       if (isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
         newErrors.dueDate = 'Day of week must be between 0-6';
       }
+    } else if (formData.frequency === 'semi-monthly') {
+      // No due date validation needed — fixed to 1st and 15th
     } else {
       const dueDate = parseInt(formData.dueDate);
       if (isNaN(dueDate) || dueDate < 1 || dueDate > 31) {
@@ -211,7 +213,7 @@ export function IncomeForm({
     onSubmit({
       name: formData.name,
       expectedAmount: parseFloat(String(formData.expectedAmount)),
-      dueDate: isOneTimeFrequency(formData.frequency) ? null : parseInt(formData.dueDate),
+      dueDate: isOneTimeFrequency(formData.frequency) || formData.frequency === 'semi-monthly' ? null : parseInt(formData.dueDate),
       specificDueDate: isOneTimeFrequency(formData.frequency) ? formData.specificDueDate : null,
       startMonth: isNonMonthlyPeriodic(formData.frequency) ? parseInt(formData.startMonth) : null,
       frequency: formData.frequency,
@@ -294,7 +296,7 @@ export function IncomeForm({
           <Select value={formData.frequency} onValueChange={v => handleSelectChange('frequency', v)}>
             <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue /></SelectTrigger>
             <SelectContent>
-              {['one-time','weekly','biweekly','monthly','quarterly','semi-annual','annual'].map(f => (
+              {['one-time','weekly','biweekly','semi-monthly','monthly','quarterly','semi-annual','annual'].map(f => (
                 <SelectItem key={f} value={f}>{FREQUENCY_LABELS[f as keyof typeof FREQUENCY_LABELS]}</SelectItem>
               ))}
             </SelectContent>
@@ -309,6 +311,10 @@ export function IncomeForm({
               <SelectTrigger className="h-9 text-[13px]" style={fs}><SelectValue placeholder="Select day of week" /></SelectTrigger>
               <SelectContent>{DAY_OF_WEEK_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
             </Select>
+          ) : formData.frequency === 'semi-monthly' ? (
+            <div className="h-9 flex items-center px-3 rounded-md text-[13px]" style={{ ...fs, border: '1px solid var(--color-border)' }}>
+              1st and 15th of each month
+            </div>
           ) : (
             <Input name="dueDate" type="number" value={formData.dueDate} onChange={handleChange} placeholder="1" min="1" max="31" className="h-9 text-[13px]" style={fs} />
           )}

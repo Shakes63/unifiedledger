@@ -59,6 +59,7 @@ const INCOME_TYPES = [
 // Only support simple frequencies in Quick Add
 const QUICK_ADD_FREQUENCIES = [
   { value: 'monthly', label: 'Monthly' },
+  { value: 'semi-monthly', label: '1st & 15th' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'biweekly', label: 'Every 2 Weeks' },
 ];
@@ -152,27 +153,34 @@ export function QuickAddIncomeModal({
 
     // Validate date range
     const isWeekBased = frequency === 'weekly' || frequency === 'biweekly';
-    if (isWeekBased) {
-      if (parsedDate < 0 || parsedDate > 6) {
-        toast.error('Please select a valid day of week');
-        return;
-      }
-    } else {
-      if (parsedDate < 1 || parsedDate > 31) {
-        toast.error('Day must be between 1 and 31');
-        return;
+    const isSemiMonthly = frequency === 'semi-monthly';
+    if (!isSemiMonthly) {
+      if (isWeekBased) {
+        if (parsedDate < 0 || parsedDate > 6) {
+          toast.error('Please select a valid day of week');
+          return;
+        }
+      } else {
+        if (parsedDate < 1 || parsedDate > 31) {
+          toast.error('Day must be between 1 and 31');
+          return;
+        }
       }
     }
 
     try {
       setLoading(true);
 
+      const recurrenceType = isSemiMonthly ? 'semi_monthly'
+        : isWeekBased ? frequency
+        : 'monthly';
+
       const incomeData: Record<string, unknown> = {
         name: name.trim(),
         defaultAmountCents: Math.round(parsedAmount * 100),
-        recurrenceType: frequency === 'weekly' || frequency === 'biweekly' ? frequency : 'monthly',
+        recurrenceType,
         recurrenceDueDay: frequency === 'monthly' ? parsedDate : null,
-        recurrenceDueWeekday: frequency === 'weekly' || frequency === 'biweekly' ? parsedDate : null,
+        recurrenceDueWeekday: isWeekBased ? parsedDate : null,
         recurrenceSpecificDueDate: null,
         recurrenceStartMonth: null,
         categoryId: categoryId || null,
@@ -214,6 +222,7 @@ export function QuickAddIncomeModal({
   };
 
   const isWeekBased = frequency === 'weekly' || frequency === 'biweekly';
+  const isSemiMonthlyDisplay = frequency === 'semi-monthly';
 
   const fieldStyle = { backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' };
   const labelCls = 'text-[11px] font-medium uppercase tracking-wide block mb-1.5';
@@ -270,17 +279,26 @@ export function QuickAddIncomeModal({
             </div>
 
             {/* Expected Date */}
-            <div>
-              <Label className={labelCls} style={labelStyle}>{isWeekBased ? 'Day of Week' : 'Day of Month'}</Label>
-              {isWeekBased ? (
-                <Select value={expectedDate} onValueChange={setExpectedDate}>
-                  <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue /></SelectTrigger>
-                  <SelectContent>{DAY_OF_WEEK_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
-                </Select>
-              ) : (
-                <Input type="number" min="1" max="31" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} placeholder="1" className="h-9 text-[13px]" style={fieldStyle} />
-              )}
-            </div>
+            {isSemiMonthlyDisplay ? (
+              <div>
+                <Label className={labelCls} style={labelStyle}>Pay Dates</Label>
+                <div className="h-9 flex items-center px-3 rounded-md text-[13px]" style={{ ...fieldStyle, border: '1px solid var(--color-border)' }}>
+                  1st and 15th of each month
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Label className={labelCls} style={labelStyle}>{isWeekBased ? 'Day of Week' : 'Day of Month'}</Label>
+                {isWeekBased ? (
+                  <Select value={expectedDate} onValueChange={setExpectedDate}>
+                    <SelectTrigger className="h-9 text-[13px]" style={fieldStyle}><SelectValue /></SelectTrigger>
+                    <SelectContent>{DAY_OF_WEEK_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : (
+                  <Input type="number" min="1" max="31" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} placeholder="1" className="h-9 text-[13px]" style={fieldStyle} />
+                )}
+              </div>
+            )}
 
             {/* Category */}
             <div>

@@ -13,6 +13,7 @@ export type RecurrenceType =
   | 'one_time'
   | 'weekly'
   | 'biweekly'
+  | 'semi_monthly'
   | 'monthly'
   | 'quarterly'
   | 'semi_annual'

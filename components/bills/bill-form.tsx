@@ -626,6 +626,8 @@ export function BillForm({
       if (isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
         newErrors.dueDate = 'Day of week must be between 0-6';
       }
+    } else if (formData.frequency === 'semi-monthly') {
+      // No due date validation needed — fixed to 1st and 15th
     } else {
       const dueDate = parseInt(formData.dueDate);
       if (isNaN(dueDate) || dueDate < 1 || dueDate > 31) {
@@ -680,6 +682,8 @@ export function BillForm({
       switch (formData.frequency) {
         case 'one-time':
           return 'one_time';
+        case 'semi-monthly':
+          return 'semi_monthly';
         case 'semi-annual':
           return 'semi_annual';
         default:
@@ -699,7 +703,7 @@ export function BillForm({
         classificationSubcategory: formData.classificationSubcategory || null,
         recurrenceType,
         recurrenceDueDay:
-          recurrenceType !== 'one_time' && recurrenceType !== 'weekly' && recurrenceType !== 'biweekly'
+          recurrenceType !== 'one_time' && recurrenceType !== 'weekly' && recurrenceType !== 'biweekly' && recurrenceType !== 'semi_monthly'
             ? dueDateNumber
             : null,
         recurrenceDueWeekday:
@@ -903,7 +907,7 @@ export function BillForm({
           <Select value={formData.frequency} onValueChange={v => handleSelectChange('frequency', v)}>
             <SelectTrigger className="h-9 text-[13px]" style={_fs}><SelectValue /></SelectTrigger>
             <SelectContent>
-              {['one-time','weekly','biweekly','monthly','quarterly','semi-annual','annual'].map(f => (
+              {['one-time','weekly','biweekly','semi-monthly','monthly','quarterly','semi-annual','annual'].map(f => (
                 <SelectItem key={f} value={f}>{FREQUENCY_LABELS[f as keyof typeof FREQUENCY_LABELS]}</SelectItem>
               ))}
             </SelectContent>
@@ -923,6 +927,13 @@ export function BillForm({
                 <SelectContent>{DAY_OF_WEEK_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
               </Select>
               <p className={_hint} style={_hintS}>Day of week for recurring bill</p>
+            </>
+          ) : formData.frequency === 'semi-monthly' ? (
+            <>
+              <div className="h-9 flex items-center px-3 rounded-md text-[13px]" style={{ ..._fs, border: '1px solid var(--color-border)' }}>
+                1st and 15th of each month
+              </div>
+              <p className={_hint} style={_hintS}>Fixed to 1st and 15th</p>
             </>
           ) : (
             <>

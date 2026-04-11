@@ -458,7 +458,7 @@ export const billTemplates = sqliteTable(
     }).notNull(),
     classificationSubcategory: text('classification_subcategory'),
     recurrenceType: text('recurrence_type', {
-      enum: ['one_time', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semi_annual', 'annual'],
+      enum: ['one_time', 'weekly', 'biweekly', 'semi_monthly', 'monthly', 'quarterly', 'semi_annual', 'annual'],
     }).notNull(),
     recurrenceDueDay: integer('recurrence_due_day'),
     recurrenceDueWeekday: integer('recurrence_due_weekday'),

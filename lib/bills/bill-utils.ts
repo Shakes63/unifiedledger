@@ -17,6 +17,7 @@ export const FREQUENCY_LABELS: Record<string, string> = {
   'one-time': 'One Time',
   'weekly': 'Weekly',
   'biweekly': 'Bi-Weekly',
+  'semi-monthly': '1st & 15th',
   'monthly': 'Monthly',
   'quarterly': 'Quarterly',
   'semi-annual': 'Semi-Annual',
@@ -27,6 +28,7 @@ export const FREQUENCY_DESCRIPTIONS: Record<string, string> = {
   'one-time': 'A single payment on a specific date',
   'weekly': 'Repeats every week on the same day',
   'biweekly': 'Repeats every 2 weeks on the same day',
+  'semi-monthly': 'Repeats on the 1st and 15th of every month',
   'monthly': 'Repeats every month on the same day',
   'quarterly': 'Repeats every 3 months',
   'semi-annual': 'Repeats every 6 months',
@@ -69,7 +71,7 @@ export function isWeekBasedFrequency(frequency: string): boolean {
  * Check if frequency is month-based (monthly, quarterly, semi-annual, annual)
  */
 export function isMonthBasedFrequency(frequency: string): boolean {
-  return ['monthly', 'quarterly', 'semi-annual', 'annual'].includes(frequency);
+  return ['semi-monthly', 'monthly', 'quarterly', 'semi-annual', 'annual'].includes(frequency);
 }
 
 /**
@@ -114,11 +116,17 @@ export function formatStartMonthDisplay(startMonth: number | null | undefined): 
 /**
  * Get the appropriate label for the due date field based on frequency
  */
+export function isSemiMonthlyFrequency(frequency: string): boolean {
+  return frequency === 'semi-monthly';
+}
+
 export function getDueDateLabel(frequency: string): string {
   if (isOneTimeFrequency(frequency)) {
     return 'Due Date';
   } else if (isWeekBasedFrequency(frequency)) {
     return 'Day of Week';
+  } else if (isSemiMonthlyFrequency(frequency)) {
+    return 'Pay Dates';
   } else {
     return 'Due Date (Day of Month)';
   }

@@ -30,9 +30,11 @@ function mapOccurrenceRows(rows: BillOccurrenceWithTemplateDto[]): UnpaidBillWit
     const frequency =
       template.recurrenceType === 'one_time'
         ? 'one-time'
-        : template.recurrenceType === 'semi_annual'
-          ? 'semi-annual'
-          : template.recurrenceType;
+        : template.recurrenceType === 'semi_monthly'
+          ? 'semi-monthly'
+          : template.recurrenceType === 'semi_annual'
+            ? 'semi-annual'
+            : template.recurrenceType;
     const dueDateNumber =
       template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly'
         ? template.recurrenceDueWeekday ?? 0

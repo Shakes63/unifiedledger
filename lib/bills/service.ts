@@ -68,6 +68,7 @@ const RECURRENCE_MONTH_STEP: Record<
   one_time: 0,
   weekly: 0,
   biweekly: 0,
+  semi_monthly: 1,
   monthly: 1,
   quarterly: 3,
   semi_annual: 6,
@@ -81,6 +82,7 @@ const RECURRENCE_HORIZON_COUNT: Record<
   one_time: 1,
   weekly: 18,
   biweekly: 12,
+  semi_monthly: 16,
   monthly: 8,
   quarterly: 8,
   semi_annual: 6,
@@ -367,6 +369,30 @@ function generateOccurrenceDates(
       dates.push(format(current, 'yyyy-MM-dd'));
     }
 
+    return dates;
+  }
+
+  if (template.recurrenceType === 'semi_monthly') {
+    // Generate 1st and 15th of each month within range
+    let cursorYear = from.getFullYear();
+    let cursorMonth = from.getMonth();
+    let safetyCounter = 0;
+    const maxCount = RECURRENCE_HORIZON_COUNT.semi_monthly;
+
+    while (dates.length < maxCount && safetyCounter < 240) {
+      for (const day of [1, 15]) {
+        const d = new Date(cursorYear, cursorMonth, day);
+        if (isAfter(d, to)) break;
+        if (!isBefore(d, from)) {
+          dates.push(format(d, 'yyyy-MM-dd'));
+          if (dates.length >= maxCount) break;
+        }
+      }
+      cursorMonth++;
+      if (cursorMonth > 11) { cursorMonth = 0; cursorYear++; }
+      if (new Date(cursorYear, cursorMonth, 1) > to) break;
+      safetyCounter++;
+    }
     return dates;
   }
 
