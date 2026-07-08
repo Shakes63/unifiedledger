@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { accounts, merchants } from '@/lib/db/schema';
 import { resolveAccountEntityId } from '@/lib/household/entities';
 import {
+  computeBalanceDeltaCents,
   getAccountBalanceCents,
   insertTransactionMovement,
   updateScopedAccountBalance,
@@ -142,10 +143,15 @@ export async function executeNonTransferCreate({
       .limit(1);
 
     const currentBalanceCents = getAccountBalanceCents(freshAccount ?? account);
-    const isDebit = type === 'expense' || type === 'transfer_out';
-    const updatedBalanceCents = isDebit
-      ? currentBalanceCents - amountCents
-      : currentBalanceCents + amountCents;
+    // Liability-aware: on a credit account a charge (expense/transfer_out)
+    // INCREASES what you owe; a payment/refund decreases it (C-MATH-1).
+    const updatedBalanceCents =
+      currentBalanceCents +
+      computeBalanceDeltaCents({
+        accountType: account.type,
+        transactionType: type,
+        amountCents,
+      });
 
     await updateScopedAccountBalance(tx, {
       accountId,

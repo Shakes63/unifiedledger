@@ -511,9 +511,12 @@ export async function POST(request: Request) {
     }
 
     const amountCents = toMoneyCents(amount) ?? 0;
-    const currentBalanceCents = Math.abs(
-      account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0
-    );
+    // Under the positive-owed convention a payment reduces what you owe. Do NOT
+    // Math.abs the current balance: that flipped the sign of a negative balance
+    // and corrupted it (C-MATH-1). Clamp at zero so a payment can't drive the
+    // owed amount below zero here.
+    const currentBalanceCents =
+      account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0;
     const newBalanceCents = Math.max(0, currentBalanceCents - amountCents);
 
     await db

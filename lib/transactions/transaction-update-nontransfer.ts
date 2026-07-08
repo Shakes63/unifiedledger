@@ -3,9 +3,25 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { accounts, transactions } from '@/lib/db/schema';
 import { resolveAccountEntityId } from '@/lib/household/entities';
-import { applyAccountBalanceDeltas } from '@/lib/transactions/money-movement-service';
+import {
+  applyAccountBalanceDeltas,
+  computeBalanceDeltaCents,
+  type MovementTransactionType,
+} from '@/lib/transactions/money-movement-service';
 
 type DbClient = typeof db;
+
+async function getAccountType(
+  tx: DbClient,
+  accountId: string
+): Promise<string | null | undefined> {
+  const [row] = await tx
+    .select({ type: accounts.type })
+    .from(accounts)
+    .where(eq(accounts.id, accountId))
+    .limit(1);
+  return row?.type;
+}
 
 export function shouldAdjustAccountBalances(
   amount: unknown,
@@ -29,21 +45,35 @@ export async function adjustUpdatedTransactionAccountBalances(
     newAmountCents: number;
   }
 ) {
-  // A debit (expense / transfer_out) originally decreased the source balance, so
-  // reversing it ADDS the old amount back; the re-applied new amount SUBTRACTS.
-  // Income / transfer_in is the mirror image.
-  const isDebit =
-    transaction.type === 'expense' || transaction.type === 'transfer_out';
+  const oldAccountId = transaction.accountId;
+  const type = transaction.type as MovementTransactionType;
 
-  const reversalDelta = isDebit ? oldAmountCents : -oldAmountCents;
-  const applyDelta = isDebit ? -newAmountCents : newAmountCents;
+  // Fetch the account types so reversal/apply are liability-aware (C-MATH-1):
+  // the reversal must undo the original effect on the OLD account, and the
+  // re-apply uses the NEW account's type.
+  const oldAccountType = await getAccountType(tx, oldAccountId);
+  const newAccountType =
+    newAccountId === oldAccountId ? oldAccountType : await getAccountType(tx, newAccountId);
+
+  // Reversal on the old account = negate the original applied delta.
+  const reversalDelta = -computeBalanceDeltaCents({
+    accountType: oldAccountType,
+    transactionType: type,
+    amountCents: oldAmountCents,
+  });
+  // Re-apply on the new account with the new amount.
+  const applyDelta = computeBalanceDeltaCents({
+    accountType: newAccountType,
+    transactionType: type,
+    amountCents: newAmountCents,
+  });
 
   // Coalesce per account. When the account is unchanged (same-account amount
-  // edit) both deltas target one account and net to (old - new); applying them
-  // as two separate absolute writes from the same stale read previously dropped
-  // the reversal entirely, corrupting the balance by the old amount (C-TXN-1).
+  // edit) both deltas target one account and net to the correct change; applying
+  // them as two separate absolute writes from the same stale read previously
+  // dropped the reversal entirely, corrupting the balance (C-TXN-1).
   await applyAccountBalanceDeltas(tx, [
-    { accountId: transaction.accountId, deltaCents: reversalDelta },
+    { accountId: oldAccountId, deltaCents: reversalDelta },
     { accountId: newAccountId, deltaCents: applyDelta },
   ]);
 }

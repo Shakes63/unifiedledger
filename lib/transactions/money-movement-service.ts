@@ -10,8 +10,18 @@ import {
   buildTransactionAmountFields,
   buildTransferMoneyFields,
   centsToAmount as convertCentsToAmount,
+  computeBalanceDeltaCents,
+  isLiabilityAccountType,
+  type MovementTransactionType,
 } from '@/lib/transactions/money-movement-fields';
-export { buildAccountBalanceFields, buildTransactionAmountFields, buildTransferMoneyFields };
+export {
+  buildAccountBalanceFields,
+  buildTransactionAmountFields,
+  buildTransferMoneyFields,
+  computeBalanceDeltaCents,
+  isLiabilityAccountType,
+};
+export type { MovementTransactionType };
 
 type MoneyTx = typeof db;
 

@@ -89,6 +89,32 @@ describe('adjustUpdatedTransactionAccountBalances (C-TXN-1)', () => {
     expect(await balanceCents(accountId)).toBe(10000);
   });
 
+  it('credit account: editing a charge upward increases the amount owed (C-MATH-1)', async () => {
+    ctx = await setupTestUserWithHousehold();
+    // Credit card with $500 owed (positive-owed convention).
+    const account = createTestAccount(ctx.userId, ctx.householdId, {
+      name: 'Card',
+      type: 'credit',
+      currentBalance: 500,
+      creditLimit: 5000,
+    });
+    await db.insert(accounts).values(account as typeof accounts.$inferInsert);
+    const accountId = account.id as string;
+
+    await runInDatabaseTransaction(async (tx) => {
+      await adjustUpdatedTransactionAccountBalances(tx, {
+        transaction: fakeExpense(accountId),
+        newAccountId: accountId,
+        oldAmountCents: 5000,
+        newAmountCents: 6000,
+      });
+    });
+
+    // A credit-card charge edited $50 -> $60 increases what you owe by $10:
+    // $500 -> $510. (The old asset-style math would have wrongly reduced it.)
+    expect(await balanceCents(accountId)).toBe(51000);
+  });
+
   it('moving a transaction to another account reverses source and applies destination once', async () => {
     ctx = await setupTestUserWithHousehold();
     const source = await insertAccount(ctx.userId, ctx.householdId, 100, 'Source');
