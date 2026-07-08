@@ -93,8 +93,11 @@ export async function GET(request: NextRequest) {
 
     const toCashFlow = (txns: Awaited<ReturnType<typeof getTransactionsByDateRange>>) => {
       const byType = calculateByType(txns);
-      const inflows = (byType.income || 0) + (byType.transfer_in || 0);
-      const outflows = Math.abs(byType.expense || 0) + Math.abs(byType.transfer_out || 0);
+      // Transfers move money between the household's own accounts, so counting
+      // them inflated both inflows and outflows (M-RPT-6). Cash flow is real
+      // money entering/leaving the household: income vs expense only.
+      const inflows = byType.income || 0;
+      const outflows = Math.abs(byType.expense || 0);
       return {
         inflows,
         outflows,
