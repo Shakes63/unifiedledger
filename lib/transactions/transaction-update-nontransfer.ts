@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { accounts, transactions } from '@/lib/db/schema';
 import { resolveAccountEntityId } from '@/lib/household/entities';
-import { buildAccountBalanceFields, getAccountBalanceCents } from '@/lib/transactions/money-movement-service';
+import { applyAccountBalanceDeltas } from '@/lib/transactions/money-movement-service';
 
 type DbClient = typeof db;
 
@@ -29,45 +29,23 @@ export async function adjustUpdatedTransactionAccountBalances(
     newAmountCents: number;
   }
 ) {
-  const oldAccount = await tx
-    .select()
-    .from(accounts)
-    .where(eq(accounts.id, transaction.accountId))
-    .limit(1);
+  // A debit (expense / transfer_out) originally decreased the source balance, so
+  // reversing it ADDS the old amount back; the re-applied new amount SUBTRACTS.
+  // Income / transfer_in is the mirror image.
+  const isDebit =
+    transaction.type === 'expense' || transaction.type === 'transfer_out';
 
-  const newAccount = await tx
-    .select()
-    .from(accounts)
-    .where(eq(accounts.id, newAccountId))
-    .limit(1);
+  const reversalDelta = isDebit ? oldAmountCents : -oldAmountCents;
+  const applyDelta = isDebit ? -newAmountCents : newAmountCents;
 
-  if (oldAccount.length === 0 || newAccount.length === 0) {
-    return;
-  }
-
-  let oldBalanceCents = getAccountBalanceCents(oldAccount[0]);
-  if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
-    oldBalanceCents += oldAmountCents;
-  } else {
-    oldBalanceCents -= oldAmountCents;
-  }
-
-  await tx
-    .update(accounts)
-    .set(buildAccountBalanceFields(oldBalanceCents))
-    .where(eq(accounts.id, transaction.accountId));
-
-  let newBalanceCents = getAccountBalanceCents(newAccount[0]);
-  if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
-    newBalanceCents -= newAmountCents;
-  } else {
-    newBalanceCents += newAmountCents;
-  }
-
-  await tx
-    .update(accounts)
-    .set(buildAccountBalanceFields(newBalanceCents))
-    .where(eq(accounts.id, newAccountId));
+  // Coalesce per account. When the account is unchanged (same-account amount
+  // edit) both deltas target one account and net to (old - new); applying them
+  // as two separate absolute writes from the same stale read previously dropped
+  // the reversal entirely, corrupting the balance by the old amount (C-TXN-1).
+  await applyAccountBalanceDeltas(tx, [
+    { accountId: transaction.accountId, deltaCents: reversalDelta },
+    { accountId: newAccountId, deltaCents: applyDelta },
+  ]);
 }
 
 export async function resolveUpdatedTransactionEntityId(

@@ -132,8 +132,12 @@ describe('PUT /api/transactions/[id] atomicity', () => {
             where: async () => {
               if (table === accounts) {
                 accountUpdateCount += 1;
-                if (accountUpdateCount === 2) {
-                  throw new Error('simulated second account update failure');
+                // A same-account amount edit now applies a single coalesced
+                // balance delta (one write) instead of a separate reversal +
+                // re-apply (two writes) — see C-TXN-1 fix. Inject the failure on
+                // that write to still exercise mid-transaction rollback.
+                if (accountUpdateCount === 1) {
+                  throw new Error('simulated account update failure');
                 }
                 stagedState.account.currentBalance = Number(updates.currentBalance ?? stagedState.account.currentBalance);
                 stagedState.account.currentBalanceCents = Number(
