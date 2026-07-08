@@ -58,6 +58,44 @@ function resolveSqlitePath() {
 
 const sqlitePath = resolveSqlitePath();
 
+/**
+ * Guard against a malformed Postgres URL silently falling through to a brand-new
+ * SQLite file (audit finding M-DB-5): e.g. a `postgress://` typo or a bare host
+ * would otherwise be treated as a SQLite path and boot against an empty DB.
+ */
+function assertDatabaseUrlIsWellFormed(): void {
+  const raw = process.env.DATABASE_URL?.trim();
+  if (!raw) return;
+  const lower = raw.toLowerCase();
+  const looksPostgresLike =
+    lower.includes('postgres') || lower.includes('@') || lower.includes('5432');
+  const isValidPostgres = lower.startsWith('postgres://') || lower.startsWith('postgresql://');
+  const isSqliteLike = lower.startsWith('file:') || lower.startsWith('./') ||
+    lower.startsWith('../') || lower.startsWith('/') || lower.endsWith('.db');
+  if (looksPostgresLike && !isValidPostgres && !isSqliteLike) {
+    throw new Error(
+      `DATABASE_URL="${raw}" looks like a Postgres connection string but is not a ` +
+        `valid postgres:// / postgresql:// URL. Refusing to fall back to SQLite. ` +
+        `Fix the URL or use an explicit file: path.`
+    );
+  }
+}
+
+assertDatabaseUrlIsWellFormed();
+
+/**
+ * Apply connection pragmas for a self-hosted single-connection SQLite deployment:
+ * WAL so readers don't block the writer, a busy timeout so brief contention
+ * retries instead of erroring, and enforced foreign keys (audit finding M-DB-4).
+ */
+function configureSqliteConnection(connection: Database.Database): Database.Database {
+  connection.pragma('journal_mode = WAL');
+  connection.pragma('busy_timeout = 5000');
+  connection.pragma('foreign_keys = ON');
+  connection.pragma('synchronous = NORMAL');
+  return connection;
+}
+
 declare global {
   var sqlite: Database.Database | undefined;
   var pgPool: Pool | undefined;
@@ -85,10 +123,10 @@ if (dialect === 'postgresql') {
 } else {
   // SQLite runtime (default)
   if (process.env.NODE_ENV === 'production') {
-    sqlite = new Database(sqlitePath);
+    sqlite = configureSqliteConnection(new Database(sqlitePath));
     db = drizzle(sqlite, { schema });
   } else {
-    if (!global.sqlite) global.sqlite = new Database(sqlitePath);
+    if (!global.sqlite) global.sqlite = configureSqliteConnection(new Database(sqlitePath));
     if (!global.db) global.db = drizzle(global.sqlite, { schema });
     sqlite = global.sqlite;
     db = global.db;
