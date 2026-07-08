@@ -7,6 +7,7 @@ import {
   computeBalanceDeltaCents,
   type MovementTransactionType,
 } from '@/lib/transactions/money-movement-service';
+import { reverseTransactionSideEffects } from '@/lib/transactions/transaction-side-effect-reversal';
 
 interface DeleteNonTransferTransactionParams {
   transactionId: string;
@@ -59,6 +60,11 @@ export async function deleteNonTransferTransaction({
     await tx
       .delete(salesTaxTransactions)
       .where(eq(salesTaxTransactions.transactionId, transactionId));
+
+    // Reverse linked debt payment(s), goal contribution(s), and bill payment(s)
+    // inside the same transaction, so deleting the funding transaction can't leave
+    // a debt reduced, a goal inflated, or a bill marked paid (C-LIFE-1/2/3).
+    await reverseTransactionSideEffects(tx, { transactionId, userId, householdId });
 
     await tx
       .delete(transactions)
