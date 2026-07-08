@@ -101,14 +101,22 @@ export async function POST(
       );
     }
 
-    // Verify user has permission to invite (owner or admin)
+    const ROLE_RANK: Record<string, number> = { owner: 3, admin: 2, member: 1, viewer: 0 };
+    if (!(role in ROLE_RANK)) {
+      return Response.json({ error: 'Invalid role' }, { status: 400 });
+    }
+
+    // Verify user has permission to invite — must be an ACTIVE owner/admin.
+    // (H-SEC-7: the check previously ignored isActive, so a deactivated
+    // owner/admin row could still create invitations.)
     const membership = await db
       .select()
       .from(householdMembers)
       .where(
         and(
           eq(householdMembers.householdId, householdId),
-          eq(householdMembers.userId, userId)
+          eq(householdMembers.userId, userId),
+          eq(householdMembers.isActive, true)
         )
       )
       .limit(1);
@@ -119,6 +127,15 @@ export async function POST(
     ) {
       return Response.json(
         { error: 'Not authorized to invite members' },
+        { status: 403 }
+      );
+    }
+
+    // Role ceiling (H-SEC-7): an inviter cannot mint an invitation for a role
+    // above their own — otherwise an admin could invite a new owner.
+    if ((ROLE_RANK[role] ?? -1) > (ROLE_RANK[membership[0].role] ?? -1)) {
+      return Response.json(
+        { error: 'You cannot invite a member with a role higher than your own' },
         { status: 403 }
       );
     }
