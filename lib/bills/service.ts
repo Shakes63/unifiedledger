@@ -57,6 +57,7 @@ import {
   insertTransactionMovement,
   updateScopedAccountBalance,
 } from '@/lib/transactions/money-movement-service';
+import { assertIntegerCents } from '@/lib/utils/money-cents';
 
 const TEMPLATE_LIMIT_DEFAULT = 50;
 const OCCURRENCE_LIMIT_DEFAULT = 50;
@@ -1207,7 +1208,12 @@ async function payOccurrenceInternal(options: PayOccurrenceInternalOptions): Pro
       throw new Error('Account not found');
     }
 
-    const amountCents = options.input.amountCents ?? occurrence.amountRemainingCents;
+    // Validate the amount is a real, finite integer number of cents before it can
+    // reach a balance. A JSON string like "1e999" would otherwise pass a bare
+    // `<= 0` check and persist Infinity (audit finding H-VAL-1).
+    const amountCents = assertIntegerCents(
+      options.input.amountCents ?? occurrence.amountRemainingCents
+    );
     if (amountCents <= 0) {
       throw new Error('Payment amount must be greater than 0');
     }

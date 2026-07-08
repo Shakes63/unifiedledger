@@ -250,7 +250,16 @@ export async function POST(request: Request) {
     const transactionId = body.transactionId || undefined;
     const now = new Date().toISOString();
 
-    if (!source || !sourceId || Number.isNaN(amount) || amount <= 0) {
+    // `Number("1e999")` is Infinity, which is neither NaN nor <= 0 — it would
+    // slip past a bare check and corrupt the debt/account balance (H-VAL-1).
+    // Require a finite, positive, sanely-bounded amount.
+    if (
+      !source ||
+      !sourceId ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      amount > 1e12
+    ) {
       return Response.json(
         { error: 'source, id, and a valid positive amount are required' },
         { status: 400 }

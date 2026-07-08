@@ -2,10 +2,7 @@ import {
   matchByChargedAccount,
   matchByExplicitBillInstance,
 } from '@/lib/transactions/transaction-create-bill-linking-matches';
-import {
-  matchByCategoryFallback,
-  matchByGeneralBillHeuristics,
-} from '@/lib/transactions/transaction-create-bill-linking-additional-matches';
+import { matchByGeneralBillHeuristics } from '@/lib/transactions/transaction-create-bill-linking-additional-matches';
 import type { CreateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-types';
 
 interface FindCreateBillLinkMatchParams {
@@ -74,9 +71,9 @@ export async function findCreateBillLinkMatch({
     return generalMatch;
   }
 
-  return matchByCategoryFallback({
-    userId,
-    householdId,
-    appliedCategoryId,
-  });
+  // Category-only fallback is DISABLED (audit finding C-BILL-2): it linked a
+  // transaction to the first pending occurrence of any bill sharing the category,
+  // with no amount/name/date check, marking unrelated bills paid on ordinary
+  // expenses. Phase 3 will reintroduce a gated version (amount + due-date + name).
+  return null;
 }

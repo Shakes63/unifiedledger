@@ -8,38 +8,27 @@
  * GET - Preview late income (for debugging)
  */
 
-import { 
-  checkAndCreateIncomeAlerts, 
+import {
+  checkAndCreateIncomeAlerts,
   checkAndCreateIncomeReminders,
 } from '@/lib/notifications/income-alerts';
+import { requireCronAuth } from '@/lib/api/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
-// Cron secret for production security (optional)
-const CRON_SECRET = process.env.CRON_SECRET;
-
 /**
  * POST - Check for late income and create notifications
- * 
- * In production, verify the cron secret to prevent unauthorized access.
- * Called by: External cron service (e.g., Vercel Cron, GitHub Actions, etc.)
- * Schedule: Daily at 9:00 AM UTC
+ *
+ * Requires a valid CRON_SECRET (fail-closed, M-SEC-9). Called by an external cron service.
+ * Schedule: Daily at 9:00 AM UTC.
  */
 export async function POST(request: Request) {
-  try {
-    // Verify cron secret in production
-    if (CRON_SECRET) {
-      const authHeader = request.headers.get('authorization');
-      const providedSecret = authHeader?.replace('Bearer ', '');
-      
-      if (providedSecret !== CRON_SECRET) {
-        return Response.json(
-          { error: 'Unauthorized - Invalid cron secret' },
-          { status: 401 }
-        );
-      }
-    }
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
 
+  try {
     console.log(`[Income Alerts Cron] Starting income alerts check at ${new Date().toISOString()}`);
 
     // Check for late income

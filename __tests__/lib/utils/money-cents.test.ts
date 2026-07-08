@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertMoneyCents,
   coalesceMoneyValue,
   fromMoneyCents,
+  InvalidMoneyError,
   toMoneyCents,
 } from '@/lib/utils/money-cents';
 
@@ -23,5 +25,29 @@ describe('money-cents helpers', () => {
     expect(coalesceMoneyValue(12.34, null)).toBe(12.34);
     expect(coalesceMoneyValue(null, 150)).toBe(1.5);
     expect(coalesceMoneyValue(null, null)).toBe(0);
+  });
+
+  it('returns null only for null/undefined, never NaN (H-VAL-1)', () => {
+    expect(toMoneyCents(null)).toBeNull();
+    expect(toMoneyCents(undefined)).toBeNull();
+  });
+
+  it('throws instead of silently producing NaN/Infinity for bad money input', () => {
+    expect(() => toMoneyCents(NaN)).toThrow(InvalidMoneyError);
+    expect(() => toMoneyCents(Infinity)).toThrow(InvalidMoneyError);
+    expect(() => toMoneyCents(-Infinity)).toThrow(InvalidMoneyError);
+    expect(() => toMoneyCents('1e999')).toThrow(InvalidMoneyError); // overflows to Infinity
+    expect(() => toMoneyCents('abc')).toThrow(InvalidMoneyError);
+    expect(() => toMoneyCents('')).toThrow(InvalidMoneyError);
+  });
+
+  it('assertMoneyCents requires a finite value and returns integer cents', () => {
+    expect(assertMoneyCents(12.34)).toBe(1234);
+    expect(assertMoneyCents('0.5')).toBe(50);
+    expect(assertMoneyCents(0)).toBe(0);
+    expect(() => assertMoneyCents(null)).toThrow(InvalidMoneyError);
+    expect(() => assertMoneyCents(undefined)).toThrow(InvalidMoneyError);
+    expect(() => assertMoneyCents('1e999')).toThrow(InvalidMoneyError);
+    expect(() => assertMoneyCents(NaN)).toThrow(InvalidMoneyError);
   });
 });
