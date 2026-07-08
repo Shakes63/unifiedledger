@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtPayoffMilestones, budgetCategories, accounts } from '@/lib/db/schema';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
@@ -135,6 +136,8 @@ export async function POST(request: Request) {
       creditorName,
       originalAmount,
       remainingBalance,
+      // Populate the integer-cents source of truth on create (RC-4).
+      remainingBalanceCents: toMoneyCents(remainingBalance) ?? 0,
       minimumPayment,
       additionalMonthlyPayment,
       interestRate,

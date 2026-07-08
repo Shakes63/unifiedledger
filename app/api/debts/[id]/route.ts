@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 import { eq, and } from 'drizzle-orm';
 import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
 import { queueSync } from '@/lib/calendar/sync-service';
@@ -148,6 +149,10 @@ export async function PUT(
       if (value !== undefined) {
         (updates as Record<string, unknown>)[field] = value;
       }
+    }
+    // Keep the integer-cents source of truth in sync when the balance is edited (RC-4).
+    if (typeof body.remainingBalance === 'number') {
+      updates.remainingBalanceCents = toMoneyCents(body.remainingBalance) ?? 0;
     }
     updates.updatedAt = new Date().toISOString();
 

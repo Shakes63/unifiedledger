@@ -15,7 +15,12 @@ import {
   debts,
   transactions,
 } from '@/lib/db/schema';
-import { toMoneyCents } from '@/lib/utils/money-cents';
+import { fromMoneyCents, toMoneyCents } from '@/lib/utils/money-cents';
+import {
+  buildDebtBalanceFields,
+  buildDebtPaymentAmountFields,
+  getDebtRemainingCents,
+} from '@/lib/debts/debt-money';
 
 type PaymentSource = 'account' | 'bill' | 'debt';
 
@@ -306,25 +311,33 @@ export async function POST(request: Request) {
       }
 
       const paymentId = nanoid();
+      // Integer-cents balance math (H-DBG-10): a manual payment reduces the whole
+      // amount against principal here (this path has no interest split).
+      const paymentCents = toMoneyCents(amount) ?? 0;
+      const currentDebtCents = getDebtRemainingCents(debt);
+      const newCents = Math.max(0, currentDebtCents - paymentCents);
       await db.insert(debtPayments).values({
         id: paymentId,
         debtId: sourceId,
         userId,
         householdId,
-        amount,
+        ...buildDebtPaymentAmountFields({
+          amountCents: paymentCents,
+          principalCents: paymentCents,
+          interestCents: 0,
+        }),
         paymentDate,
         transactionId,
         notes,
         createdAt: now,
       });
 
-      const newBalance = Math.max(0, debt.remainingBalance - amount);
       await db
         .update(debts)
         .set({
-          remainingBalance: newBalance,
+          ...buildDebtBalanceFields(newCents),
           updatedAt: now,
-          status: newBalance === 0 ? 'paid_off' : debt.status,
+          status: newCents === 0 ? 'paid_off' : debt.status,
         })
         .where(eq(debts.id, sourceId));
 
@@ -338,6 +351,7 @@ export async function POST(request: Request) {
           )
         );
 
+      const newBalance = fromMoneyCents(newCents) ?? 0;
       for (const milestone of milestones) {
         if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
           await db

@@ -9,6 +9,8 @@ import {
   savingsGoalContributions,
   savingsGoals,
 } from '@/lib/db/schema';
+import { buildDebtBalanceFields, getDebtRemainingCents } from '@/lib/debts/debt-money';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 type ReversalTx = typeof db;
 
@@ -57,22 +59,31 @@ async function reverseDebtPayments(
     );
 
   for (const payment of payments) {
-    // Only the principal portion reduced the debt balance; restore exactly that.
-    const principal = payment.principalAmount ?? 0;
+    // Only the principal portion reduced the debt balance; restore exactly that,
+    // in integer cents (H-DBG-10). Fall back to the float column for rows written
+    // before the cents backfill.
+    const principalCents =
+      payment.principalCents !== null && payment.principalCents !== undefined
+        ? Number(payment.principalCents)
+        : toMoneyCents(payment.principalAmount ?? 0) ?? 0;
+
     const [debt] = await tx
-      .select({ remainingBalance: debts.remainingBalance })
+      .select({
+        remainingBalance: debts.remainingBalance,
+        remainingBalanceCents: debts.remainingBalanceCents,
+      })
       .from(debts)
       .where(and(eq(debts.id, payment.debtId), eq(debts.householdId, householdId)))
       .limit(1);
 
     if (debt) {
-      const restoredBalance = (debt.remainingBalance ?? 0) + principal;
+      const restoredCents = getDebtRemainingCents(debt) + principalCents;
       await tx
         .update(debts)
         .set({
-          remainingBalance: restoredBalance,
+          ...buildDebtBalanceFields(restoredCents),
           // Restoring balance means the debt is no longer paid off.
-          status: restoredBalance > 0 ? 'active' : 'paid_off',
+          status: restoredCents > 0 ? 'active' : 'paid_off',
           updatedAt: new Date().toISOString(),
         })
         .where(and(eq(debts.id, payment.debtId), eq(debts.householdId, householdId)));

@@ -2204,6 +2204,8 @@ export const debts = pgTable(
     creditorName: text('creditor_name').notNull(),
     originalAmount: doublePrecision('original_amount').notNull(),
     remainingBalance: doublePrecision('remaining_balance').notNull(),
+    // Integer-cents source of truth (RC-4 / H-DBG-10); float above is derived.
+    remainingBalanceCents: bigint('remaining_balance_cents', { mode: 'number' }),
     minimumPayment: doublePrecision('minimum_payment'),
     additionalMonthlyPayment: doublePrecision('additional_monthly_payment').default(0),
     interestRate: doublePrecision('interest_rate').default(0),
@@ -2261,6 +2263,10 @@ export const debtPayments = pgTable(
     amount: doublePrecision('amount').notNull(),
     principalAmount: doublePrecision('principal_amount').default(0),
     interestAmount: doublePrecision('interest_amount').default(0),
+    // Integer-cents twins (RC-4); float columns above are derived.
+    amountCents: bigint('amount_cents', { mode: 'number' }),
+    principalCents: bigint('principal_cents', { mode: 'number' }),
+    interestCents: bigint('interest_cents', { mode: 'number' }),
     paymentDate: text('payment_date').notNull(),
     transactionId: text('transaction_id'),
     notes: text('notes'),

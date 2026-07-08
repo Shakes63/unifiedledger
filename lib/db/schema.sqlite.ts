@@ -2212,6 +2212,11 @@ export const debts = sqliteTable(
     creditorName: text('creditor_name').notNull(),
     originalAmount: real('original_amount').notNull(),
     remainingBalance: real('remaining_balance').notNull(),
+    // Integer-cents source of truth for the balance (RC-4 / H-DBG-10). The float
+    // `remainingBalance` above is kept as a derived display value (= cents / 100)
+    // written alongside it in code; there are intentionally no float->cents
+    // triggers here (that inversion is what made accounts drift — H-DB-2).
+    remainingBalanceCents: integer('remaining_balance_cents'),
     minimumPayment: real('minimum_payment'),
     additionalMonthlyPayment: real('additional_monthly_payment').default(0),
     interestRate: real('interest_rate').default(0),
@@ -2269,6 +2274,11 @@ export const debtPayments = sqliteTable(
     amount: real('amount').notNull(),
     principalAmount: real('principal_amount').default(0),
     interestAmount: real('interest_amount').default(0),
+    // Integer-cents twins (RC-4). Authoritative; the float columns above are
+    // derived (= cents / 100) and written alongside in code.
+    amountCents: integer('amount_cents'),
+    principalCents: integer('principal_cents'),
+    interestCents: integer('interest_cents'),
     paymentDate: text('payment_date').notNull(),
     transactionId: text('transaction_id'),
     notes: text('notes'),
