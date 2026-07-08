@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { householdInvitations, householdMembers, userSettings } from '@/lib/db/schema';
 import { user as betterAuthUser } from '@/auth-schema';
 import { and, eq } from 'drizzle-orm';
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
     const role = inv.role as typeof householdMembers.$inferInsert['role'];
 
-    await db.transaction(async (tx) => {
+    await runInDatabaseTransaction(async (tx) => {
       // Upsert membership to make accept idempotent for retries.
       const existingMembership = await tx
         .select({
