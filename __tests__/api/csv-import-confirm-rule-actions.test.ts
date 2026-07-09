@@ -6,6 +6,12 @@ vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/household-auth', () => ({
+  requireHouseholdAuth: vi.fn(),
+  getHouseholdIdFromRequest: vi.fn(),
+  getAndVerifyHousehold: vi.fn(),
+}));
+
 vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(),
@@ -27,11 +33,12 @@ vi.mock('@/lib/rules/actions-executor', () => ({
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
+import { requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { nanoid } from 'nanoid';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { executeRuleActions } from '@/lib/rules/actions-executor';
-import { importHistory, importStaging, ruleExecutionLog, transactions } from '@/lib/db/schema';
+import { accounts, importHistory, importStaging, ruleExecutionLog, transactions } from '@/lib/db/schema';
 
 type DbSelectChain = {
   from: (table: unknown) => {
@@ -50,6 +57,10 @@ describe('POST /api/csv-import/[importId]/confirm applies full rule actions', ()
     vi.clearAllMocks();
 
     vi.mocked(requireAuth).mockResolvedValue({ userId: 'user_1' });
+    vi.mocked(requireHouseholdAuth).mockResolvedValue({
+      userId: 'user_1',
+      householdId: 'hh_1',
+    } as unknown as Awaited<ReturnType<typeof requireHouseholdAuth>>);
 
     // Deterministic IDs: tx, log
     vi.mocked(nanoid)
@@ -98,6 +109,18 @@ describe('POST /api/csv-import/[importId]/confirm applies full rule actions', ()
     const fromMock = vi.fn((table: unknown) => {
       if (table === importHistory) {
         return { where: whereMock };
+      }
+
+      if (table === accounts) {
+        // Serves both loadScopedImportAccount ({id, type}) and
+        // applyAccountBalanceDelta ({currentBalanceCents}).
+        return {
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              { id: 'acct_1', type: 'checking', currentBalanceCents: 100000 },
+            ]),
+          }),
+        };
       }
 
       if (table === importStaging) {

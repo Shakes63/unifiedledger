@@ -1,5 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import {
   importHistory,
   importStaging,
@@ -15,8 +17,11 @@ import Decimal from 'decimal.js';
 import { executeRuleActions } from '@/lib/rules/actions-executor';
 import {
   amountToCents,
+  applyAccountBalanceDelta,
+  computeBalanceDeltaCents,
   insertTransactionMovement,
   insertTransferMovement,
+  type MovementTransactionType,
 } from '@/lib/transactions/money-movement-service';
 import { normalizeMerchantName } from '@/lib/merchants/normalize';
 
@@ -30,6 +35,36 @@ interface TransferDecision {
   importType: 'transfer' | 'link_existing' | 'regular';
   targetAccountId?: string;
   existingTransactionId?: string; // For link_existing option
+}
+
+/**
+ * Load an account scoped to the user + household, returning its type for
+ * liability-aware balance math. Throwing here rejects rows whose CSV-supplied
+ * accountId doesn't belong to the household (audit finding H-IMP-4).
+ */
+async function loadScopedImportAccount(
+  accountId: unknown,
+  userId: string,
+  householdId: string
+): Promise<{ id: string; type: string }> {
+  if (typeof accountId !== 'string' || !accountId) {
+    throw new Error('Row is missing a valid accountId');
+  }
+  const [account] = await db
+    .select({ id: accounts.id, type: accounts.type })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.id, accountId),
+        eq(accounts.userId, userId),
+        eq(accounts.householdId, householdId)
+      )
+    )
+    .limit(1);
+  if (!account) {
+    throw new Error(`Account not found in household: ${accountId}`);
+  }
+  return account;
 }
 
 async function resolveOrCreateImportMerchant({
@@ -139,6 +174,11 @@ export async function POST(
     }
     const householdId = importData.householdId;
 
+    // Re-verify the caller is STILL an active member of the import's household
+    // (audit finding C-SEC-4): previously a member removed after staging an
+    // import could confirm it into their former household.
+    await requireHouseholdAuth(userId, householdId);
+
     // Get staging records to import
     const stagingRecords = await db
       .select()
@@ -150,10 +190,13 @@ export async function POST(
       ? new Set(recordIds.map((id: string) => parseInt(id, 10)))
       : null;
 
-    const recordsToImport = stagingRecords.filter((r) =>
-      rowNumbersToImport
-        ? rowNumbersToImport.has(r.rowNumber)
-        : r.status === 'approved'
+    // Never re-import a row that has already been imported (audit finding
+    // H-IMP-2): re-POSTing the same recordIds — double-click, client retry after
+    // a response that was actually a success — previously duplicated every row.
+    const recordsToImport = stagingRecords.filter(
+      (r) =>
+        r.status !== 'imported' &&
+        (rowNumbersToImport ? rowNumbersToImport.has(r.rowNumber) : r.status === 'approved')
     );
 
     console.log('Staging records found:', stagingRecords.length);
@@ -301,61 +344,84 @@ export async function POST(
           const fromTransactionId = existingIsInbound ? newTxId : existingTx.id;
           const toTransactionId = existingIsInbound ? existingTx.id : newTxId;
 
-          await insertTransactionMovement(db, {
-            id: newTxId,
-            userId,
-            householdId,
-            accountId: mappedData.accountId,
-            categoryId: null,
-            merchantId: null,
-            date: mappedData.date,
-            amountCents: transferAmountCents,
-            description: finalDescription,
-            notes: mappedData.notes || null,
-            type: newTxType,
-            transferId: transferGroupId,
-            transferGroupId,
-            pairedTransactionId: existingTx.id,
-            transferSourceAccountId: sourceAccountId,
-            transferDestinationAccountId: destinationAccountId,
-            isTaxDeductible: false,
-            isSalesTaxable: false,
-            importHistoryId: importId,
-            importRowNumber: stagingRecord.rowNumber,
-            createdAt: now,
-            updatedAt: now,
-          });
+          const csvAccount = await loadScopedImportAccount(mappedData.accountId, userId, householdId);
 
-          await db
-            .update(transactions)
-            .set({
-              type: existingTxType,
-              transferId: transferGroupId,
-              transferGroupId,
-              pairedTransactionId: newTxId,
-              transferSourceAccountId: sourceAccountId,
-              transferDestinationAccountId: destinationAccountId,
+          await runInDatabaseTransaction(async (tx) => {
+            await insertTransactionMovement(tx, {
+              id: newTxId,
+              userId,
+              householdId,
+              accountId: mappedData.accountId,
               categoryId: null,
               merchantId: null,
+              date: mappedData.date,
+              amountCents: transferAmountCents,
+              description: finalDescription,
+              notes: mappedData.notes || null,
+              type: newTxType,
+              transferId: transferGroupId,
+              transferGroupId,
+              pairedTransactionId: existingTx.id,
+              transferSourceAccountId: sourceAccountId,
+              transferDestinationAccountId: destinationAccountId,
+              isTaxDeductible: false,
+              isSalesTaxable: false,
+              importHistoryId: importId,
+              importRowNumber: stagingRecord.rowNumber,
+              createdAt: now,
               updatedAt: now,
-            })
-            .where(eq(transactions.id, transferDecision.existingTransactionId));
+            });
 
-          await insertTransferMovement(db, {
-            id: transferGroupId,
-            userId,
-            householdId,
-            fromAccountId: sourceAccountId,
-            toAccountId: destinationAccountId,
-            amountCents: transferAmountCents,
-            feesCents: 0,
-            description: finalDescription,
-            date: mappedData.date,
-            status: 'completed',
-            fromTransactionId,
-            toTransactionId,
-            notes: mappedData.notes || existingTx.notes || null,
-            createdAt: now,
+            await tx
+              .update(transactions)
+              .set({
+                type: existingTxType,
+                transferId: transferGroupId,
+                transferGroupId,
+                pairedTransactionId: newTxId,
+                transferSourceAccountId: sourceAccountId,
+                transferDestinationAccountId: destinationAccountId,
+                categoryId: null,
+                merchantId: null,
+                updatedAt: now,
+              })
+              .where(eq(transactions.id, transferDecision.existingTransactionId!));
+
+            await insertTransferMovement(tx, {
+              id: transferGroupId,
+              userId,
+              householdId,
+              fromAccountId: sourceAccountId,
+              toAccountId: destinationAccountId,
+              amountCents: transferAmountCents,
+              feesCents: 0,
+              description: finalDescription,
+              date: mappedData.date,
+              status: 'completed',
+              fromTransactionId,
+              toTransactionId,
+              notes: mappedData.notes || existingTx.notes || null,
+              createdAt: now,
+            });
+
+            // Apply the NEW leg's balance effect (C-IMP-1). The existing leg's
+            // effect was applied when it was created, and its income->transfer_in
+            // / expense->transfer_out re-type is balance-neutral.
+            await applyAccountBalanceDelta(tx, {
+              accountId: csvAccount.id,
+              deltaCents: computeBalanceDeltaCents({
+                accountType: csvAccount.type,
+                transactionType: newTxType,
+                amountCents: transferAmountCents,
+              }),
+              userId,
+              householdId,
+            });
+
+            await tx
+              .update(importStaging)
+              .set({ status: 'imported' })
+              .where(eq(importStaging.id, stagingRecord.id));
           });
 
           console.log(`Linked import row ${stagingRecord.rowNumber} (${newTxId}) to existing transaction ${transferDecision.existingTransactionId}`);
@@ -390,71 +456,103 @@ export async function POST(
           const transferOutAccountId = isIncomingTransfer ? transferDecision.targetAccountId : mappedData.accountId;
           const transferInAccountId = isIncomingTransfer ? mappedData.accountId : transferDecision.targetAccountId;
 
-          await insertTransactionMovement(db, {
-            id: transferOutId,
-            userId,
-            householdId,
-            accountId: transferOutAccountId,
-            categoryId: null,
-            merchantId: null,
-            date: mappedData.date,
-            amountCents: transferAmountCents,
-            description: finalDescription,
-            notes: mappedData.notes || null,
-            type: 'transfer_out',
-            transferId: transferGroupId,
-            transferGroupId,
-            pairedTransactionId: transferInId,
-            transferSourceAccountId: sourceAccountId,
-            transferDestinationAccountId: destinationAccountId,
-            isTaxDeductible: false,
-            isSalesTaxable: false,
-            importHistoryId: importId,
-            importRowNumber: stagingRecord.rowNumber,
-            createdAt: now,
-            updatedAt: now,
-          });
+          const outAccount = await loadScopedImportAccount(transferOutAccountId, userId, householdId);
+          const inAccount = await loadScopedImportAccount(transferInAccountId, userId, householdId);
 
-          await insertTransactionMovement(db, {
-            id: transferInId,
-            userId,
-            householdId,
-            accountId: transferInAccountId,
-            categoryId: null,
-            merchantId: null,
-            date: mappedData.date,
-            amountCents: transferAmountCents,
-            description: finalDescription,
-            notes: mappedData.notes || null,
-            type: 'transfer_in',
-            transferId: transferGroupId,
-            transferGroupId,
-            pairedTransactionId: transferOutId,
-            transferSourceAccountId: sourceAccountId,
-            transferDestinationAccountId: destinationAccountId,
-            isTaxDeductible: false,
-            isSalesTaxable: false,
-            importHistoryId: importId,
-            importRowNumber: stagingRecord.rowNumber,
-            createdAt: now,
-            updatedAt: now,
-          });
+          await runInDatabaseTransaction(async (tx) => {
+            await insertTransactionMovement(tx, {
+              id: transferOutId,
+              userId,
+              householdId,
+              accountId: transferOutAccountId,
+              categoryId: null,
+              merchantId: null,
+              date: mappedData.date,
+              amountCents: transferAmountCents,
+              description: finalDescription,
+              notes: mappedData.notes || null,
+              type: 'transfer_out',
+              transferId: transferGroupId,
+              transferGroupId,
+              pairedTransactionId: transferInId,
+              transferSourceAccountId: sourceAccountId,
+              transferDestinationAccountId: destinationAccountId,
+              isTaxDeductible: false,
+              isSalesTaxable: false,
+              importHistoryId: importId,
+              importRowNumber: stagingRecord.rowNumber,
+              createdAt: now,
+              updatedAt: now,
+            });
 
-          await insertTransferMovement(db, {
-            id: transferGroupId,
-            userId,
-            householdId,
-            fromAccountId: sourceAccountId,
-            toAccountId: destinationAccountId,
-            amountCents: transferAmountCents,
-            feesCents: 0,
-            description: finalDescription,
-            date: mappedData.date,
-            status: 'completed',
-            fromTransactionId: transferOutId,
-            toTransactionId: transferInId,
-            notes: mappedData.notes || null,
-            createdAt: now,
+            await insertTransactionMovement(tx, {
+              id: transferInId,
+              userId,
+              householdId,
+              accountId: transferInAccountId,
+              categoryId: null,
+              merchantId: null,
+              date: mappedData.date,
+              amountCents: transferAmountCents,
+              description: finalDescription,
+              notes: mappedData.notes || null,
+              type: 'transfer_in',
+              transferId: transferGroupId,
+              transferGroupId,
+              pairedTransactionId: transferOutId,
+              transferSourceAccountId: sourceAccountId,
+              transferDestinationAccountId: destinationAccountId,
+              isTaxDeductible: false,
+              isSalesTaxable: false,
+              importHistoryId: importId,
+              importRowNumber: stagingRecord.rowNumber,
+              createdAt: now,
+              updatedAt: now,
+            });
+
+            await insertTransferMovement(tx, {
+              id: transferGroupId,
+              userId,
+              householdId,
+              fromAccountId: sourceAccountId,
+              toAccountId: destinationAccountId,
+              amountCents: transferAmountCents,
+              feesCents: 0,
+              description: finalDescription,
+              date: mappedData.date,
+              status: 'completed',
+              fromTransactionId: transferOutId,
+              toTransactionId: transferInId,
+              notes: mappedData.notes || null,
+              createdAt: now,
+            });
+
+            // Apply both legs' balance effects (C-IMP-1), liability-aware.
+            await applyAccountBalanceDelta(tx, {
+              accountId: outAccount.id,
+              deltaCents: computeBalanceDeltaCents({
+                accountType: outAccount.type,
+                transactionType: 'transfer_out',
+                amountCents: transferAmountCents,
+              }),
+              userId,
+              householdId,
+            });
+            await applyAccountBalanceDelta(tx, {
+              accountId: inAccount.id,
+              deltaCents: computeBalanceDeltaCents({
+                accountType: inAccount.type,
+                transactionType: 'transfer_in',
+                amountCents: transferAmountCents,
+              }),
+              userId,
+              householdId,
+            });
+
+            await tx
+              .update(importStaging)
+              .set({ status: 'imported' })
+              .where(eq(importStaging.id, stagingRecord.id));
           });
 
           console.log(`Created transfer pair for row ${stagingRecord.rowNumber}: ${transferOutId} -> ${transferInId}`);
@@ -469,25 +567,48 @@ export async function POST(
             });
           }
 
-          // Import as regular transaction
-          await insertTransactionMovement(db, {
-            id: txId,
-            userId,
-            householdId,
-            accountId: mappedData.accountId,
-            categoryId,
-            date: mappedData.date,
-            amountCents: amountToCents(amount),
-            description: finalDescription,
-            merchantId: finalMerchantId,
-            notes: mappedData.notes || null,
-            type: mappedData.type,
-            isTaxDeductible: finalIsTaxDeductible,
-            isSalesTaxable: finalIsSalesTaxable,
-            importHistoryId: importId,
-            importRowNumber: stagingRecord.rowNumber,
-            createdAt: now,
-            updatedAt: now,
+          // Import as regular transaction. Validate the CSV-supplied account
+          // belongs to this household (H-IMP-4) and apply the balance effect
+          // (C-IMP-1) atomically with the insert.
+          const rowAccount = await loadScopedImportAccount(mappedData.accountId, userId, householdId);
+          const rowAmountCents = amountToCents(amount);
+
+          await runInDatabaseTransaction(async (tx) => {
+            await insertTransactionMovement(tx, {
+              id: txId,
+              userId,
+              householdId,
+              accountId: mappedData.accountId,
+              categoryId,
+              date: mappedData.date,
+              amountCents: rowAmountCents,
+              description: finalDescription,
+              merchantId: finalMerchantId,
+              notes: mappedData.notes || null,
+              type: mappedData.type,
+              isTaxDeductible: finalIsTaxDeductible,
+              isSalesTaxable: finalIsSalesTaxable,
+              importHistoryId: importId,
+              importRowNumber: stagingRecord.rowNumber,
+              createdAt: now,
+              updatedAt: now,
+            });
+
+            await applyAccountBalanceDelta(tx, {
+              accountId: rowAccount.id,
+              deltaCents: computeBalanceDeltaCents({
+                accountType: rowAccount.type,
+                transactionType: mappedData.type as MovementTransactionType,
+                amountCents: rowAmountCents,
+              }),
+              userId,
+              householdId,
+            });
+
+            await tx
+              .update(importStaging)
+              .set({ status: 'imported' })
+              .where(eq(importStaging.id, stagingRecord.id));
           });
 
           // Log rule execution if a rule was applied
@@ -510,12 +631,8 @@ export async function POST(
           }
         }
 
-        // Update staging record status
-        await db
-          .update(importStaging)
-          .set({ status: 'imported' })
-          .where(eq(importStaging.id, stagingRecord.id));
-
+        // Staging status was flipped to 'imported' inside each branch's
+        // transaction, atomically with the inserts and balance updates.
         importedCount++;
       } catch (error) {
         const errorMessage =
