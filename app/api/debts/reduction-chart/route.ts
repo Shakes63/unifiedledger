@@ -155,6 +155,7 @@ export async function GET(request: Request) {
         startDate: payments[0]?.paymentDate || new Date().toISOString(),
         status: 'active',
         minimumPayment: debt.minimumPayment || 0,
+        additionalMonthlyPayment: debt.additionalMonthlyPayment || 0,
         interestRate: debt.interestRate || 0,
         loanType: debt.loanType || 'revolving',
         compoundingFrequency: debt.compoundingFrequency || 'monthly',

@@ -96,3 +96,6 @@ docs/
 
 # Log files
 logs/
+
+# Local scratch/working files
+scratchpad/
