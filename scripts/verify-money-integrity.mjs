@@ -1,15 +1,6 @@
 import { join } from 'path';
 
 import Database from 'better-sqlite3';
-import { Pool } from 'pg';
-
-function getDialect(databaseUrl) {
-  const value = databaseUrl?.trim().toLowerCase();
-  if (value?.startsWith('postgres://') || value?.startsWith('postgresql://')) {
-    return 'postgresql';
-  }
-  return 'sqlite';
-}
 
 function resolveSqlitePath(databaseUrl) {
   const envUrl = databaseUrl?.trim();
@@ -184,46 +175,25 @@ function verifySqliteForeignKeys(sqlite) {
 
 async function run() {
   const databaseUrl = process.env.DATABASE_URL;
-  const dialect = getDialect(databaseUrl);
   let failures = 0;
 
-  console.log(`[verify-money-integrity] dialect: ${dialect}`);
-
-  if (dialect === 'postgresql') {
-    const pool = new Pool({ connectionString: databaseUrl });
-    try {
-      for (const check of checks) {
-        const result = await pool.query(check.sql);
-        const count = Number(result.rows[0]?.count ?? 0);
-        if (count > 0) {
-          failures += 1;
-          console.error(`[FAIL] ${check.name}: ${count}`);
-        } else {
-          console.log(`[OK] ${check.name}`);
-        }
+  const dbPath = resolveSqlitePath(databaseUrl);
+  console.log(`[verify-money-integrity] sqlite path: ${dbPath}`);
+  const sqlite = new Database(dbPath, { fileMustExist: true });
+  try {
+    for (const check of checks) {
+      const row = sqlite.prepare(check.sql).get();
+      const count = Number(row?.count ?? 0);
+      if (count > 0) {
+        failures += 1;
+        console.error(`[FAIL] ${check.name}: ${count}`);
+      } else {
+        console.log(`[OK] ${check.name}`);
       }
-    } finally {
-      await pool.end();
     }
-  } else {
-    const dbPath = resolveSqlitePath(databaseUrl);
-    console.log(`[verify-money-integrity] sqlite path: ${dbPath}`);
-    const sqlite = new Database(dbPath, { fileMustExist: true });
-    try {
-      for (const check of checks) {
-        const row = sqlite.prepare(check.sql).get();
-        const count = Number(row?.count ?? 0);
-        if (count > 0) {
-          failures += 1;
-          console.error(`[FAIL] ${check.name}: ${count}`);
-        } else {
-          console.log(`[OK] ${check.name}`);
-        }
-      }
-      failures += verifySqliteForeignKeys(sqlite);
-    } finally {
-      sqlite.close();
-    }
+    failures += verifySqliteForeignKeys(sqlite);
+  } finally {
+    sqlite.close();
   }
 
   if (failures > 0) {

@@ -2,11 +2,6 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
-function isPostgresUrl(databaseUrl) {
-  const value = (databaseUrl ?? '').trim().toLowerCase();
-  return value.startsWith('postgres://') || value.startsWith('postgresql://');
-}
-
 function resolveDatabaseUrl() {
   const envUrl = process.env.DATABASE_URL?.trim();
   if (envUrl) {
@@ -42,11 +37,7 @@ function main() {
     DATABASE_URL: databaseUrl,
   };
 
-  if (isPostgresUrl(databaseUrl)) {
-    run('pnpm', ['-s', 'db:migrate:pg'], env);
-  } else {
-    run('pnpm', ['-s', 'db:migrate:sqlite:safe'], env);
-  }
+  run('pnpm', ['-s', 'db:migrate:sqlite:safe'], env);
 
   run('next', ['dev'], env);
 }

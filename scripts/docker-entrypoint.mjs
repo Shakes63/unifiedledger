@@ -3,7 +3,6 @@ import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { Client } from "pg";
 
 function isPostgresUrl(databaseUrl) {
   const v = (databaseUrl ?? "").trim().toLowerCase();
@@ -90,15 +89,10 @@ function requireFileExists(filePath, { label }) {
   }
 }
 
-function requireMigrationArtifacts({ dialect }) {
+function requireMigrationArtifacts() {
   // Fail-fast with clearer messaging.
   const cwd = process.cwd();
-
-  const migrationsDir =
-    dialect === "postgres"
-      ? path.resolve(cwd, "drizzle", "postgres")
-      : path.resolve(cwd, "drizzle", "sqlite");
-
+  const migrationsDir = path.resolve(cwd, "drizzle", "sqlite");
   const journalPath = path.resolve(migrationsDir, "meta", "_journal.json");
 
   requireFileExists(migrationsDir, { label: "migrations directory" });
@@ -127,69 +121,46 @@ function acquireSqliteMigrateLock() {
   };
 }
 
-async function withPostgresAdvisoryLock(databaseUrl, fn) {
-  // Use a stable 2-int lock key to avoid bigint parsing differences.
-  // This lock is held for the lifetime of this client connection.
-  const lockKey1 = 8291;
-  const lockKey2 = 33001;
-  const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
-  try {
-    await client.query("select pg_advisory_lock($1, $2)", [lockKey1, lockKey2]);
-    return await fn();
-  } finally {
-    try {
-      await client.query("select pg_advisory_unlock($1, $2)", [lockKey1, lockKey2]);
-    } catch {}
-    try {
-      await client.end();
-    } catch {}
-  }
-}
-
 async function main() {
   ensureRuntimeAuthSecret();
 
   const databaseUrl = process.env.DATABASE_URL?.trim() || defaultDatabaseUrl();
   process.env.DATABASE_URL = databaseUrl;
 
-  const dialect = isPostgresUrl(databaseUrl) ? "postgres" : "sqlite";
+  // This app standardized on SQLite; refuse a Postgres URL loudly rather than
+  // booting against an empty SQLite file.
+  if (isPostgresUrl(databaseUrl)) {
+    console.error(
+      "[entrypoint] DATABASE_URL is a Postgres URL, but Postgres support has been removed — " +
+        "this app is SQLite-only. Set DATABASE_URL to a file: path (e.g. file:/config/finance.db) " +
+        "or unset it to use the default."
+    );
+    process.exit(1);
+  }
 
-  console.log(`[entrypoint] DATABASE_URL=${dialect === "postgres" ? "<postgresql>" : databaseUrl}`);
-  console.log(`[entrypoint] Selected DB dialect: ${dialect}`);
+  console.log(`[entrypoint] DATABASE_URL=${databaseUrl}`);
   console.log(`[entrypoint] Running migrations...`);
 
-  requireMigrationArtifacts({ dialect });
+  requireMigrationArtifacts();
 
   let releaseLock = null;
-  if (dialect === "sqlite") {
-    try {
-      releaseLock = acquireSqliteMigrateLock();
-    } catch (e) {
-      const code = e?.code;
-      if (code === "EEXIST") {
-        console.error("[entrypoint] SQLite migration lock already exists at /config/.migrate.lock");
-        console.error("[entrypoint] This usually means another container instance is migrating, or a previous run crashed.");
-        console.error("[entrypoint] Ensure only one instance is running. If safe, delete /config/.migrate.lock and restart.");
-      } else {
-        console.error("[entrypoint] Failed to acquire SQLite migration lock in /config:", e?.message ?? e);
-      }
-      process.exit(1);
+  try {
+    releaseLock = acquireSqliteMigrateLock();
+  } catch (e) {
+    const code = e?.code;
+    if (code === "EEXIST") {
+      console.error("[entrypoint] SQLite migration lock already exists at /config/.migrate.lock");
+      console.error("[entrypoint] This usually means another container instance is migrating, or a previous run crashed.");
+      console.error("[entrypoint] Ensure only one instance is running. If safe, delete /config/.migrate.lock and restart.");
+    } else {
+      console.error("[entrypoint] Failed to acquire SQLite migration lock in /config:", e?.message ?? e);
     }
-  } else {
-    // Postgres: use an advisory lock so only one migrator runs at a time.
+    process.exit(1);
   }
 
   // Use lightweight migrate script instead of drizzle-kit (saves ~150MB in Docker image)
-  const runMigrate = () => run("node", ["scripts/migrate.mjs"]);
   try {
-    if (dialect === "postgres") {
-      await withPostgresAdvisoryLock(databaseUrl, async () => {
-        runMigrate();
-      });
-    } else {
-      runMigrate();
-    }
+    run("node", ["scripts/migrate.mjs"]);
   } finally {
     if (releaseLock) releaseLock();
   }
@@ -215,5 +186,3 @@ main().catch((err) => {
   console.error("[entrypoint] Startup failed:", err);
   process.exit(1);
 });
-
-

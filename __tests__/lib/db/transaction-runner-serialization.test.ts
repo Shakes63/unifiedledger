@@ -2,7 +2,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
-import { getCurrentDatabaseDialect } from '@/lib/db/dialect';
 
 /**
  * Real-DB verification of runInDatabaseTransaction's transactional guarantees (RC-1,
@@ -13,7 +12,6 @@ import { getCurrentDatabaseDialect } from '@/lib/db/dialect';
  */
 
 const TABLE = 'tx_runner_test_counter';
-const isSqlite = getCurrentDatabaseDialect() === 'sqlite';
 
 async function readCounter(): Promise<number> {
   const row = (await db.get(
@@ -22,7 +20,7 @@ async function readCounter(): Promise<number> {
   return row ? Number(row.value) : 0;
 }
 
-describe.skipIf(!isSqlite)('runInDatabaseTransaction serialization (SQLite)', () => {
+describe('runInDatabaseTransaction serialization (SQLite)', () => {
   beforeAll(async () => {
     await db.run(
       sql.raw(`CREATE TABLE IF NOT EXISTS ${TABLE} (id INTEGER PRIMARY KEY, value INTEGER NOT NULL)`)

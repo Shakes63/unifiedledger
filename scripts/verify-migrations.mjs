@@ -6,16 +6,11 @@
  * meta/_journal.json. When a .sql file and its journal entry drift apart —
  * an orphan file with no entry, an entry with no file, a gap or duplicate in
  * the idx sequence — `generate` goes interactive/broken and silently stops
- * emitting migrations. That is exactly how the Postgres schema forked and
- * fell behind SQLite (it is missing the entity, bill-v2, and money-cents
- * migrations). This script fails CI the moment either dialect's journal stops
- * matching its files, so the drift is caught at the commit that introduces it
- * rather than months later at a broken `generate`.
- *
- * It verifies each dialect INTERNALLY (files <-> journal, contiguous idx). It
- * does NOT try to reconcile Postgres against SQLite — that needs a live
- * Postgres and hand-authored catch-up migrations (tracked as C-DB-1). The
- * cross-dialect lag is reported as a non-fatal warning so it stays visible.
+ * emitting migrations. (That is exactly how the old dual-dialect Postgres
+ * schema forked and fell behind before Postgres support was removed.) This
+ * script fails CI the moment the journal stops matching its files, so the
+ * drift is caught at the commit that introduces it rather than months later
+ * at a broken `generate`.
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -25,10 +20,7 @@ import { fileURLToPath } from 'node:url';
 const root = process.env.DRIZZLE_ROOT
   ? process.env.DRIZZLE_ROOT
   : join(dirname(fileURLToPath(import.meta.url)), '..', 'drizzle');
-const DIALECTS = [
-  { name: 'sqlite', dir: join(root, 'sqlite') },
-  { name: 'postgres', dir: join(root, 'postgres') },
-];
+const DIALECTS = [{ name: 'sqlite', dir: join(root, 'sqlite') }];
 
 const errors = [];
 const warnings = [];
@@ -37,7 +29,7 @@ const counts = {};
 for (const { name, dir } of DIALECTS) {
   const journalPath = join(dir, 'meta', '_journal.json');
   if (!existsSync(dir) || !existsSync(journalPath)) {
-    warnings.push(`[${name}] no migration dir or _journal.json; skipping`);
+    errors.push(`[${name}] no migration dir or _journal.json at ${dir}`);
     continue;
   }
 
@@ -74,11 +66,11 @@ for (const { name, dir } of DIALECTS) {
   counts[name] = fileTags.size;
 }
 
-// Cross-dialect lag: non-fatal, but keep it loud so nobody forgets Postgres.
-if (counts.sqlite != null && counts.postgres != null && counts.sqlite !== counts.postgres) {
+// A leftover drizzle/postgres directory would mean pg artifacts crept back in
+// without the runtime to use them — flag it so it gets cleaned up or questioned.
+if (existsSync(join(root, 'postgres'))) {
   warnings.push(
-    `postgres has ${counts.postgres} migrations but sqlite has ${counts.sqlite} — ` +
-      `the dialects have forked. Reconcile Postgres before switching dialects (C-DB-1).`
+    'drizzle/postgres exists but Postgres support was removed — delete it or ask why it returned.'
   );
 }
 
@@ -91,6 +83,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  `✅ Migration journals consistent (sqlite: ${counts.sqlite ?? '—'}, postgres: ${counts.postgres ?? '—'} migrations).`
-);
+console.log(`✅ Migration journal consistent (sqlite: ${counts.sqlite ?? '—'} migrations).`);

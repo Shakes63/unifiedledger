@@ -6,19 +6,18 @@ import { spawnSync } from 'node:child_process';
 
 /**
  * The migration-journal gate (scripts/verify-migrations.mjs) is what catches the
- * drizzle-kit snapshot drift that forked the Postgres schema. These tests build
- * throwaway drizzle trees and assert the gate passes on a consistent one and
- * fails on each drift shape.
+ * drizzle-kit snapshot drift that forked the old Postgres schema before Postgres
+ * support was removed. These tests build throwaway drizzle trees and assert the
+ * gate passes on a consistent one and fails on each drift shape.
  */
 const SCRIPT = path.join(process.cwd(), 'scripts', 'verify-migrations.mjs');
 
-function writeDialect(
+function writeSqliteDialect(
   root: string,
-  dialect: string,
   tags: string[],
   { journalTags, indices }: { journalTags?: string[]; indices?: number[] } = {}
 ) {
-  const dir = path.join(root, dialect);
+  const dir = path.join(root, 'sqlite');
   fs.mkdirSync(path.join(dir, 'meta'), { recursive: true });
   for (const tag of tags) {
     fs.writeFileSync(path.join(dir, `${tag}.sql`), '-- noop\n');
@@ -33,7 +32,7 @@ function writeDialect(
   }));
   fs.writeFileSync(
     path.join(dir, 'meta', '_journal.json'),
-    JSON.stringify({ version: '7', dialect, entries }, null, 2)
+    JSON.stringify({ version: '7', dialect: 'sqlite', entries }, null, 2)
   );
 }
 
@@ -59,8 +58,7 @@ describe('verify-migrations gate', () => {
 
   it('passes when files and journal agree', () => {
     const root = tmpRoot();
-    writeDialect(root, 'sqlite', ['0000_init', '0001_next']);
-    writeDialect(root, 'postgres', ['0000_init', '0001_next']);
+    writeSqliteDialect(root, ['0000_init', '0001_next']);
     const res = run(root);
     expect(res.status).toBe(0);
     expect(res.stdout).toMatch(/consistent/);
@@ -69,10 +67,9 @@ describe('verify-migrations gate', () => {
   it('fails when a .sql file has no journal entry (orphan file)', () => {
     const root = tmpRoot();
     // File 0002 exists on disk but the journal only knows about 0000/0001.
-    writeDialect(root, 'sqlite', ['0000_init', '0001_next', '0002_orphan'], {
+    writeSqliteDialect(root, ['0000_init', '0001_next', '0002_orphan'], {
       journalTags: ['0000_init', '0001_next'],
     });
-    writeDialect(root, 'postgres', ['0000_init', '0001_next']);
     const res = run(root);
     expect(res.status).toBe(1);
     expect(res.stderr).toMatch(/0002_orphan\.sql.*no entry/);
@@ -80,10 +77,9 @@ describe('verify-migrations gate', () => {
 
   it('fails when a journal entry has no .sql file', () => {
     const root = tmpRoot();
-    writeDialect(root, 'sqlite', ['0000_init'], {
+    writeSqliteDialect(root, ['0000_init'], {
       journalTags: ['0000_init', '0001_missing'],
     });
-    writeDialect(root, 'postgres', ['0000_init', '0001_missing']);
     const res = run(root);
     expect(res.status).toBe(1);
     expect(res.stderr).toMatch(/0001_missing.*no matching \.sql/);
@@ -91,19 +87,25 @@ describe('verify-migrations gate', () => {
 
   it('fails when the idx sequence is not contiguous', () => {
     const root = tmpRoot();
-    writeDialect(root, 'sqlite', ['0000_init', '0001_next'], { indices: [0, 2] });
-    writeDialect(root, 'postgres', ['0000_init', '0001_next']);
+    writeSqliteDialect(root, ['0000_init', '0001_next'], { indices: [0, 2] });
     const res = run(root);
     expect(res.status).toBe(1);
     expect(res.stderr).toMatch(/not contiguous/);
   });
 
-  it('warns but still passes when the dialects have a different migration count', () => {
+  it('fails when the sqlite migration dir is missing entirely', () => {
     const root = tmpRoot();
-    writeDialect(root, 'sqlite', ['0000_init', '0001_next', '0002_more']);
-    writeDialect(root, 'postgres', ['0000_init', '0001_next']);
+    const res = run(root);
+    expect(res.status).toBe(1);
+    expect(res.stderr).toMatch(/no migration dir/);
+  });
+
+  it('warns when a leftover drizzle/postgres directory reappears', () => {
+    const root = tmpRoot();
+    writeSqliteDialect(root, ['0000_init']);
+    fs.mkdirSync(path.join(root, 'postgres'), { recursive: true });
     const res = run(root);
     expect(res.status).toBe(0);
-    expect(res.stderr).toMatch(/forked/);
+    expect(res.stderr).toMatch(/Postgres support was removed/);
   });
 });
