@@ -50,11 +50,12 @@ export async function GET(request: Request) {
     const now = new Date();
     const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForDate(now);
 
-    // Split-aware spending for this month and category (H-DBG-7).
+    // Split-aware, HOUSEHOLD-scoped spending (H-DBG-7, H-DBG-16). Budgets are a
+    // household concept, and month-end rollover deducts the whole household's
+    // spend — so the live view must match, not show only the caller's share.
     const spentCents = await getCategorySpendingCents({
       categoryId,
       householdId,
-      userId,
       startDate: monthStart,
       endDate: monthEnd,
       categoryType: 'expense',

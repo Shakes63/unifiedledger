@@ -144,11 +144,11 @@ export async function GET(request: Request) {
         ? new Decimal(monthlyBudget).plus(rolloverBalance).toNumber()
         : monthlyBudget;
 
-      // Split-aware actual spending/income for this category in this month (H-DBG-7).
+      // Split-aware, HOUSEHOLD-scoped spending (H-DBG-7, H-DBG-16). Matches the
+      // household-scoped month-end rollover so the two reconcile.
       const actualSpentCents = await getCategorySpendingCents({
         categoryId: category.id,
         householdId,
-        userId,
         startDate: monthStart,
         endDate: monthEnd,
         categoryType: category.type,
