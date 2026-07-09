@@ -26,6 +26,12 @@ jobs:
       - name: Type check
         run: pnpm exec tsc --noEmit
 
+      # Fail fast if any dialect's migration files and _journal.json have drifted
+      # apart (orphan file, missing entry, non-contiguous idx). That drift is what
+      # breaks `drizzle-kit generate` and forked the Postgres schema.
+      - name: Verify migration journals
+        run: pnpm db:verify:migrations
+
       - name: Create database schema
         run: pnpm db:migrate:sqlite:safe
 
