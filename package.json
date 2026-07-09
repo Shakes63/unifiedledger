@@ -19,6 +19,7 @@
     "db:migrate:sqlite:safe": "pnpm -s db:bootstrap:sqlite && pnpm -s db:migrate:sqlite",
     "db:verify:money": "node scripts/verify-money-integrity.mjs",
     "db:verify:migrations": "node scripts/verify-migrations.mjs",
+    "db:reconcile:credit": "node scripts/reconcile-credit-balances.mjs",
     "db:migrate:sqlite:verify": "pnpm -s db:migrate:sqlite:safe && pnpm -s db:verify:money",
     "generate-test-data": "tsx scripts/generate-test-data.ts"
   },
