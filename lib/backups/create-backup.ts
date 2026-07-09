@@ -23,6 +23,9 @@ import {
   userSettings,
   transactionTags,
   customFieldValues,
+  transfers,
+  savingsGoalContributions,
+  budgetRolloverHistory,
 } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -207,6 +210,30 @@ export async function createUserBackup(
             ])
           : [[], [], []];
 
+      // Money-critical tables the export previously omitted (audit finding
+      // M-DB-1): without `transfers` a restore permanently loses transfer pairing
+      // — exactly the linkage verify-money-integrity polices. Goal contributions
+      // and rollover history are the ledgers behind goal/budget balances.
+      const [userTransfers, userGoalContributions, userRolloverHistory] = await Promise.all([
+        db
+          .select()
+          .from(transfers)
+          .where(and(eq(transfers.userId, userId), eq(transfers.householdId, householdId))),
+        db
+          .select()
+          .from(savingsGoalContributions)
+          .where(
+            and(
+              eq(savingsGoalContributions.userId, userId),
+              eq(savingsGoalContributions.householdId, householdId)
+            )
+          ),
+        db
+          .select()
+          .from(budgetRolloverHistory)
+          .where(eq(budgetRolloverHistory.householdId, householdId)),
+      ]);
+
       // Filter transactionTags and customFieldValues by household transactions
       const householdTransactionIds = userTransactions.map(t => t.id);
       const filteredTransactionTags = householdTransactionIds.length > 0
@@ -226,6 +253,9 @@ export async function createUserBackup(
           transactions: userTransactions,
           transactionSplits: userTransactionSplits,
           transactionTags: filteredTransactionTags,
+          transfers: userTransfers,
+          goalContributions: userGoalContributions,
+          rolloverHistory: userRolloverHistory,
           accounts: userAccounts,
           categories: userCategories,
           billTemplates: userBillTemplates,

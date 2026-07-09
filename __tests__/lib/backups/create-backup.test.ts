@@ -61,8 +61,10 @@ describe('lib/backups/create-backup', () => {
       .mockReturnValueOnce(mockSelectWhere([]))
       .mockReturnValueOnce(mockSelectWhere([{ id: 'settings-id', format: 'json' }]));
 
-    // Promise.all: 19 selects
-    for (let i = 0; i < 19; i++) {
+    // Exact count (leftover mockReturnValueOnce values leak into the next test):
+    // main Promise.all (18 selects) + the money-critical Promise.all
+    // (transfers / goalContributions / rolloverHistory = 3) = 21.
+    for (let i = 0; i < 21; i++) {
       (db.select as any).mockReturnValueOnce(mockSelectWhere([]));
     }
 
@@ -81,6 +83,12 @@ describe('lib/backups/create-backup', () => {
       'unifiedledger-backup-2025-01-01-000000.json',
       expect.stringContaining('"exportDate"')
     );
+    // The archive now includes transfers, goal contributions, and rollover
+    // history (M-DB-1); a restore without `transfers` lost transfer pairing.
+    const fileContent = (saveBackupFile as any).mock.calls[0][3] as string;
+    expect(fileContent).toContain('"transfers"');
+    expect(fileContent).toContain('"goalContributions"');
+    expect(fileContent).toContain('"rolloverHistory"');
 
     // inserted settings + history
     expect(insertCalls.length).toBe(2);
