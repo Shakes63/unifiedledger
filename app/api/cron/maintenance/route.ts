@@ -8,26 +8,15 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/api/cron-auth";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 
 /**
  * Verify cron secret for security
  */
-function verifyCronSecret(request: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    return false;
-  }
-
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) {
-    return false;
-  }
-
-  const token = authHeader.replace("Bearer ", "");
-  return token === cronSecret;
-}
+// Shared fail-closed, timing-safe cron auth (M-SEC-9).
+const verifyCronSecret = isAuthorizedCronRequest;
 
 /**
  * POST: Run maintenance operations
