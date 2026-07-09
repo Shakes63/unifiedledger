@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { toLocalDateString } from '@/lib/utils/local-date';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, gte, lte, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { accounts } from '@/lib/db/schema';
+import { accounts, transactions } from '@/lib/db/schema';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 import {
   getLast12MonthsRanges,
   calculateDateRange,
@@ -102,6 +103,43 @@ export async function GET(request: NextRequest) {
       }, 0);
     }
 
+    // Derive REAL historical net worth from the ledger (audit finding M-RPT-10:
+    // the chart previously repeated the current value for every point). A
+    // transaction's effect on net worth is +income / -expense; transfers move
+    // money between the household's own accounts and are net-worth-neutral. So
+    // net worth at a past date D = current net worth minus the net income/expense
+    // that occurred AFTER D (up to today). Respects the same account filter.
+    const today = getTodayLocalDateString();
+    const netDeltaConditions = [
+      eq(transactions.userId, userId),
+      eq(transactions.householdId, householdId),
+      inArray(transactions.type, ['income', 'expense']),
+      gte(transactions.date, startDate),
+      lte(transactions.date, today),
+    ];
+    if (accountIds && accountIds.length > 0) {
+      netDeltaConditions.push(inArray(transactions.accountId, accountIds));
+    }
+    const dailyDeltas = await db
+      .select({
+        date: transactions.date,
+        deltaCents: sql<number>`SUM(CASE WHEN ${transactions.type} = 'income' THEN ${transactions.amountCents} ELSE -${transactions.amountCents} END)`,
+      })
+      .from(transactions)
+      .where(and(...netDeltaConditions))
+      .groupBy(transactions.date);
+
+    const currentNetWorthCents = Math.round(filteredNetWorth * 100);
+    // Net worth (in dollars) as of the END of boundaryDate = current minus the
+    // sum of deltas strictly AFTER boundaryDate.
+    const netWorthAsOf = (boundaryDate: string): number => {
+      let suffix = 0;
+      for (const row of dailyDeltas) {
+        if (row.date > boundaryDate) suffix += Number(row.deltaCents) || 0;
+      }
+      return (currentNetWorthCents - suffix) / 100;
+    };
+
     // Calculate historical net worth for chart
     type NetWorthPoint = { name: string; netWorth: number; week?: string; month?: string };
     const historyData: NetWorthPoint[] = [];
@@ -124,12 +162,11 @@ export async function GET(request: NextRequest) {
         weekEnd.setDate(weekEnd.getDate() + 6);
         if (weekEnd > end) weekEnd.setTime(end.getTime());
 
-        // Simplified: use current net worth for all weeks
-        // In a full implementation, you'd calculate historical balances
+        // Net worth as of the end of this week (M-RPT-10).
         historyData.push({
           week: `Week ${weekCount}`,
           name: `Week ${weekCount}`,
-          netWorth: filteredNetWorth,
+          netWorth: netWorthAsOf(toLocalDateString(weekEnd)),
         });
 
         currentDate = new Date(weekEnd);
@@ -169,14 +206,13 @@ export async function GET(request: NextRequest) {
         // Skip ranges outside our date range
         if (range.endDate < startDate || range.startDate > endDate) continue;
 
-        // Simplified: use current net worth for all months
-        // In a full implementation, you'd calculate historical balances from transactions
+        // Net worth as of the end of this month (M-RPT-10).
         const monthLabel = formatMonthLabel(range.startDate);
 
         historyData.push({
           month: monthLabel,
           name: monthLabel,
-          netWorth: filteredNetWorth,
+          netWorth: netWorthAsOf(range.endDate),
         });
       }
     }
