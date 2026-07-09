@@ -87,12 +87,32 @@ Workflow file: `.github/workflows/publish-ghcr.yml`
 - **SQLite lock error: `/config/.migrate.lock` already exists**
   - Ensure only one container instance is running.
   - If a previous run crashed, delete `/config/.migrate.lock` and restart.
-- **Postgres migrations fail**
-  - Confirm Postgres is reachable and v17+.
-  - Verify `DATABASE_URL` is correct and includes the database name.
+- **Scheduled jobs (autopay, backups) aren't running**
+  - The container starts its own scheduler that triggers `/api/cron/*` endpoints.
+    Check the logs for `[cron-scheduler] started`. It authenticates with
+    `CRON_SECRET` (auto-generated to `/config/.cron-secret` when unset).
+  - Using external cron instead? Set `CRON_SCHEDULER_DISABLED=true` and call the
+    endpoints yourself with `Authorization: Bearer $CRON_SECRET`.
 
-### Backup / restore (minimum viable)
+### Backup / restore
 
-- Stop the container
-- Back up the `/config` folder (at minimum `finance.db` + `uploads/`)
-- Restore by putting the files back in `/config` and starting the container; migrations will run on startup.
+Three layers, from most to least automatic:
+
+1. **Pre-migration snapshots** — before applying pending migrations at startup,
+   the container writes a consistent copy of the DB to
+   `/config/backups/pre-migration/` (last 3 kept). Rolling back a bad deploy:
+   stop the container, copy the snapshot over `/config/finance.db`, start the
+   previous image tag.
+2. **Daily raw DB snapshots** — the backup cron writes a `VACUUM INTO` copy of
+   the whole database to `/config/backups/db-snapshots/` (last 7 kept). Restore:
+   stop the container, copy a snapshot over `/config/finance.db`, start.
+3. **Per-household JSON exports** — the in-app scheduled backups
+   (`/config/backups/<user>/<household>/`), restorable through the app's import.
+
+**All of these live on the same disk as the database.** For real durability,
+sync `/config/backups/` off-box — on Unraid, point a User Scripts rclone/rsync
+job (or the CA Appdata Backup plugin) at another share or cloud storage.
+
+**Do a restore drill once**: copy a `db-snapshots` file over a scratch
+`finance.db`, boot a container against it, and confirm your data is there. An
+untested backup is a hope, not a backup.

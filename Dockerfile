@@ -72,6 +72,14 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/drizzle /app/drizzle
 COPY --from=builder /app/scripts/docker-entrypoint.mjs /app/scripts/docker-entrypoint.mjs
 COPY --from=builder /app/scripts/migrate.mjs /app/scripts/migrate.mjs
+# Startup money-integrity verification (was missing from the image — the
+# entrypoint invoked it but the module was never copied, so the startup check
+# silently never executed).
+COPY --from=builder /app/scripts/verify-money-integrity.mjs /app/scripts/verify-money-integrity.mjs
+# In-container trigger loop for the /api/cron/* endpoints (autopay, backups...).
+COPY --from=builder /app/scripts/cron-scheduler.mjs /app/scripts/cron-scheduler.mjs
+# One-time legacy credit-balance repair tool (run manually inside the container).
+COPY --from=builder /app/scripts/reconcile-credit-balances.mjs /app/scripts/reconcile-credit-balances.mjs
 
 # Copy init script for PUID/PGID support
 COPY scripts/docker-init.sh /app/scripts/docker-init.sh
