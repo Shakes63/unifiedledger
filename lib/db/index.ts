@@ -1,16 +1,11 @@
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { join } from 'path';
-import { Pool } from 'pg';
-import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema';
 import { getDatabaseDialectFromUrl } from './dialect';
 
 let sqlite: Database.Database;
-let pgPool: Pool | undefined;
-// Use BetterSQLite3Database as the base type since it's the default and most common
-// The actual runtime type depends on DATABASE_URL but TypeScript only needs one type for compilation
 let db: BetterSQLite3Database<typeof schema>;
 
 function resolveSqlitePath() {
@@ -24,13 +19,13 @@ function resolveSqlitePath() {
     if (envUrl.startsWith('file:')) {
       // Strip the "file:" prefix first
       const afterFilePrefix = envUrl.slice(5); // Remove 'file:'
-      
+
       // Check if it's a relative path BEFORE URL parsing mangles it
       // (new URL('file:./sqlite.db').pathname returns '/sqlite.db', losing the './')
       if (afterFilePrefix.startsWith('./') || afterFilePrefix.startsWith('../')) {
         return join(process.cwd(), afterFilePrefix);
       }
-      
+
       // For absolute file: URLs, use URL parsing
       try {
         const path = new URL(envUrl).pathname;
@@ -56,32 +51,47 @@ function resolveSqlitePath() {
   return join(process.cwd(), 'sqlite.db');
 }
 
-const sqlitePath = resolveSqlitePath();
-
 /**
- * Guard against a malformed Postgres URL silently falling through to a brand-new
- * SQLite file (audit finding M-DB-5): e.g. a `postgress://` typo or a bare host
- * would otherwise be treated as a SQLite path and boot against an empty DB.
+ * This app standardized on SQLite; the Postgres dialect was removed. Fail loudly
+ * if a Postgres connection string is still configured rather than silently
+ * booting against an empty SQLite file.
  */
-function assertDatabaseUrlIsWellFormed(): void {
+function assertSqliteDatabaseUrl(): void {
   const raw = process.env.DATABASE_URL?.trim();
   if (!raw) return;
+
+  if (getDatabaseDialectFromUrl(raw) === 'postgresql') {
+    throw new Error(
+      `DATABASE_URL="${raw}" is a Postgres URL, but Postgres support has been ` +
+        `removed — this app is SQLite-only. Set DATABASE_URL to a file: path ` +
+        `(e.g. file:/config/finance.db) or unset it to use the default.`
+    );
+  }
+
+  // Guard against a malformed URL silently falling through to a brand-new SQLite
+  // file (audit finding M-DB-5): e.g. a `postgress://` typo or a bare host would
+  // otherwise be treated as a SQLite path and boot against an empty DB.
   const lower = raw.toLowerCase();
   const looksPostgresLike =
     lower.includes('postgres') || lower.includes('@') || lower.includes('5432');
-  const isValidPostgres = lower.startsWith('postgres://') || lower.startsWith('postgresql://');
-  const isSqliteLike = lower.startsWith('file:') || lower.startsWith('./') ||
-    lower.startsWith('../') || lower.startsWith('/') || lower.endsWith('.db');
-  if (looksPostgresLike && !isValidPostgres && !isSqliteLike) {
+  const isSqliteLike =
+    lower.startsWith('file:') ||
+    lower.startsWith('./') ||
+    lower.startsWith('../') ||
+    lower.startsWith('/') ||
+    lower.endsWith('.db');
+  if (looksPostgresLike && !isSqliteLike) {
     throw new Error(
-      `DATABASE_URL="${raw}" looks like a Postgres connection string but is not a ` +
-        `valid postgres:// / postgresql:// URL. Refusing to fall back to SQLite. ` +
-        `Fix the URL or use an explicit file: path.`
+      `DATABASE_URL="${raw}" looks like a database server URL but is not a valid ` +
+        `SQLite file: path. Refusing to fall back to an empty SQLite file. ` +
+        `Use an explicit file: path.`
     );
   }
 }
 
-assertDatabaseUrlIsWellFormed();
+assertSqliteDatabaseUrl();
+
+const sqlitePath = resolveSqlitePath();
 
 /**
  * Apply connection pragmas for a self-hosted single-connection SQLite deployment:
@@ -98,39 +108,17 @@ function configureSqliteConnection(connection: Database.Database): Database.Data
 
 declare global {
   var sqlite: Database.Database | undefined;
-  var pgPool: Pool | undefined;
-  // Use BetterSQLite3Database as the base type for global declaration
   var db: BetterSQLite3Database<typeof schema> | undefined;
 }
 
-const dialect = getDatabaseDialectFromUrl(process.env.DATABASE_URL);
-
-if (dialect === 'postgresql') {
-  // Postgres runtime (officially supported 17+ per Unraid plan)
-  // Note: DATABASE_URL must be set to a postgres:// or postgresql:// URL.
-  const url = process.env.DATABASE_URL?.trim();
-  if (!url) throw new Error('DATABASE_URL is required for Postgres mode.');
-
-  if (process.env.NODE_ENV !== 'production') {
-    if (!global.pgPool) global.pgPool = new Pool({ connectionString: url });
-    if (!global.db) global.db = drizzlePg(global.pgPool, { schema }) as unknown as BetterSQLite3Database<typeof schema>;
-    pgPool = global.pgPool;
-    db = global.db;
-  } else {
-    pgPool = new Pool({ connectionString: url });
-    db = drizzlePg(pgPool, { schema }) as unknown as BetterSQLite3Database<typeof schema>;
-  }
+if (process.env.NODE_ENV === 'production') {
+  sqlite = configureSqliteConnection(new Database(sqlitePath));
+  db = drizzle(sqlite, { schema });
 } else {
-  // SQLite runtime (default)
-  if (process.env.NODE_ENV === 'production') {
-    sqlite = configureSqliteConnection(new Database(sqlitePath));
-    db = drizzle(sqlite, { schema });
-  } else {
-    if (!global.sqlite) global.sqlite = configureSqliteConnection(new Database(sqlitePath));
-    if (!global.db) global.db = drizzle(global.sqlite, { schema });
-    sqlite = global.sqlite;
-    db = global.db;
-  }
+  if (!global.sqlite) global.sqlite = configureSqliteConnection(new Database(sqlitePath));
+  if (!global.db) global.db = drizzle(global.sqlite, { schema });
+  sqlite = global.sqlite;
+  db = global.db;
 }
 
-export { db, sqlite, pgPool };
+export { db, sqlite };

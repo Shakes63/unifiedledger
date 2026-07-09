@@ -1,15 +1,6 @@
 import { join } from 'path';
 
 import Database from 'better-sqlite3';
-import { Pool } from 'pg';
-
-function getDialect(databaseUrl) {
-  const value = databaseUrl?.trim().toLowerCase();
-  if (value?.startsWith('postgres://') || value?.startsWith('postgresql://')) {
-    return 'postgresql';
-  }
-  return 'sqlite';
-}
 
 function resolveSqlitePath(databaseUrl) {
   const envUrl = databaseUrl?.trim();
@@ -129,47 +120,80 @@ const checks = [
   },
 ];
 
-async function run() {
-  const databaseUrl = process.env.DATABASE_URL;
-  const dialect = getDialect(databaseUrl);
+// The money-link foreign keys enforced by migration 0018. A table rebuild that
+// forgets to re-declare one would silently drop enforcement, so assert each is
+// still present (child table -> referenced parent) and that no row violates any
+// FK. Actions are not asserted here — foreign_key_list ordering is stable enough
+// for presence, and the rebuild test covers CASCADE/SET NULL behaviour.
+const EXPECTED_SQLITE_FKS = {
+  transaction_splits: ['transactions'],
+  transaction_tags: ['transactions'],
+  custom_field_values: ['transactions'],
+  debt_payments: ['debts', 'transactions'],
+  savings_goal_contributions: ['savings_goals'],
+  bill_payment_events: ['bill_occurrences'],
+  transfers: ['transactions', 'transactions'],
+};
+
+function verifySqliteForeignKeys(sqlite) {
   let failures = 0;
 
-  console.log(`[verify-money-integrity] dialect: ${dialect}`);
-
-  if (dialect === 'postgresql') {
-    const pool = new Pool({ connectionString: databaseUrl });
-    try {
-      for (const check of checks) {
-        const result = await pool.query(check.sql);
-        const count = Number(result.rows[0]?.count ?? 0);
-        if (count > 0) {
-          failures += 1;
-          console.error(`[FAIL] ${check.name}: ${count}`);
-        } else {
-          console.log(`[OK] ${check.name}`);
-        }
-      }
-    } finally {
-      await pool.end();
-    }
+  // 1) No existing row may violate a declared foreign key.
+  const violations = sqlite.prepare('PRAGMA foreign_key_check').all();
+  if (violations.length > 0) {
+    failures += 1;
+    const summary = violations
+      .map((v) => `${v.table}#${v.rowid}->${v.parent}`)
+      .slice(0, 10)
+      .join(', ');
+    console.error(`[FAIL] foreign_key_check: ${violations.length} violation(s): ${summary}`);
   } else {
-    const dbPath = resolveSqlitePath(databaseUrl);
-    console.log(`[verify-money-integrity] sqlite path: ${dbPath}`);
-    const sqlite = new Database(dbPath, { fileMustExist: true });
-    try {
-      for (const check of checks) {
-        const row = sqlite.prepare(check.sql).get();
-        const count = Number(row?.count ?? 0);
-        if (count > 0) {
-          failures += 1;
-          console.error(`[FAIL] ${check.name}: ${count}`);
-        } else {
-          console.log(`[OK] ${check.name}`);
-        }
-      }
-    } finally {
-      sqlite.close();
+    console.log('[OK] foreign_key_check (no violations)');
+  }
+
+  // 2) Every expected money-link FK is still declared.
+  for (const [table, expectedParents] of Object.entries(EXPECTED_SQLITE_FKS)) {
+    const parents = sqlite
+      .prepare(`PRAGMA foreign_key_list(${table})`)
+      .all()
+      .map((fk) => fk.table)
+      .sort();
+    const want = [...expectedParents].sort();
+    const ok = want.length === parents.length && want.every((p, i) => p === parents[i]);
+    if (!ok) {
+      failures += 1;
+      console.error(
+        `[FAIL] ${table} foreign keys: expected -> [${want.join(', ')}], found -> [${parents.join(', ')}]`
+      );
+    } else {
+      console.log(`[OK] ${table} foreign keys (-> ${parents.join(', ')})`);
     }
+  }
+
+  return failures;
+}
+
+async function run() {
+  const databaseUrl = process.env.DATABASE_URL;
+  let failures = 0;
+
+  const dbPath = resolveSqlitePath(databaseUrl);
+  console.log(`[verify-money-integrity] sqlite path: ${dbPath}`);
+  const sqlite = new Database(dbPath, { fileMustExist: true });
+  try {
+    for (const check of checks) {
+      const row = sqlite.prepare(check.sql).get();
+      const count = Number(row?.count ?? 0);
+      if (count > 0) {
+        failures += 1;
+        console.error(`[FAIL] ${check.name}: ${count}`);
+      } else {
+        console.log(`[OK] ${check.name}`);
+      }
+    }
+    failures += verifySqliteForeignKeys(sqlite);
+  } finally {
+    sqlite.close();
   }
 
   if (failures > 0) {

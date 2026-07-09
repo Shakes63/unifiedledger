@@ -30,30 +30,9 @@ services:
     networks:
       - finance-network
 
-  # Optional: PostgreSQL for production database (if switching from SQLite)
-  # postgres:
-  #   image: postgres:17-alpine
-  #   environment:
-  #     POSTGRES_USER: ${POSTGRES_USER:-postgres}
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-  #     POSTGRES_DB: ${POSTGRES_DB:-finance}
-  #   volumes:
-  #     - postgres-data:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - finance-network
-
 volumes:
   finance-config:
     driver: local
-  # postgres-data:
-  #   driver: local
 
 networks:
   finance-network:

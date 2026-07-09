@@ -1,3 +1,8 @@
+/**
+ * This app is SQLite-only. This helper survives solely so the DB entry point can
+ * DETECT a leftover Postgres connection string and fail loudly instead of
+ * silently booting against an empty SQLite file (see lib/db/index.ts).
+ */
 export type DatabaseDialect = "sqlite" | "postgresql";
 
 export function getDatabaseDialectFromUrl(databaseUrl: string | undefined): DatabaseDialect {
@@ -5,9 +10,3 @@ export function getDatabaseDialectFromUrl(databaseUrl: string | undefined): Data
   if (v?.startsWith("postgres://") || v?.startsWith("postgresql://")) return "postgresql";
   return "sqlite";
 }
-
-export function getCurrentDatabaseDialect(): DatabaseDialect {
-  return getDatabaseDialectFromUrl(process.env.DATABASE_URL);
-}
-
-

@@ -2,13 +2,11 @@
 /**
  * Lightweight production migration script using drizzle-orm's migrate() function.
  * This avoids needing drizzle-kit at runtime, reducing the Docker image by ~150MB.
+ * SQLite-only: the Postgres dialect was removed when the app standardized on SQLite.
  */
 import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
-import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import { migrate as migrateSqlite } from 'drizzle-orm/better-sqlite3/migrator';
-import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import Database from 'better-sqlite3';
-import pg from 'pg';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,27 +25,26 @@ async function main() {
     process.exit(1);
   }
 
-  const isPostgres = isPostgresUrl(databaseUrl);
-  const migrationsFolder = path.resolve(__dirname, '..', 'drizzle', isPostgres ? 'postgres' : 'sqlite');
+  if (isPostgresUrl(databaseUrl)) {
+    console.error(
+      '[migrate] DATABASE_URL is a Postgres URL, but Postgres support has been removed — ' +
+        'this app is SQLite-only. Use a file: path (e.g. file:/config/finance.db).'
+    );
+    process.exit(1);
+  }
 
-  console.log(`[migrate] Running migrations for ${isPostgres ? 'PostgreSQL' : 'SQLite'}...`);
+  const migrationsFolder = path.resolve(__dirname, '..', 'drizzle', 'sqlite');
+
+  console.log('[migrate] Running migrations for SQLite...');
   console.log(`[migrate] Migrations folder: ${migrationsFolder}`);
 
   try {
-    if (isPostgres) {
-      const client = new pg.Client({ connectionString: databaseUrl });
-      await client.connect();
-      const db = drizzlePg(client);
-      await migratePg(db, { migrationsFolder });
-      await client.end();
-    } else {
-      // SQLite: extract file path from URL (file:/path/to/db.sqlite)
-      const dbPath = databaseUrl.replace(/^file:/, '');
-      const sqlite = new Database(dbPath);
-      const db = drizzleSqlite(sqlite);
-      migrateSqlite(db, { migrationsFolder });
-      sqlite.close();
-    }
+    // SQLite: extract file path from URL (file:/path/to/db.sqlite)
+    const dbPath = databaseUrl.replace(/^file:/, '');
+    const sqlite = new Database(dbPath);
+    const db = drizzleSqlite(sqlite);
+    migrateSqlite(db, { migrationsFolder });
+    sqlite.close();
     console.log('[migrate] Migrations completed successfully');
   } catch (error) {
     console.error('[migrate] Migration failed:', error);
