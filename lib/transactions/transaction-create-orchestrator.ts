@@ -7,7 +7,7 @@ import { merchants } from '@/lib/db/schema';
 import { normalizeMerchantName } from '@/lib/merchants/normalize';
 import { amountToCents } from '@/lib/transactions/money-movement-service';
 import { loadCreateAccountsOrResponse } from '@/lib/transactions/transaction-create-resource-load';
-import { executeCreateRuleApplication } from '@/lib/transactions/transaction-create-rule-orchestration';
+import { executeCreateRuleApplication } from '@/lib/transactions/transaction-create-rules';
 import { type CreateTransactionBody, type GoalContribution } from '@/lib/transactions/transaction-create-request';
 import { executeCreateBranchOrResponse } from '@/lib/transactions/transaction-create-branch-run';
 import { finalizeCreatedTransaction } from '@/lib/transactions/transaction-create-finalization';

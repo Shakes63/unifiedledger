@@ -4,7 +4,7 @@ import {
   findCategoryPendingBillMatch,
   findScopedBillById,
   findScopedPendingBillInstanceById,
-} from '@/lib/transactions/transaction-create-bill-linking-queries';
+} from '@/lib/transactions/transaction-create-bill-linking';
 
 export interface UpdatedBillLinkMatch {
   templateId: string;

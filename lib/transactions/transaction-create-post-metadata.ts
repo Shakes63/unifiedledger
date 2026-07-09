@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { logCreateRuleExecution } from '@/lib/transactions/transaction-create-rule-log';
+import { logCreateRuleExecution } from '@/lib/transactions/transaction-create-rules';
 import { updateCreateCategoryAndMerchantUsage } from '@/lib/transactions/transaction-create-metadata-usage';
 
 interface RunTransactionCreateMetadataUpdatesParams {

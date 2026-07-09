@@ -4,7 +4,7 @@ vi.mock('@/lib/transactions/transaction-create-resource-load', () => ({
   loadCreateAccountsOrResponse: vi.fn(),
 }));
 
-vi.mock('@/lib/transactions/transaction-create-rule-orchestration', () => ({
+vi.mock('@/lib/transactions/transaction-create-rules', () => ({
   executeCreateRuleApplication: vi.fn(),
 }));
 
@@ -18,7 +18,7 @@ vi.mock('@/lib/transactions/transaction-create-finalization', () => ({
 
 import { executeCreateTransactionOrchestration } from '@/lib/transactions/transaction-create-orchestrator';
 import { loadCreateAccountsOrResponse } from '@/lib/transactions/transaction-create-resource-load';
-import { executeCreateRuleApplication } from '@/lib/transactions/transaction-create-rule-orchestration';
+import { executeCreateRuleApplication } from '@/lib/transactions/transaction-create-rules';
 import { executeCreateBranchOrResponse } from '@/lib/transactions/transaction-create-branch-run';
 import { finalizeCreatedTransaction } from '@/lib/transactions/transaction-create-finalization';
 
