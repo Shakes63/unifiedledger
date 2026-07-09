@@ -257,20 +257,52 @@ export const parseDate = (dateStr: string, dateFormat: string): string => {
 export const parseAmount = (amountStr: string): Decimal => {
   if (!amountStr) throw new Error('Amount is required');
 
-  // Remove common currency symbols and whitespace
-  let cleaned = amountStr.trim().replace(/[$€£¥₹₽]/g, '').trim();
+  // Remove common currency symbols and all whitespace (incl. thin-space grouping)
+  let cleaned = amountStr.trim().replace(/[$€£¥₹₽]/g, '').replace(/\s/g, '');
 
   // Handle parentheses for negative amounts
   if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
     cleaned = '-' + cleaned.slice(1, -1);
   }
 
-  // Remove commas (thousand separators) but keep periods for decimals
-  cleaned = cleaned.replace(/,/g, '');
+  // Handle trailing-minus bank exports ("100.00-")
+  if (cleaned.endsWith('-') && !cleaned.startsWith('-')) {
+    cleaned = '-' + cleaned.slice(0, -1);
+  }
 
-  const amount = new Decimal(cleaned);
+  // Locale-aware separator handling (audit finding H-IMP-5: unconditionally
+  // stripping commas turned European "1.234,56" into 1.23 — a 1000x error — and
+  // "12,50" into 1250, all imported "successfully").
+  const hasComma = cleaned.includes(',');
+  const hasDot = cleaned.includes('.');
 
-  if (amount.isNaN()) {
+  if (hasComma && hasDot) {
+    // Both present: the LAST separator is the decimal point; the other groups.
+    if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.'); // "1.234,56" -> 1234.56
+    } else {
+      cleaned = cleaned.replace(/,/g, ''); // "1,234.56" -> 1234.56
+    }
+  } else if (hasComma) {
+    // Comma only: a single comma followed by 1-2 digits is a decimal comma
+    // ("12,50" -> 12.50); anything else is thousands grouping ("1,234").
+    const parts = cleaned.split(',');
+    if (parts.length === 2 && parts[1].length > 0 && parts[1].length <= 2) {
+      cleaned = `${parts[0]}.${parts[1]}`;
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  }
+  // Dot only (or neither): standard decimal notation, leave as-is.
+
+  let amount: Decimal;
+  try {
+    amount = new Decimal(cleaned);
+  } catch {
+    throw new Error(`Invalid amount: ${amountStr}`);
+  }
+
+  if (amount.isNaN() || !amount.isFinite()) {
     throw new Error(`Invalid amount: ${amountStr}`);
   }
 
@@ -453,6 +485,32 @@ export const applyMappings = (
       throw error;
     }
   });
+
+  // Sign-based type inference for single-amount-column bank exports (audit
+  // finding H-IMP-3): with only an `amount` column mapped — no type /
+  // withdrawal / deposit column — the near-universal bank convention is
+  // negative = debit, positive = credit. Previously every row was typed
+  // 'expense' with the raw sign stored, so a payroll deposit became a positive
+  // "expense" and a grocery debit a NEGATIVE expense that REDUCED expense
+  // totals. Files with an explicit type signal keep their mapped semantics, and
+  // credit-card post-processing still overrides for CC imports.
+  const hasExplicitTypeSignal = mappings.some(
+    (m) => m.appField === 'type' || m.appField === 'withdrawal' || m.appField === 'deposit'
+  );
+  if (!hasExplicitTypeSignal && transaction.amount !== undefined) {
+    const amountDecimal =
+      transaction.amount instanceof Decimal
+        ? transaction.amount
+        : new Decimal(transaction.amount as unknown as number);
+    if (amountDecimal.isNegative()) {
+      transaction.type = 'expense';
+      transaction.amount = amountDecimal.abs();
+    }
+    // Positive rows deliberately keep the default 'expense': many exports list
+    // unsigned expenses, so flipping all positives to income would misclassify
+    // those files. Signed bank files get their debits fixed here; users can map
+    // a type column (or review staging) for the income rows.
+  }
 
   // Ensure required fields
   if (!transaction.date) {

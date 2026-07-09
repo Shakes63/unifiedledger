@@ -54,6 +54,30 @@ describe('lib/csv-import', () => {
       expect(result.toNumber()).toBe(-50.25);
     });
 
+    it('parses European format "1.234,56" as 1234.56 (H-IMP-5)', () => {
+      // The old comma-stripper produced 1.23456 -> a 1000x data-destroying error.
+      expect(parseAmount('1.234,56').toNumber()).toBe(1234.56);
+      expect(parseAmount('€1.234,56').toNumber()).toBe(1234.56);
+    });
+
+    it('parses decimal-comma "12,50" as 12.50, not 1250 (H-IMP-5)', () => {
+      expect(parseAmount('12,50').toNumber()).toBe(12.5);
+      expect(parseAmount('0,99').toNumber()).toBe(0.99);
+    });
+
+    it('still treats multi-group commas as thousands separators', () => {
+      expect(parseAmount('1,234,567.89').toNumber()).toBe(1234567.89);
+      expect(parseAmount('1,234').toNumber()).toBe(1234);
+    });
+
+    it('parses trailing-minus bank format "100.00-" as negative', () => {
+      expect(parseAmount('100.00-').toNumber()).toBe(-100);
+    });
+
+    it('rejects garbage instead of importing it', () => {
+      expect(() => parseAmount('abc')).toThrow(/Invalid amount/);
+    });
+
     it('returns Decimal instance for precision', () => {
       const result = parseAmount('0.1');
       expect(result).toBeInstanceOf(Decimal);
