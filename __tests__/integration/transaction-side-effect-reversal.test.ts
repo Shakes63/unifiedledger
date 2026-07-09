@@ -9,13 +9,18 @@ import {
   debts,
   savingsGoalContributions,
   savingsGoals,
+  transactions,
 } from '@/lib/db/schema';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import {
   adjustTransactionSideEffectsForAmountChange,
   reverseTransactionSideEffects,
 } from '@/lib/transactions/transaction-side-effect-reversal';
-import { setupTestUserWithHousehold, cleanupTestHousehold } from './test-utils';
+import {
+  setupTestUserWithHousehold,
+  cleanupTestHousehold,
+  createTestTransaction,
+} from './test-utils';
 
 /**
  * C-LIFE-1/2/3, H-BILL-1: deleting a transaction must reverse the debt payment,
@@ -34,14 +39,28 @@ describe('reverseTransactionSideEffects (C-LIFE-1/2/3)', () => {
       await db.delete(savingsGoals).where(eq(savingsGoals.householdId, ctx.householdId));
       await db.delete(billPaymentEvents).where(eq(billPaymentEvents.householdId, ctx.householdId));
       await db.delete(billOccurrences).where(eq(billOccurrences.householdId, ctx.householdId));
+      await db.delete(transactions).where(eq(transactions.householdId, ctx.householdId));
       await cleanupTestHousehold(ctx.userId, ctx.householdId);
       ctx = null;
     }
   });
 
+  // debt_payments.transaction_id is a real FK now (ON DELETE SET NULL); seed the
+  // linking transaction (id = txId) so a linked payment references a real row,
+  // as it always does in production.
+  async function seedLinkingTransaction(): Promise<void> {
+    const tx = createTestTransaction(ctx!.userId, ctx!.householdId, 'acct-x', {
+      id: txId,
+      type: 'expense',
+      amount: 1,
+    });
+    await db.insert(transactions).values(tx as typeof transactions.$inferInsert);
+  }
+
   it('restores a debt balance and removes the payment row', async () => {
     ctx = await setupTestUserWithHousehold();
     const debtId = nanoid();
+    await seedLinkingTransaction();
     // Debt at $300 after a $200 payment (principal $200) was applied.
     await db.insert(debts).values({
       id: debtId,
@@ -125,6 +144,7 @@ describe('reverseTransactionSideEffects (C-LIFE-1/2/3)', () => {
   it('amount edit re-scales a linked debt payment (C-LIFE-3 edit case)', async () => {
     ctx = await setupTestUserWithHousehold();
     const debtId = nanoid();
+    await seedLinkingTransaction();
     // Debt at $300 after a $200 payment (principal $200, 0% interest).
     await db.insert(debts).values({
       id: debtId,

@@ -127,6 +127,13 @@
       "when": 1772908800000,
       "tag": "0017_add_integrity_unique_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1772995200000,
+      "tag": "0018_enforce_money_link_fks",
+      "breakpoints": true
     }
   ]
 }

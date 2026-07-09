@@ -129,6 +129,59 @@ const checks = [
   },
 ];
 
+// The money-link foreign keys enforced by migration 0018. A table rebuild that
+// forgets to re-declare one would silently drop enforcement, so assert each is
+// still present (child table -> referenced parent) and that no row violates any
+// FK. Actions are not asserted here — foreign_key_list ordering is stable enough
+// for presence, and the rebuild test covers CASCADE/SET NULL behaviour.
+const EXPECTED_SQLITE_FKS = {
+  transaction_splits: ['transactions'],
+  transaction_tags: ['transactions'],
+  custom_field_values: ['transactions'],
+  debt_payments: ['debts', 'transactions'],
+  savings_goal_contributions: ['savings_goals'],
+  bill_payment_events: ['bill_occurrences'],
+  transfers: ['transactions', 'transactions'],
+};
+
+function verifySqliteForeignKeys(sqlite) {
+  let failures = 0;
+
+  // 1) No existing row may violate a declared foreign key.
+  const violations = sqlite.prepare('PRAGMA foreign_key_check').all();
+  if (violations.length > 0) {
+    failures += 1;
+    const summary = violations
+      .map((v) => `${v.table}#${v.rowid}->${v.parent}`)
+      .slice(0, 10)
+      .join(', ');
+    console.error(`[FAIL] foreign_key_check: ${violations.length} violation(s): ${summary}`);
+  } else {
+    console.log('[OK] foreign_key_check (no violations)');
+  }
+
+  // 2) Every expected money-link FK is still declared.
+  for (const [table, expectedParents] of Object.entries(EXPECTED_SQLITE_FKS)) {
+    const parents = sqlite
+      .prepare(`PRAGMA foreign_key_list(${table})`)
+      .all()
+      .map((fk) => fk.table)
+      .sort();
+    const want = [...expectedParents].sort();
+    const ok = want.length === parents.length && want.every((p, i) => p === parents[i]);
+    if (!ok) {
+      failures += 1;
+      console.error(
+        `[FAIL] ${table} foreign keys: expected -> [${want.join(', ')}], found -> [${parents.join(', ')}]`
+      );
+    } else {
+      console.log(`[OK] ${table} foreign keys (-> ${parents.join(', ')})`);
+    }
+  }
+
+  return failures;
+}
+
 async function run() {
   const databaseUrl = process.env.DATABASE_URL;
   const dialect = getDialect(databaseUrl);
@@ -167,6 +220,7 @@ async function run() {
           console.log(`[OK] ${check.name}`);
         }
       }
+      failures += verifySqliteForeignKeys(sqlite);
     } finally {
       sqlite.close();
     }

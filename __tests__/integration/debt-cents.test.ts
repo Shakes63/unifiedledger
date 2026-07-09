@@ -7,12 +7,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
-import { debtPayments, debts } from '@/lib/db/schema';
+import { debtPayments, debts, transactions } from '@/lib/db/schema';
 import {
   loadScopedDebt,
   persistLegacyDebtPayment,
 } from '@/lib/transactions/payment-linkage-debt';
-import { setupTestUserWithHousehold, cleanupTestHousehold } from './test-utils';
+import {
+  setupTestUserWithHousehold,
+  cleanupTestHousehold,
+  createTestTransaction,
+} from './test-utils';
 
 describe('debt balance in integer cents (RC-4 / H-DBG-10)', () => {
   let ctx: { userId: string; householdId: string } | null = null;
@@ -21,10 +25,22 @@ describe('debt balance in integer cents (RC-4 / H-DBG-10)', () => {
     if (ctx) {
       await db.delete(debtPayments).where(eq(debtPayments.householdId, ctx.householdId));
       await db.delete(debts).where(eq(debts.householdId, ctx.householdId));
+      await db.delete(transactions).where(eq(transactions.householdId, ctx.householdId));
       await cleanupTestHousehold(ctx.userId, ctx.householdId);
       ctx = null;
     }
   });
+
+  // A debt payment's transaction_id is a real FK now; seed the linking
+  // transaction so the payment references an existing row.
+  async function makeLinkingTransaction(): Promise<string> {
+    const tx = createTestTransaction(ctx!.userId, ctx!.householdId, 'acct-x', {
+      type: 'expense',
+      amount: 1,
+    });
+    await db.insert(transactions).values(tx as typeof transactions.$inferInsert);
+    return tx.id;
+  }
 
   async function makeDebt(remainingBalance: number): Promise<string> {
     const id = nanoid();
@@ -65,7 +81,7 @@ describe('debt balance in integer cents (RC-4 / H-DBG-10)', () => {
       householdId: ctx.householdId,
       paymentAmount: 33.33,
       paymentDate: '2026-02-01',
-      transactionId: nanoid(),
+      transactionId: await makeLinkingTransaction(),
       notes: 'test',
       currentDebt: currentDebt!,
     });
@@ -94,7 +110,7 @@ describe('debt balance in integer cents (RC-4 / H-DBG-10)', () => {
       householdId: ctx.householdId,
       paymentAmount: 50.0,
       paymentDate: '2026-02-01',
-      transactionId: nanoid(),
+      transactionId: await makeLinkingTransaction(),
       notes: 'payoff',
       currentDebt: currentDebt!,
     });

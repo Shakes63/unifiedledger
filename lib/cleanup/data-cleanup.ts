@@ -322,10 +322,11 @@ export async function cleanOrphanedCustomFieldValues(): Promise<CleanupStats> {
 }
 
 /**
- * Clean orphaned MONEY links (audit finding C-DB-2: no foreign keys enforce
- * these relationships, so a deleted parent can leave dangling children/refs).
- * The reversal layer already unwinds these on a normal transaction delete; this
- * is the safety net for legacy data and any path that bypasses it.
+ * Clean orphaned MONEY links (audit finding C-DB-2). Migration 0018 now enforces
+ * these relationships with real foreign keys (CASCADE / SET NULL), so new orphans
+ * can no longer be created. This remains the safety net for LEGACY rows that
+ * predate the FK migration (a DB migrated up from before 0018 may still carry
+ * orphans the constraint could not retroactively remove).
  *
  *  - debt_payments / goal_contributions / bill_payment_events whose parent debt /
  *    goal / occurrence is gone are DELETED (cascade semantics — the payment
