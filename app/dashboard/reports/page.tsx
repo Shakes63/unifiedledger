@@ -12,7 +12,6 @@ import {
   PieChart,
   AreaChart,
   TreemapChart,
-  HeatmapChart,
 } from '@/components/charts';
 import { ExportButton } from '@/components/reports/export-button';
 import { PaymentBreakdownSection } from '@/components/debts/payment-breakdown-section';
@@ -712,26 +711,10 @@ export default function ReportsPage() {
             </ChartSection>
           </FeatureGate>
 
-          <FeatureGate featureId="advanced-charts">
-            <ChartSection label="Spending Heatmap" accentColor="var(--color-warning)">
-              <HeatmapChart
-                title=""
-                description=""
-                data={(() => {
-                  const cats = data.categoryBreakdown?.data || [];
-                  const months = (data.incomeVsExpenses?.data || []).map(d => typeof d.name === 'string' ? d.name : '');
-                  type HeatmapCell = { category: string; month: string; value: number };
-                  const heatmapData: HeatmapCell[] = [];
-                  cats.forEach(cat => {
-                    months.forEach(month => {
-                      heatmapData.push({ category: cat.name || '', month, value: Math.random() * (cat.value ?? 0) });
-                    });
-                  });
-                  return heatmapData;
-                })()}
-              />
-            </ChartSection>
-          </FeatureGate>
+          {/* The experimental "Spending Heatmap" was removed: it fabricated
+              per-month values with Math.random(), displaying false money data
+              that changed on every render. Reintroduce it only once a real
+              per-category-per-month spending endpoint exists to feed it. */}
         </div>
 
         {/* ── Budget vs Actual ──────────────────────────────────────────────── */}

@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect } from 'react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
+import { allocatePercentages } from '@/lib/utils/percentages';
 import { PieChart } from '@/components/charts/pie-chart';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { PartyPopper } from 'lucide-react';
@@ -42,9 +43,12 @@ export function MonthDetailModal({
     const date = new Date();
     date.setMonth(date.getMonth() + absoluteMonth);
 
-    // Payment breakdown for pie chart
-    const principalPercent = (payment.principalAmount / payment.paymentAmount) * 100;
-    const interestPercent = (payment.interestAmount / payment.paymentAmount) * 100;
+    // Payment breakdown for pie chart. Largest-remainder allocation so the
+    // two displayed one-decimal percentages sum to exactly 100 (L-RPT-13).
+    const [principalPercent, interestPercent] = allocatePercentages(
+      [payment.principalAmount, payment.interestAmount],
+      1
+    );
 
     return {
       date,
