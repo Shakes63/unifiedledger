@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
+import { buildSecurityHeaders } from "./lib/security/headers";
 
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
@@ -35,33 +36,13 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: process.env.NEXT_IGNORE_BUILD_ERRORS === "1",
   },
 
-  // Security headers for production
+  // Security headers (policy lives in lib/security/headers.ts so it is
+  // unit-tested; HSTS + CSP are added in production builds only).
   async headers() {
     return [
       {
         source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(self)',
-          },
-        ],
+        headers: buildSecurityHeaders({ production: process.env.NODE_ENV === 'production' }),
       },
     ];
   },
