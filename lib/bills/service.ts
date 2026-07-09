@@ -53,8 +53,10 @@ import {
   instanceBelongsToPeriod,
 } from '@/lib/budgets/bill-period-assignment';
 import {
+  computeBalanceDeltaCents,
   getAccountBalanceCents,
   insertTransactionMovement,
+  isLiabilityAccountType,
   updateScopedAccountBalance,
 } from '@/lib/transactions/money-movement-service';
 import { assertIntegerCents } from '@/lib/utils/money-cents';
@@ -1263,10 +1265,33 @@ async function payOccurrenceInternal(options: PayOccurrenceInternalOptions): Pro
     parseDateOrThrow(paymentDate, 'paymentDate');
 
     const transactionType = template.billType === 'income' ? 'income' : 'expense';
-    const signedAmount = transactionType === 'income' ? amountCents : -amountCents;
 
     const accountBalanceCents = getAccountBalanceCents(account);
-    const nextBalanceCents = new Decimal(accountBalanceCents).plus(signedAmount).toNumber();
+    // Liability-aware delta (C-MATH-1): paying a bill FROM a credit account
+    // increases what you owe rather than decreasing an asset balance.
+    const balanceDeltaCents = computeBalanceDeltaCents({
+      accountType: account.type,
+      transactionType,
+      amountCents,
+    });
+    const nextBalanceCents = new Decimal(accountBalanceCents).plus(balanceDeltaCents).toNumber();
+
+    // Insufficient-funds guard for UNATTENDED payments (audit finding M-BILL-6):
+    // autopay previously wrote balance - amount with no check, silently driving
+    // asset accounts arbitrarily negative. Manual payments are allowed to
+    // overdraw (the user is present and deciding); autopay skips and surfaces an
+    // error instead.
+    if (
+      options.paymentMethod === 'autopay' &&
+      !isLiabilityAccountType(account.type) &&
+      transactionType === 'expense' &&
+      nextBalanceCents < 0
+    ) {
+      throw new Error(
+        `Insufficient funds in ${account.name ?? 'account'} for autopay: ` +
+          `balance ${accountBalanceCents / 100}, payment ${amountCents / 100}`
+      );
+    }
 
     const transactionId = nanoid();
     const now = nowIso();
