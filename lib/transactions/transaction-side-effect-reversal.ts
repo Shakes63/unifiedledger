@@ -10,6 +10,7 @@ import {
   savingsGoals,
 } from '@/lib/db/schema';
 import { buildDebtBalanceFields, getDebtRemainingCents } from '@/lib/debts/debt-money';
+import { buildGoalCurrentFields, getGoalCurrentCents } from '@/lib/goals/goal-money';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 
 type ReversalTx = typeof db;
@@ -110,16 +111,23 @@ async function reverseGoalContributions(
 
   for (const contribution of contributions) {
     const [goal] = await tx
-      .select({ currentAmount: savingsGoals.currentAmount })
+      .select({
+        currentAmount: savingsGoals.currentAmount,
+        currentAmountCents: savingsGoals.currentAmountCents,
+      })
       .from(savingsGoals)
       .where(and(eq(savingsGoals.id, contribution.goalId), eq(savingsGoals.householdId, householdId)))
       .limit(1);
 
     if (goal) {
-      const nextAmount = Math.max(0, (goal.currentAmount ?? 0) - (contribution.amount ?? 0));
+      const revertCents =
+        contribution.amountCents !== null && contribution.amountCents !== undefined
+          ? Number(contribution.amountCents)
+          : toMoneyCents(contribution.amount ?? 0) ?? 0;
+      const nextCents = Math.max(0, getGoalCurrentCents(goal) - revertCents);
       await tx
         .update(savingsGoals)
-        .set({ currentAmount: nextAmount, updatedAt: new Date().toISOString() })
+        .set({ ...buildGoalCurrentFields(nextCents), updatedAt: new Date().toISOString() })
         .where(and(eq(savingsGoals.id, contribution.goalId), eq(savingsGoals.householdId, householdId)));
     }
 

@@ -3,6 +3,8 @@ import { savingsGoals, savingsMilestones, savingsGoalContributions, notification
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import Decimal from 'decimal.js';
+import { buildGoalCurrentFields, getGoalCurrentCents } from '@/lib/goals/goal-money';
+import { fromMoneyCents, toMoneyCents } from '@/lib/utils/money-cents';
 
 interface ContributionResult {
   success: boolean;
@@ -49,16 +51,18 @@ export async function handleGoalContribution(
       };
     }
 
-    // Calculate new amount using Decimal.js for precision
-    const previousAmount = new Decimal(goal.currentAmount || 0);
-    const contributionAmount = new Decimal(amount);
-    const newAmount = previousAmount.plus(contributionAmount);
+    // Work in integer cents so the goal total can't drift (RC-4).
+    const previousCents = getGoalCurrentCents(goal);
+    const contributionCents = toMoneyCents(amount) ?? 0;
+    const newCents = previousCents + contributionCents;
+    const previousAmount = new Decimal(fromMoneyCents(previousCents) ?? 0);
+    const newAmount = new Decimal(fromMoneyCents(newCents) ?? 0);
 
-    // Update the goal's current amount
+    // Update the goal's current amount (cents authoritative, float derived)
     await db
       .update(savingsGoals)
       .set({
-        currentAmount: newAmount.toNumber(),
+        ...buildGoalCurrentFields(newCents),
         updatedAt: new Date().toISOString(),
       })
       .where(eq(savingsGoals.id, goalId));
@@ -70,7 +74,8 @@ export async function handleGoalContribution(
       goalId,
       userId,
       householdId,
-      amount,
+      amount: fromMoneyCents(contributionCents) ?? 0,
+      amountCents: contributionCents,
       createdAt: new Date().toISOString(),
     });
 
@@ -164,16 +169,19 @@ export async function revertGoalContribution(
       return { success: false, amountReverted: 0, error: 'Goal not found' };
     }
 
-    // Calculate new amount
-    const currentAmount = new Decimal(goal.currentAmount || 0);
-    const revertAmount = new Decimal(contribution.amount);
-    const newAmount = currentAmount.minus(revertAmount);
+    // Calculate new amount in integer cents (RC-4)
+    const currentCents = getGoalCurrentCents(goal);
+    const revertCents =
+      contribution.amountCents !== null && contribution.amountCents !== undefined
+        ? Number(contribution.amountCents)
+        : toMoneyCents(contribution.amount) ?? 0;
+    const newCents = Math.max(0, currentCents - revertCents);
 
-    // Update the goal's current amount (don't go below 0)
+    // Update the goal's current amount (cents authoritative, float derived)
     await db
       .update(savingsGoals)
       .set({
-        currentAmount: Math.max(0, newAmount.toNumber()),
+        ...buildGoalCurrentFields(newCents),
         updatedAt: new Date().toISOString(),
       })
       .where(eq(savingsGoals.id, goalId));

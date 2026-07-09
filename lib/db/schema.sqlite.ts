@@ -2108,6 +2108,9 @@ export const savingsGoals = sqliteTable(
     description: text('description'),
     targetAmount: real('target_amount').notNull(),
     currentAmount: real('current_amount').default(0),
+    // Integer-cents source of truth (RC-4); float columns above are derived.
+    currentAmountCents: integer('current_amount_cents'),
+    targetAmountCents: integer('target_amount_cents'),
     accountId: text('account_id'),
     category: text('category', {
       enum: ['emergency_fund', 'vacation', 'purchase', 'education', 'home', 'vehicle', 'retirement', 'debt_payoff', 'other'],
@@ -2176,6 +2179,8 @@ export const savingsGoalContributions = sqliteTable(
     userId: text('user_id').notNull(),
     householdId: text('household_id').notNull(),
     amount: real('amount').notNull(),
+    // Integer-cents twin (RC-4); float above is derived.
+    amountCents: integer('amount_cents'),
     createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({

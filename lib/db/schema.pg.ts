@@ -2100,6 +2100,9 @@ export const savingsGoals = pgTable(
     description: text('description'),
     targetAmount: doublePrecision('target_amount').notNull(),
     currentAmount: doublePrecision('current_amount').default(0),
+    // Integer-cents source of truth (RC-4); float columns above are derived.
+    currentAmountCents: bigint('current_amount_cents', { mode: 'number' }),
+    targetAmountCents: bigint('target_amount_cents', { mode: 'number' }),
     accountId: text('account_id'),
     category: text('category', {
       enum: ['emergency_fund', 'vacation', 'purchase', 'education', 'home', 'vehicle', 'retirement', 'debt_payoff', 'other'],
@@ -2168,6 +2171,8 @@ export const savingsGoalContributions = pgTable(
     userId: text('user_id').notNull(),
     householdId: text('household_id').notNull(),
     amount: doublePrecision('amount').notNull(),
+    // Integer-cents twin (RC-4); float above is derived.
+    amountCents: bigint('amount_cents', { mode: 'number' }),
     createdAt: text('created_at').default(pgNowIso),
   },
   (table) => ({

@@ -113,6 +113,13 @@
       "when": 1772736000000,
       "tag": "0015_add_debt_money_cents",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1772822400000,
+      "tag": "0016_add_goal_money_cents",
+      "breakpoints": true
     }
   ]
 }
