@@ -10,6 +10,8 @@ on:
 permissions:
   contents: read
   packages: write
+  # Trivy scan results land in the repo's Security tab (code scanning).
+  security-events: write
 
 concurrency:
   group: publish-ghcr-${{ github.ref }}
@@ -20,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -56,3 +58,25 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Tier-3 hardening: vulnerability scan of the image that was just
+      # published. Informational (never blocks a deploy — most findings are
+      # upstream base-image CVEs on their own patch timeline); results appear
+      # in the repo's Security tab, which notifies the owner on new CRITICAL/
+      # HIGH findings.
+      - name: Scan image with Trivy
+        if: github.ref == 'refs/heads/main'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:nightly
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy results to the Security tab
+        if: github.ref == 'refs/heads/main'
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: container-image

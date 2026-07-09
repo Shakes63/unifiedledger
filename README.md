@@ -116,3 +116,24 @@ job (or the CA Appdata Backup plugin) at another share or cloud storage.
 **Do a restore drill once**: copy a `db-snapshots` file over a scratch
 `finance.db`, boot a container against it, and confirm your data is there. An
 untested backup is a hope, not a backup.
+
+### Health monitoring
+
+The container ships a Docker `HEALTHCHECK` against `/api/health`, so
+`docker ps` shows `healthy`/`unhealthy`. To get NOTIFIED on Unraid instead of
+noticing later:
+
+- Install the **CA Docker Autostart/Monitor**-style notification plugin, or add
+  a **User Scripts** cron (e.g. every 5 minutes):
+
+  ```bash
+  #!/bin/bash
+  state=$(docker inspect -f '{{.State.Health.Status}}' unifiedledger 2>/dev/null)
+  if [ "$state" != "healthy" ]; then
+    /usr/local/emhttp/webGui/scripts/notify \
+      -s "UnifiedLedger unhealthy" -d "Container health: ${state:-missing}" -i alert
+  fi
+  ```
+
+- Also watch the startup logs after each update: the container prints
+  `[verify-money-integrity]` results and `[cron-scheduler] started` on boot.
