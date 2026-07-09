@@ -33,11 +33,26 @@ export async function handleGoalContribution(
   householdId: string
 ): Promise<ContributionResult> {
   try {
-    // Get the current goal
+    // Validate the contribution amount (M-DBG-12): NaN/Infinity/negative values
+    // previously flowed straight into the goal total.
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return {
+        success: false,
+        goalId,
+        previousAmount: 0,
+        newAmount: 0,
+        contribution: amount,
+        milestonesAchieved: [],
+        error: 'Contribution amount must be a positive number',
+      };
+    }
+
+    // Get the current goal — HOUSEHOLD-SCOPED (M-DBG-12: the lookup was by id
+    // only, so a crafted goalId credited another household's goal).
     const [goal] = await db
       .select()
       .from(savingsGoals)
-      .where(eq(savingsGoals.id, goalId));
+      .where(and(eq(savingsGoals.id, goalId), eq(savingsGoals.householdId, householdId)));
 
     if (!goal) {
       return {

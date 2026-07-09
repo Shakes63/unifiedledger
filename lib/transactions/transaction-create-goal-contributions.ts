@@ -29,6 +29,20 @@ export async function handleTransactionGoalContributions({
 
   try {
     if (goalContributions && goalContributions.length > 0) {
+      // Contributions cannot exceed the funding transaction (M-DBG-12: a $10
+      // transaction with a $10,000 goalContributions payload previously credited
+      // the goal $10,000 and fired milestones).
+      const totalRequested = goalContributions.reduce(
+        (sum, contribution) => sum + (Number(contribution.amount) || 0),
+        0
+      );
+      if (totalRequested > Math.abs(amount) + 0.005) {
+        console.error(
+          `Goal contributions (${totalRequested}) exceed transaction amount (${amount}); skipping`
+        );
+        return;
+      }
+
       const contributionResults = await handleMultipleContributions(
         goalContributions,
         transactionId,
@@ -51,7 +65,7 @@ export async function handleTransactionGoalContributions({
 
     const result = await handleGoalContribution(
       savingsGoalId,
-      amount,
+      Math.abs(amount),
       transactionId,
       userId,
       householdId
