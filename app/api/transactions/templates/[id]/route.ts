@@ -2,7 +2,7 @@ import {
   handleDeleteTransactionTemplate,
   handleGetTransactionTemplate,
   handleUpdateTransactionTemplate,
-} from '@/lib/transactions/transaction-template-id-route-handler';
+} from '@/lib/transactions/transaction-template-route-handlers';
 
 export const dynamic = 'force-dynamic';
 

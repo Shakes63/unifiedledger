@@ -1,7 +1,7 @@
 import {
   handleCreateTransactionTemplate,
   handleListTransactionTemplates,
-} from '@/lib/transactions/transaction-template-collection-route-handler';
+} from '@/lib/transactions/transaction-template-route-handlers';
 
 export const dynamic = 'force-dynamic';
 

@@ -7,11 +7,60 @@ import { merchants } from '@/lib/db/schema';
 import { normalizeMerchantName } from '@/lib/merchants/normalize';
 import { amountToCents } from '@/lib/transactions/money-movement-service';
 import { loadCreateAccountsOrResponse } from '@/lib/transactions/transaction-create-resource-load';
-import { executeCreateRuleApplication } from '@/lib/transactions/transaction-create-rule-orchestration';
+import { executeCreateRuleApplication } from '@/lib/transactions/transaction-create-rules';
 import { type CreateTransactionBody, type GoalContribution } from '@/lib/transactions/transaction-create-request';
-import { executeCreateBranchOrResponse } from '@/lib/transactions/transaction-create-branch-run';
+import { executeCreateBranchOrResponse } from '@/lib/transactions/transaction-create-branches';
 import { finalizeCreatedTransaction } from '@/lib/transactions/transaction-create-finalization';
-import { normalizeCreateTransactionBody } from '@/lib/transactions/transaction-create-request-fields';
+
+// Inlined from the former transaction-create-request-fields shim (post-audit
+// cleanup): applies the create-request defaults in one place.
+function normalizeCreateTransactionBody(body: CreateTransactionBody) {
+  const {
+    accountId,
+    categoryId,
+    merchantId,
+    isTaxDeductible,
+    taxDeductionType,
+    useCategoryTaxDefault = true,
+    debtId,
+    billInstanceId,
+    date,
+    amount,
+    description,
+    notes,
+    type = 'expense',
+    isPending = false,
+    toAccountId,
+    isSalesTaxable = false,
+    offlineId,
+    syncStatus = 'synced',
+    savingsGoalId,
+    goalContributions,
+  } = body;
+
+  return {
+    accountId,
+    categoryId,
+    merchantId,
+    isTaxDeductible,
+    taxDeductionType,
+    useCategoryTaxDefault,
+    debtId,
+    billInstanceId,
+    date,
+    amount,
+    description,
+    notes,
+    type,
+    isPending,
+    toAccountId,
+    isSalesTaxable,
+    offlineId,
+    syncStatus,
+    savingsGoalId,
+    goalContributions,
+  };
+}
 
 export async function executeCreateTransactionOrchestration({
   userId,

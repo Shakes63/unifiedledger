@@ -2,9 +2,8 @@ import { and, eq } from 'drizzle-orm';
 import type Decimal from 'decimal.js';
 
 import { accounts, transactions, transfers } from '@/lib/db/schema';
-import { toMoneyCents } from '@/lib/utils/money-cents';
+import { fromMoneyCents, toMoneyCents } from '@/lib/utils/money-cents';
 import { db } from '@/lib/db';
-import { resolveRequiredMoneyCents } from '@/lib/transactions/money-cents-resolver';
 import {
   buildAccountBalanceFields,
   buildTransactionAmountFields,
@@ -24,6 +23,28 @@ export {
 export type { MovementTransactionType };
 
 type MoneyTx = typeof db;
+
+// Inlined from the former money-cents-resolver shim (post-audit cleanup).
+function requireCents(value: number | null, label: string): number {
+  if (value === null) {
+    throw new Error(`${label} is required`);
+  }
+  return value;
+}
+
+function resolveRequiredMoneyCents({
+  centsValue,
+  label,
+}: {
+  centsValue: number | string | bigint | null;
+  label: string;
+}): number {
+  const parsedCentsValue = fromMoneyCents(centsValue);
+  if (parsedCentsValue !== null) {
+    return requireCents(toMoneyCents(parsedCentsValue), label);
+  }
+  throw new Error(`${label} cents is required`);
+}
 
 export function centsToAmount(cents: number): number {
   return convertCentsToAmount(cents);

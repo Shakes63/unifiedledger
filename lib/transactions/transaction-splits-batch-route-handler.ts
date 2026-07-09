@@ -1,22 +1,147 @@
-import { and, eq } from 'drizzle-orm';
-
+/**
+ * Batch split route: atomic multi-transaction split replacement.
+ *
+ * Consolidated from single-use shim files during the post-audit cleanup;
+ * behavior is unchanged.
+ */
+import { eq, and } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
-import { transactions, transactionSplits } from '@/lib/db/schema';
-import type { BatchSplitRequest, BatchSplitResponse, TransactionSplit } from '@/lib/types';
-import { validateBatchSplits, type BatchSplitItem } from '@/lib/transactions/split-calculator';
+import { transactionSplits, transactions } from '@/lib/db/schema';
 import {
+  type BatchSplitRequest,
+  type BatchSplitResponse,
+  type TransactionSplit,
+} from '@/lib/types';
+import {
+  amountToCents,
+  buildTransactionAmountFields,
+} from '@/lib/transactions/money-movement-service';
+import {
+  calculateSplitAmount,
   findInvalidCategoryIds,
   findScopedTransaction,
   getSplitRouteContext,
   mapSplitRouteError,
 } from '@/lib/transactions/transaction-split-route-shared';
-import {
-  applyCreatedBatchSplits,
-  applyDeletedBatchSplits,
-  applyUpdatedBatchSplits,
-  partitionBatchSplits,
-} from '@/lib/transactions/transaction-splits-batch-mutations';
+import { validateBatchSplits, type BatchSplitItem } from '@/lib/transactions/split-calculator';
 
+// ---------------------------------------------------------------------------
+// from transaction-splits-batch-mutations.ts
+// ---------------------------------------------------------------------------
+
+interface PartitionedSplits {
+  toCreate: BatchSplitItem[];
+  toDelete: { id: string }[];
+  toUpdate: BatchSplitItem[];
+}
+
+function partitionBatchSplits(
+  incomingSplits: BatchSplitItem[],
+  existingSplits: { id: string }[],
+  deleteOthers: boolean
+): PartitionedSplits {
+  const existingSplitIds = new Set(existingSplits.map((split) => split.id));
+  const incomingSplitIds = new Set(
+    incomingSplits.filter((split) => split.id).map((split) => split.id as string)
+  );
+
+  return {
+    toCreate: incomingSplits.filter((split) => !split.id || !existingSplitIds.has(split.id)),
+    toUpdate: incomingSplits.filter((split) => split.id && existingSplitIds.has(split.id)),
+    toDelete: deleteOthers
+      ? existingSplits.filter((split) => !incomingSplitIds.has(split.id))
+      : [],
+  };
+}
+
+async function applyDeletedBatchSplits(toDelete: { id: string }[]): Promise<number> {
+  let deleted = 0;
+
+  for (const split of toDelete) {
+    await db.delete(transactionSplits).where(eq(transactionSplits.id, split.id));
+    deleted++;
+  }
+
+  return deleted;
+}
+
+async function applyCreatedBatchSplits(
+  toCreate: BatchSplitItem[],
+  context: { householdId: string; userId: string },
+  transactionId: string,
+  transactionAmount: number,
+  now: string
+): Promise<number> {
+  let created = 0;
+
+  for (let index = 0; index < toCreate.length; index++) {
+    const split = toCreate[index];
+    const finalAmount = calculateSplitAmount(
+      transactionAmount,
+      split.amount,
+      split.isPercentage,
+      split.percentage
+    );
+
+    await db.insert(transactionSplits).values({
+      id: nanoid(),
+      userId: context.userId,
+      householdId: context.householdId,
+      transactionId,
+      categoryId: split.categoryId,
+      ...buildTransactionAmountFields(amountToCents(finalAmount)),
+      percentage: split.isPercentage ? (split.percentage ?? 0) : 0,
+      isPercentage: split.isPercentage,
+      description: split.description ?? null,
+      notes: split.notes ?? null,
+      sortOrder: split.sortOrder ?? index,
+      createdAt: now,
+      updatedAt: now,
+    });
+    created++;
+  }
+
+  return created;
+}
+
+async function applyUpdatedBatchSplits(
+  toUpdate: BatchSplitItem[],
+  transactionAmount: number,
+  now: string
+): Promise<number> {
+  let updated = 0;
+
+  for (const split of toUpdate) {
+    const finalAmount = calculateSplitAmount(
+      transactionAmount,
+      split.amount,
+      split.isPercentage,
+      split.percentage
+    );
+
+    await db
+      .update(transactionSplits)
+      .set({
+        categoryId: split.categoryId,
+        ...buildTransactionAmountFields(amountToCents(finalAmount)),
+        percentage: split.isPercentage ? (split.percentage ?? 0) : 0,
+        isPercentage: split.isPercentage,
+        description: split.description ?? null,
+        notes: split.notes ?? null,
+        sortOrder: split.sortOrder ?? 0,
+        updatedAt: now,
+      })
+      .where(eq(transactionSplits.id, split.id as string));
+    updated++;
+  }
+
+  return updated;
+}
+
+// ---------------------------------------------------------------------------
+// from transaction-splits-batch-route-handler.ts
+// ---------------------------------------------------------------------------
 export async function handleBatchUpdateTransactionSplits(
   request: Request,
   transactionId: string
