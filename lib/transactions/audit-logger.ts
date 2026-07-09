@@ -1,12 +1,131 @@
+/**
+ * Transaction audit logging: snapshots, field-level change detection, and the
+ * audit-log write. audit-utils stays separate (client-safe formatting used by
+ * the audit-log component).
+ *
+ * Consolidated from 4 shim files (types / snapshot / change-detection / head)
+ * during the post-audit cleanup; behavior is unchanged.
+ */
+import { type TransactionChange } from '@/lib/transactions/audit-utils';
 import { db } from '@/lib/db';
 import { transactionAuditLog } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
 
+// ---------------------------------------------------------------------------
+// from audit-logger-types.ts
+// ---------------------------------------------------------------------------
+export interface DisplayNames {
+  accountId?: { old?: string; new?: string };
+  categoryId?: { old?: string; new?: string };
+  merchantId?: { old?: string; new?: string };
+  billId?: { old?: string; new?: string };
+  debtId?: { old?: string; new?: string };
+}
+
+// ---------------------------------------------------------------------------
+// from audit-logger-snapshot.ts
+// ---------------------------------------------------------------------------
+export function createTransactionSnapshot(
+  transaction: Record<string, unknown>,
+  enrichedData?: {
+    accountName?: string;
+    categoryName?: string;
+    merchantName?: string;
+    billName?: string;
+    debtName?: string;
+  }
+): Record<string, unknown> {
+  return {
+    id: transaction.id,
+    accountId: transaction.accountId,
+    accountName: enrichedData?.accountName,
+    categoryId: transaction.categoryId,
+    categoryName: enrichedData?.categoryName,
+    merchantId: transaction.merchantId,
+    merchantName: enrichedData?.merchantName,
+    billId: transaction.billId,
+    billName: enrichedData?.billName,
+    debtId: transaction.debtId,
+    debtName: enrichedData?.debtName,
+    date: transaction.date,
+    amount: transaction.amount,
+    description: transaction.description,
+    notes: transaction.notes,
+    type: transaction.type,
+    isPending: transaction.isPending,
+    isTaxDeductible: transaction.isTaxDeductible,
+    isSalesTaxable: transaction.isSalesTaxable,
+    createdAt: transaction.createdAt,
+    updatedAt: transaction.updatedAt,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// from audit-logger-change-detection.ts
+// ---------------------------------------------------------------------------
+const TRACKED_FIELDS = [
+  'accountId',
+  'categoryId',
+  'merchantId',
+  'date',
+  'amount',
+  'description',
+  'notes',
+  'type',
+  'isPending',
+  'isTaxDeductible',
+  'isSalesTaxable',
+  'billId',
+  'debtId',
+] as const;
+
+export function detectChanges(
+  oldTransaction: Record<string, unknown>,
+  newTransaction: Record<string, unknown>,
+  displayNames?: DisplayNames
+): TransactionChange[] {
+  const changes: TransactionChange[] = [];
+
+  for (const field of TRACKED_FIELDS) {
+    const oldValue = oldTransaction[field] ?? null;
+    const newValue = newTransaction[field] ?? null;
+
+    const oldNormalized = normalizeValue(oldValue);
+    const newNormalized = normalizeValue(newValue);
+
+    if (oldNormalized !== newNormalized) {
+      const change: TransactionChange = {
+        field,
+        oldValue: oldValue as string | number | boolean | null,
+        newValue: newValue as string | number | boolean | null,
+      };
+
+      if (displayNames && field in displayNames) {
+        const fieldDisplayNames = displayNames[field as keyof DisplayNames];
+        if (fieldDisplayNames) {
+          change.oldDisplayValue = fieldDisplayNames.old;
+          change.newDisplayValue = fieldDisplayNames.new;
+        }
+      }
+
+      changes.push(change);
+    }
+  }
+
+  return changes;
+}
+
+function normalizeValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'number') return value.toString();
+  if (typeof value === 'boolean') return value.toString();
+  return String(value);
+}
+
+// ---------------------------------------------------------------------------
+// from audit-logger.ts
+// ---------------------------------------------------------------------------
 // Import type from client-safe utilities
-import type { TransactionChange } from './audit-utils';
-import { detectChanges } from './audit-logger-change-detection';
-import { createTransactionSnapshot } from './audit-logger-snapshot';
-import type { DisplayNames } from './audit-logger-types';
 
 // Re-export client-safe utilities for convenience (server-side usage)
 export {
@@ -16,8 +135,6 @@ export {
   formatAmount,
   type TransactionChange,
 } from './audit-utils';
-export { detectChanges, createTransactionSnapshot };
-export type { DisplayNames };
 
 /**
  * Parameters for logging a transaction audit entry
@@ -60,4 +177,3 @@ export async function logTransactionAudit(params: AuditLogParams): Promise<void>
     console.error('Failed to log transaction audit:', error);
   }
 }
-
