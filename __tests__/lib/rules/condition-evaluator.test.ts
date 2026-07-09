@@ -469,39 +469,43 @@ describe("Condition Evaluator - Date Operators", () => {
   });
 
   describe("matches_weekday operator", () => {
+    // NOTE: these previously used dates one day AFTER the labelled weekday —
+    // they encoded the evaluator's UTC-midnight parse bug (getDay() shifted a
+    // day for any timezone behind UTC), passing locally and failing in UTC CI.
+    // Dates below are the TRUE calendar weekdays.
     it("should match Sunday (0)", () => {
       const condition = createTestCondition("weekday", "matches_weekday", "0");
-      const transaction = createTestTransaction({ date: "2025-01-20" }); // Sunday
+      const transaction = createTestTransaction({ date: "2025-01-19" }); // Sunday
       expect(evaluateConditions(condition, transaction)).toBe(true);
     });
 
     it("should match Monday (1)", () => {
       const condition = createTestCondition("weekday", "matches_weekday", "1");
-      const transaction = createTestTransaction({ date: "2025-01-21" }); // Monday
+      const transaction = createTestTransaction({ date: "2025-01-20" }); // Monday
       expect(evaluateConditions(condition, transaction)).toBe(true);
     });
 
     it("should match Wednesday (3)", () => {
       const condition = createTestCondition("weekday", "matches_weekday", "3");
-      const transaction = createTestTransaction({ date: "2025-01-23" }); // Wednesday
+      const transaction = createTestTransaction({ date: "2025-01-22" }); // Wednesday
       expect(evaluateConditions(condition, transaction)).toBe(true);
     });
 
     it("should match Friday (5)", () => {
       const condition = createTestCondition("weekday", "matches_weekday", "5");
-      const transaction = createTestTransaction({ date: "2025-01-25" }); // Friday
+      const transaction = createTestTransaction({ date: "2025-01-24" }); // Friday
       expect(evaluateConditions(condition, transaction)).toBe(true);
     });
 
     it("should match Saturday (6)", () => {
       const condition = createTestCondition("weekday", "matches_weekday", "6");
-      const transaction = createTestTransaction({ date: "2025-01-19" }); // Saturday
+      const transaction = createTestTransaction({ date: "2025-01-25" }); // Saturday
       expect(evaluateConditions(condition, transaction)).toBe(true);
     });
 
     it("should not match different weekday", () => {
       const condition = createTestCondition("weekday", "matches_weekday", "1"); // Monday
-      const transaction = createTestTransaction({ date: "2025-01-23" }); // Wednesday
+      const transaction = createTestTransaction({ date: "2025-01-22" }); // Wednesday
       expect(evaluateConditions(condition, transaction)).toBe(false);
     });
   });
@@ -745,19 +749,19 @@ describe("Condition Evaluator - Field Evaluation", () => {
   describe("weekday field", () => {
     it("should extract weekday from date", () => {
       const condition = createTestCondition("weekday", "matches_weekday", "3"); // Wednesday
-      const transaction = createTestTransaction({ date: "2025-01-23" });
+      const transaction = createTestTransaction({ date: "2025-01-22" }); // Wednesday
       expect(evaluateConditions(condition, transaction)).toBe(true);
     });
 
     it("should handle Sunday (0)", () => {
       const condition = createTestCondition("weekday", "matches_weekday", "0");
-      const transaction = createTestTransaction({ date: "2025-01-20" });
+      const transaction = createTestTransaction({ date: "2025-01-19" }); // Sunday
       expect(evaluateConditions(condition, transaction)).toBe(true);
     });
 
     it("should handle weekday comparisons", () => {
       const condition = createTestCondition("weekday", "greater_than", "2");
-      const transaction = createTestTransaction({ date: "2025-01-23" }); // Wed=3
+      const transaction = createTestTransaction({ date: "2025-01-22" }); // Wed=3
       expect(evaluateConditions(condition, transaction)).toBe(true);
     });
   });
