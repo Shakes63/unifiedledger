@@ -110,6 +110,60 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Checkpoint + truncate the WAL (tier-2 hardening): under continuous
+    // writes the -wal file can grow without bound between passive
+    // auto-checkpoints; TRUNCATE folds it into the main file and resets it.
+    if (operation === "all" || operation === "wal-checkpoint") {
+      try {
+        const checkpoint = (await db.get(sql`PRAGMA wal_checkpoint(TRUNCATE)`)) as
+          | { busy?: number; log?: number; checkpointed?: number }
+          | undefined;
+        results.operations.push({
+          name: "wal-checkpoint",
+          status: "success",
+          message: `WAL checkpointed (busy=${checkpoint?.busy ?? 0}, frames=${checkpoint?.log ?? 0}, checkpointed=${checkpoint?.checkpointed ?? 0})`,
+        });
+      } catch (error) {
+        results.operations.push({
+          name: "wal-checkpoint",
+          status: "error",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
+    // On-disk corruption check (tier-2 hardening): consumer hardware bit-rot
+    // shows up here long before it shows up as wrong balances. A non-'ok'
+    // result is logged loudly — restore from a /config/backups snapshot.
+    if (operation === "all" || operation === "integrity-check") {
+      try {
+        const integrity = (await db.get(sql`PRAGMA integrity_check`)) as
+          | { integrity_check?: string }
+          | undefined;
+        const verdict = integrity?.integrity_check ?? 'unknown';
+        if (verdict === 'ok') {
+          results.operations.push({
+            name: "integrity-check",
+            status: "success",
+            message: "SQLite integrity_check: ok",
+          });
+        } else {
+          console.error(`[Maintenance] SQLite integrity_check FAILED: ${verdict}`);
+          results.operations.push({
+            name: "integrity-check",
+            status: "error",
+            error: `integrity_check returned: ${verdict} — restore from a /config/backups snapshot`,
+          });
+        }
+      } catch (error) {
+        results.operations.push({
+          name: "integrity-check",
+          status: "error",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
     // Get database statistics
     if (operation === "all" || operation === "stats") {
       try {

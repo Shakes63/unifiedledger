@@ -9,7 +9,12 @@ import { describe, expect, it } from 'vitest';
 describe('better-auth rate limiting config', () => {
   it('declares strict limits for credential and 2FA endpoints', async () => {
     process.env.BETTER_AUTH_SECRET = process.env.BETTER_AUTH_SECRET || 'test-secret-for-config-smoke';
+    // Set BEFORE the module import so trustedOrigins picks it up (tier 2).
+    process.env.NEXT_PUBLIC_APP_URL = 'https://ledger.example.com/';
     const { auth } = await import('@/lib/better-auth');
+
+    // Origin checking pinned to the configured public URL (trailing slash trimmed).
+    expect(auth.options.trustedOrigins).toEqual(['https://ledger.example.com']);
     const rateLimit = auth.options.rateLimit as {
       enabled?: boolean;
       window?: number;

@@ -43,6 +43,12 @@ export const auth = betterAuth({
   }),
   // Use different base path to avoid conflicts with Clerk
   basePath: "/api/better-auth",
+  // Pin origin checking (CSRF story) to the real public URL instead of
+  // whatever Host/Origin headers arrive. Only applied when the operator has
+  // configured NEXT_PUBLIC_APP_URL (the Unraid template sets it).
+  ...(process.env.NEXT_PUBLIC_APP_URL?.trim()
+    ? { trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/$/, "")] }
+    : {}),
   // Brute-force protection (production hardening item 4). Windows are in
   // seconds; memory storage is correct for this single-instance deployment.
   // Disabled outside production so tests and local dev are unaffected.
