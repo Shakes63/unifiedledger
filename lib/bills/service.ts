@@ -1,4 +1,4 @@
-import { addDays, addMonths, endOfDay, format, getDay, isAfter, isBefore, parseISO, startOfDay, subDays } from 'date-fns';
+import { addDays, endOfDay, format, getDay, isAfter, isBefore, parseISO, startOfDay, subDays } from 'date-fns';
 import Decimal from 'decimal.js';
 import { nanoid } from 'nanoid';
 import {
@@ -337,7 +337,10 @@ function monthDate(year: number, monthIndex: number, dayOfMonth: number): Date {
   return new Date(year, monthIndex, Math.min(dayOfMonth, daysInMonth));
 }
 
-function generateOccurrenceDates(
+// Exported for tests: generation must be deterministic for a template regardless
+// of the query window (C-BILL-1), or the (templateId, dueDate) unique index
+// cannot dedupe and bills get double-charged.
+export function generateOccurrenceDates(
   template: TemplateRow,
   fromDate: Date,
   toDate: Date
@@ -360,14 +363,32 @@ function generateOccurrenceDates(
     if (weekday === null || weekday === undefined) return dates;
 
     const stepDays = template.recurrenceType === 'weekly' ? 7 : 14;
-    const first = addDays(from, (weekday - getDay(from) + 7) % 7);
+
+    // Anchor the series to the TEMPLATE (its creation date), not the caller's
+    // query window (audit finding C-BILL-1): callers use different daily-rolling
+    // window starts, so a window-anchored biweekly series flipped parity as the
+    // window advanced and inserted occurrences every 7 days — autopay then paid
+    // them all (~2x charge rate). Anchoring makes generation deterministic, so
+    // the (templateId, dueDate) unique index actually dedupes.
+    const createdAt = template.createdAt
+      ? startOfDay(new Date(template.createdAt))
+      : from;
+    const anchor = addDays(createdAt, (weekday - getDay(createdAt) + 7) % 7);
+
+    // Fast-forward from the anchor to the first step-aligned date >= from.
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const daysFromAnchor = Math.floor((from.getTime() - anchor.getTime()) / msPerDay);
+    const stepsToSkip = Math.max(0, Math.ceil(daysFromAnchor / stepDays));
+    const first = addDays(anchor, stepsToSkip * stepDays);
 
     for (
       let current = first;
       !isAfter(current, to) && dates.length < RECURRENCE_HORIZON_COUNT[template.recurrenceType];
       current = addDays(current, stepDays)
     ) {
-      dates.push(format(current, 'yyyy-MM-dd'));
+      if (!isBefore(current, from)) {
+        dates.push(format(current, 'yyyy-MM-dd'));
+      }
     }
 
     return dates;
@@ -418,11 +439,22 @@ function generateOccurrenceDates(
     }
   }
 
-  let current = monthDate(cursorYear, cursorMonth, dayOfMonth);
+  // Iterate a (year, month) cursor and re-clamp from the INTENDED due day each
+  // month (audit finding C-BILL-1): stepping the clamped date with addMonths
+  // made a day-31 bill drift permanently down after any short month (Jul 31 ->
+  // Aug 31 -> Sep 30 -> Oct 30...), so a later regeneration produced a different
+  // October date than an earlier one and the unique index couldn't dedupe —
+  // yielding two unpaid occurrences that autopay both paid.
   let safetyCounter = 0;
+  let current = monthDate(cursorYear, cursorMonth, dayOfMonth);
 
   while (isBefore(current, from) && safetyCounter < 120) {
-    current = addMonths(current, monthStep);
+    cursorMonth += monthStep;
+    while (cursorMonth > 11) {
+      cursorMonth -= 12;
+      cursorYear += 1;
+    }
+    current = monthDate(cursorYear, cursorMonth, dayOfMonth);
     safetyCounter += 1;
   }
 
@@ -430,7 +462,12 @@ function generateOccurrenceDates(
   const maxCount = RECURRENCE_HORIZON_COUNT[template.recurrenceType];
   while (!isAfter(current, to) && dates.length < maxCount && safetyCounter < 120) {
     dates.push(format(current, 'yyyy-MM-dd'));
-    current = addMonths(current, monthStep);
+    cursorMonth += monthStep;
+    while (cursorMonth > 11) {
+      cursorMonth -= 12;
+      cursorYear += 1;
+    }
+    current = monthDate(cursorYear, cursorMonth, dayOfMonth);
     safetyCounter += 1;
   }
 
@@ -486,7 +523,11 @@ async function ensureTemplateOccurrences(
     });
 
   if (inserts.length > 0) {
-    await db.insert(billOccurrences).values(inserts);
+    // Idempotent under concurrency: two simultaneous requests (dashboard +
+    // occurrences list) can compute the same missing dates; the loser must not
+    // crash the whole API request on the (templateId, dueDate) unique index
+    // (audit finding M-BILL-7).
+    await db.insert(billOccurrences).values(inserts).onConflictDoNothing();
 
     if (template.budgetPeriodAssignment !== null) {
       const createdRows = await db
@@ -1570,6 +1611,46 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
   const runId = nanoid();
   const startAt = nowIso();
 
+  // Run-level idempotency (audit finding H-BILL-4): a cron retry or a manual
+  // "Run autopay" click after the scheduled run used to pay another installment
+  // the same day (fixed-amount rules left the occurrence 'partial' and still
+  // eligible). One real run per (householdId, runDate).
+  if (!options.dryRun) {
+    const [existingRun] = await db
+      .select({ id: autopayRuns.id, status: autopayRuns.status })
+      .from(autopayRuns)
+      .where(
+        and(
+          eq(autopayRuns.householdId, options.householdId),
+          eq(autopayRuns.runDate, runDate),
+          inArray(autopayRuns.status, ['started', 'completed'])
+        )
+      )
+      .limit(1);
+
+    if (existingRun) {
+      return {
+        runId: existingRun.id,
+        runDate,
+        runType,
+        status: 'skipped',
+        processedCount: 0,
+        successCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+        totalAmountCents: 0,
+        errors: [
+          {
+            templateId: null,
+            occurrenceId: null,
+            message: `Autopay already ran for ${runDate} (run ${existingRun.id}, status ${existingRun.status})`,
+            code: 'AUTOPAY_ALREADY_RAN',
+          },
+        ],
+      };
+    }
+  }
+
   await db.insert(autopayRuns).values({
     id: runId,
     householdId: options.householdId,
@@ -1690,8 +1771,14 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
         continue;
       }
 
+      // Catch-up window (audit finding H-BILL-3): an exact processDate === runDate
+      // match silently skipped a bill FOREVER if the cron missed a single day
+      // (deploy, outage, DST shift). Process anything whose process date has
+      // arrived, within a bounded 14-day catch-up so a first deploy doesn't
+      // sweep up ancient overdue occurrences. Future process dates still wait.
       const processDate = format(subDays(parseDateOrThrow(occurrence.dueDate, 'dueDate'), rule.daysBeforeDue), 'yyyy-MM-dd');
-      if (processDate !== runDate) {
+      const catchUpFloor = format(subDays(runDateObj, 14), 'yyyy-MM-dd');
+      if (processDate > runDate || processDate < catchUpFloor) {
         continue;
       }
 
@@ -1723,6 +1810,11 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
             amountCents,
             paymentDate: runDate,
             notes: `Autopay ${runDate}`,
+            // Row-level idempotency (H-BILL-4): the unique index on
+            // bill_payment_events.idempotency_key makes a concurrent duplicate
+            // payment for the same occurrence+day impossible even if two runs
+            // race past the run-level guard.
+            idempotencyKey: `autopay:${occurrence.id}:${runDate}`,
           },
           paymentMethod: 'autopay',
         });
