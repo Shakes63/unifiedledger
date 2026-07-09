@@ -225,8 +225,29 @@ export const autoDetectMappings = (headers: string[], isCreditCard: boolean = fa
 export const parseDate = (dateStr: string, dateFormat: string): string => {
   if (!dateStr) throw new Error('Date is required');
 
-  const normalize = (year: string, month: string, day: string): string =>
-    `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  const normalize = (year: string, month: string, day: string): string => {
+    const y = Number(year);
+    const m = Number(month);
+    const d = Number(day);
+    // Reject impossible dates (audit finding L-IMP-7: "13/45/2025" previously
+    // normalized to "2025-13-45", passed the YYYY-MM-DD regex, and was stored —
+    // then sorted/filtered nonsensically). Validate real calendar ranges,
+    // including month length and leap years.
+    if (
+      !Number.isInteger(y) ||
+      !Number.isInteger(m) ||
+      !Number.isInteger(d) ||
+      y < 1900 ||
+      y > 2200 ||
+      m < 1 ||
+      m > 12 ||
+      d < 1 ||
+      d > new Date(y, m, 0).getDate()
+    ) {
+      throw new Error(`Invalid date: ${dateStr}`);
+    }
+    return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  };
 
   if (dateFormat === 'MM/DD/YYYY') {
     const [month, day, year] = dateStr.split('/');

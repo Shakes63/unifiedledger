@@ -134,6 +134,16 @@ describe('lib/csv-import', () => {
         'Invalid date format for MM/DD/YYYY: March 15, 2025'
       );
     });
+
+    it('rejects impossible calendar dates instead of storing garbage (L-IMP-7)', () => {
+      expect(() => parseDate('13/45/2025', 'MM/DD/YYYY')).toThrow(/Invalid date/);
+      expect(() => parseDate('02/30/2025', 'MM/DD/YYYY')).toThrow(/Invalid date/); // Feb 30
+      expect(() => parseDate('2025-02-29', 'YYYY-MM-DD')).toThrow(/Invalid date/); // not a leap year
+    });
+
+    it('accepts a valid leap day', () => {
+      expect(parseDate('2024-02-29', 'YYYY-MM-DD')).toBe('2024-02-29');
+    });
   });
 
   describe('autoDetectMappings', () => {
