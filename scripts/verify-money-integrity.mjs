@@ -172,6 +172,31 @@ function verifySqliteStrictTables(sqlite) {
   return failures;
 }
 
+/**
+ * NON-FATAL: a negative balance on a credit / line_of_credit account is the
+ * signature of the pre-audit asset-sign engine (C-MATH-1) — under the current
+ * positive-owed convention it is only legitimate when the card is genuinely
+ * overpaid. Warn (do not fail) and point at the one-time reconciliation tool.
+ */
+function warnAboutLegacyCreditSigns(sqlite) {
+  const rows = sqlite
+    .prepare(
+      `SELECT id, name, current_balance_cents AS cents
+       FROM accounts
+       WHERE type IN ('credit', 'line_of_credit') AND current_balance_cents < 0`
+    )
+    .all();
+  if (rows.length === 0) return;
+  for (const row of rows) {
+    console.warn(
+      `[WARN] liability account "${row.name}" stores a NEGATIVE owed balance ` +
+        `(${(row.cents / 100).toFixed(2)}) — legitimate only if truly overpaid. ` +
+        `If this predates the sign fix, reconcile it once: ` +
+        `pnpm db:reconcile:credit -- --fix-account ${row.id} --owed <statement dollars>`
+    );
+  }
+}
+
 function verifySqliteForeignKeys(sqlite) {
   let failures = 0;
 
@@ -230,6 +255,7 @@ async function run() {
     }
     failures += verifySqliteForeignKeys(sqlite);
     failures += verifySqliteStrictTables(sqlite);
+    warnAboutLegacyCreditSigns(sqlite);
   } finally {
     sqlite.close();
   }
