@@ -135,6 +135,43 @@ const EXPECTED_SQLITE_FKS = {
   transfers: ['transactions', 'transactions'],
 };
 
+// The 12 money tables converted to STRICT by migration 0019. A future rebuild
+// that forgets the STRICT keyword would silently reopen the type-flexibility
+// hole (floats/text sneaking into INTEGER cents columns), so assert it stays.
+const EXPECTED_STRICT_TABLES = [
+  'accounts',
+  'transactions',
+  'debts',
+  'savings_goals',
+  'bill_occurrences',
+  'transaction_splits',
+  'transaction_tags',
+  'custom_field_values',
+  'debt_payments',
+  'savings_goal_contributions',
+  'bill_payment_events',
+  'transfers',
+];
+
+function verifySqliteStrictTables(sqlite) {
+  let failures = 0;
+  for (const table of EXPECTED_STRICT_TABLES) {
+    const row = sqlite
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name = ?")
+      .get(table);
+    // Anchored: LIKE '%STRICT%' would false-positive on column names such as
+    // special_district_rate ("diSTRICT").
+    const isStrict = row && /\)\s*STRICT\s*;?\s*$/i.test(row.sql);
+    if (!isStrict) {
+      failures += 1;
+      console.error(`[FAIL] ${table} is not a STRICT table`);
+    } else {
+      console.log(`[OK] ${table} is STRICT`);
+    }
+  }
+  return failures;
+}
+
 function verifySqliteForeignKeys(sqlite) {
   let failures = 0;
 
@@ -192,6 +229,7 @@ async function run() {
       }
     }
     failures += verifySqliteForeignKeys(sqlite);
+    failures += verifySqliteStrictTables(sqlite);
   } finally {
     sqlite.close();
   }

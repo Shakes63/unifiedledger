@@ -134,6 +134,13 @@
       "when": 1772995200000,
       "tag": "0018_enforce_money_link_fks",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1773081600000,
+      "tag": "0019_strict_money_tables",
+      "breakpoints": true
     }
   ]
 }
