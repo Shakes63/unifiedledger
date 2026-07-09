@@ -76,9 +76,14 @@ function evaluateCondition(condition: Condition, transaction: TransactionData): 
     case 'day_of_month':
       fieldValue = parseInt(transaction.date.split('-')[2], 10);
       break;
-    case 'weekday':
-      fieldValue = new Date(transaction.date).getDay();
+    case 'weekday': {
+      // Construct from local date components: new Date('YYYY-MM-DD') parses as
+      // UTC midnight, so getDay() returned the PREVIOUS weekday in any timezone
+      // behind UTC — weekday rules fired on the wrong day.
+      const [year, month, day] = transaction.date.split('-').map(Number);
+      fieldValue = new Date(year, month - 1, day).getDay();
       break;
+    }
     case 'month':
       fieldValue = parseInt(transaction.date.split('-')[1], 10);
       break;
