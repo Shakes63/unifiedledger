@@ -11,7 +11,10 @@ import {
   savingsGoals,
 } from '@/lib/db/schema';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
-import { reverseTransactionSideEffects } from '@/lib/transactions/transaction-side-effect-reversal';
+import {
+  adjustTransactionSideEffectsForAmountChange,
+  reverseTransactionSideEffects,
+} from '@/lib/transactions/transaction-side-effect-reversal';
 import { setupTestUserWithHousehold, cleanupTestHousehold } from './test-utils';
 
 /**
@@ -117,6 +120,63 @@ describe('reverseTransactionSideEffects (C-LIFE-1/2/3)', () => {
       .from(savingsGoalContributions)
       .where(eq(savingsGoalContributions.transactionId, txId));
     expect(remaining).toHaveLength(0);
+  });
+
+  it('amount edit re-scales a linked debt payment (C-LIFE-3 edit case)', async () => {
+    ctx = await setupTestUserWithHousehold();
+    const debtId = nanoid();
+    // Debt at $300 after a $200 payment (principal $200, 0% interest).
+    await db.insert(debts).values({
+      id: debtId,
+      userId: ctx.userId,
+      householdId: ctx.householdId,
+      name: 'Loan',
+      creditorName: 'Test Creditor',
+      debtType: 'personal_loan',
+      originalAmount: 500,
+      remainingBalance: 300,
+      remainingBalanceCents: 30000,
+      startDate: '2026-01-01',
+      status: 'active',
+      interestType: 'none',
+      interestRate: 0,
+    } as typeof debts.$inferInsert);
+    await db.insert(debtPayments).values({
+      id: nanoid(),
+      debtId,
+      userId: ctx.userId,
+      householdId: ctx.householdId,
+      amount: 200,
+      principalAmount: 200,
+      interestAmount: 0,
+      amountCents: 20000,
+      principalCents: 20000,
+      interestCents: 0,
+      paymentDate: '2026-02-01',
+      transactionId: txId,
+    } as typeof debtPayments.$inferInsert);
+
+    // The funding transaction's amount is corrected $200 -> $20.
+    await runInDatabaseTransaction(async (tx) => {
+      await adjustTransactionSideEffectsForAmountChange(tx, {
+        transactionId: txId,
+        userId: ctx!.userId,
+        householdId: ctx!.householdId,
+        oldAmountCents: 20000,
+        newAmountCents: 2000,
+      });
+    });
+
+    const [debt] = await db.select().from(debts).where(eq(debts.id, debtId));
+    // Reversal restores to $500, then a $20 payment applies -> $480.
+    // (Previously the debt stayed reduced by the full $200.)
+    expect(debt.remainingBalanceCents).toBe(48000);
+    const payments = await db
+      .select()
+      .from(debtPayments)
+      .where(eq(debtPayments.transactionId, txId));
+    expect(payments).toHaveLength(1);
+    expect(payments[0].amountCents).toBe(2000);
   });
 
   it('unwinds a bill payment: reduces amount paid and reverts status', async () => {

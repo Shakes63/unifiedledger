@@ -321,15 +321,22 @@ describe('Transaction ledger invariants', () => {
       const tx = {
         select: () => ({
           from: (table: unknown) => ({
-            where: (whereArg: unknown) => ({
-              limit: async () => {
+            where: (whereArg: unknown) => {
+              const resolveRows = async () => {
                 if (table === accounts) {
                   const accountId = extractAccountId(whereArg);
                   return accountId ? [state.accounts[accountId]] : [];
                 }
+                // Side-effect adjustment tables (debtPayments / contributions /
+                // billPaymentEvents) have no rows in this scenario.
                 return [];
-              },
-            }),
+              };
+              // Support both `.where(...).limit()` and awaiting `.where(...)`
+              // directly (the side-effect queries do the latter).
+              const rows: unknown[] & { limit?: () => Promise<unknown[]> } = [];
+              rows.limit = resolveRows;
+              return rows;
+            },
           }),
         }),
         update: (table: unknown) => ({

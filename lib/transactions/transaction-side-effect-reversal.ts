@@ -11,7 +11,10 @@ import {
 } from '@/lib/db/schema';
 import { buildDebtBalanceFields, getDebtRemainingCents } from '@/lib/debts/debt-money';
 import { buildGoalCurrentFields, getGoalCurrentCents } from '@/lib/goals/goal-money';
-import { toMoneyCents } from '@/lib/utils/money-cents';
+import { fromMoneyCents, toMoneyCents } from '@/lib/utils/money-cents';
+import { loadScopedDebt, persistLegacyDebtPayment } from '@/lib/transactions/payment-linkage-debt';
+import { handleGoalContribution } from '@/lib/goals/contribution-handler';
+import { processBillPayment } from '@/lib/bills/bill-payment-utils';
 
 type ReversalTx = typeof db;
 
@@ -42,6 +45,136 @@ export async function reverseTransactionSideEffects(
   await reverseDebtPayments(tx, { transactionId, userId, householdId });
   await reverseGoalContributions(tx, { transactionId, userId, householdId });
   await reverseBillPayments(tx, { transactionId, householdId });
+}
+
+/**
+ * Adjust a transaction's money side effects when its AMOUNT is edited
+ * (audit finding C-LIFE-3, edit case): capture the linked debt payment(s),
+ * goal contribution(s), and bill payment(s), reverse them, and re-apply each
+ * scaled proportionally to the new amount. Correcting a $200 debt payment to
+ * $20 previously fixed the account balance but left the debt reduced by $200.
+ *
+ * MUST run inside the same transaction as the amount update.
+ */
+export async function adjustTransactionSideEffectsForAmountChange(
+  tx: ReversalTx,
+  {
+    transactionId,
+    userId,
+    householdId,
+    oldAmountCents,
+    newAmountCents,
+  }: {
+    transactionId: string;
+    userId: string;
+    householdId: string;
+    oldAmountCents: number;
+    newAmountCents: number;
+  }
+): Promise<void> {
+  if (oldAmountCents === newAmountCents || oldAmountCents === 0) {
+    return;
+  }
+  const ratio = Math.abs(newAmountCents) / Math.abs(oldAmountCents);
+
+  // Capture the linked rows BEFORE reversal deletes them.
+  const scope = { transactionId, userId, householdId };
+  const [debtRows, goalRows, billRows] = await Promise.all([
+    tx
+      .select()
+      .from(debtPayments)
+      .where(
+        and(
+          eq(debtPayments.transactionId, transactionId),
+          eq(debtPayments.userId, userId),
+          eq(debtPayments.householdId, householdId)
+        )
+      ),
+    tx
+      .select()
+      .from(savingsGoalContributions)
+      .where(
+        and(
+          eq(savingsGoalContributions.transactionId, transactionId),
+          eq(savingsGoalContributions.userId, userId),
+          eq(savingsGoalContributions.householdId, householdId)
+        )
+      ),
+    tx
+      .select()
+      .from(billPaymentEvents)
+      .where(
+        and(
+          eq(billPaymentEvents.transactionId, transactionId),
+          eq(billPaymentEvents.householdId, householdId)
+        )
+      ),
+  ]);
+
+  if (debtRows.length === 0 && goalRows.length === 0 && billRows.length === 0) {
+    return;
+  }
+
+  await reverseTransactionSideEffects(tx, scope);
+
+  const scaleCents = (cents: number | string | bigint | null, dollars: number | null): number => {
+    const base =
+      cents !== null && cents !== undefined ? Number(cents) : toMoneyCents(dollars ?? 0) ?? 0;
+    return Math.round(base * ratio);
+  };
+
+  for (const payment of debtRows) {
+    const newPaymentCents = scaleCents(payment.amountCents ?? null, payment.amount);
+    if (newPaymentCents <= 0) continue;
+    const currentDebt = await loadScopedDebt({
+      dbClient: tx,
+      debtId: payment.debtId,
+      userId,
+      householdId,
+    });
+    if (!currentDebt) continue;
+    await persistLegacyDebtPayment({
+      dbClient: tx,
+      debtId: payment.debtId,
+      userId,
+      householdId,
+      paymentAmount: fromMoneyCents(newPaymentCents) ?? 0,
+      paymentDate: payment.paymentDate,
+      transactionId,
+      notes: payment.notes ?? 'Adjusted for edited transaction',
+      currentDebt,
+    });
+  }
+
+  for (const contribution of goalRows) {
+    const newContributionCents = scaleCents(contribution.amountCents ?? null, contribution.amount);
+    if (newContributionCents <= 0) continue;
+    await handleGoalContribution(
+      contribution.goalId,
+      fromMoneyCents(newContributionCents) ?? 0,
+      transactionId,
+      userId,
+      householdId
+    );
+  }
+
+  for (const event of billRows) {
+    const newEventCents = scaleCents(event.amountCents, null);
+    if (newEventCents <= 0) continue;
+    await processBillPayment({
+      templateId: event.templateId,
+      occurrenceId: event.occurrenceId,
+      transactionId,
+      paymentAmount: fromMoneyCents(newEventCents) ?? 0,
+      paymentDate: event.paymentDate,
+      userId,
+      householdId,
+      paymentMethod:
+        event.paymentMethod === 'match' ? 'manual' : event.paymentMethod ?? 'manual',
+      linkedAccountId: event.sourceAccountId ?? undefined,
+      notes: event.notes ?? undefined,
+    });
+  }
 }
 
 async function reverseDebtPayments(
