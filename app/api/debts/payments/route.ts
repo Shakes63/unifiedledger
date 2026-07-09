@@ -21,6 +21,7 @@ import {
   buildDebtPaymentAmountFields,
   getDebtRemainingCents,
 } from '@/lib/debts/debt-money';
+import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 
 type PaymentSource = 'account' | 'bill' | 'debt';
 
@@ -311,11 +312,24 @@ export async function POST(request: Request) {
       }
 
       const paymentId = nanoid();
-      // Integer-cents balance math (H-DBG-10): a manual payment reduces the whole
-      // amount against principal here (this path has no interest split).
+      // Split principal/interest like the transaction-linked path (L-DBG-15):
+      // recording the whole amount as principal made principal-based charts
+      // (e.g. the reduction chart) undercount the interest portion. Only the
+      // principal reduces the balance, in integer cents (H-DBG-10).
       const paymentCents = toMoneyCents(amount) ?? 0;
+      const breakdown = calculatePaymentBreakdown(
+        amount,
+        debt.remainingBalance,
+        debt.interestRate || 0,
+        debt.interestType || 'none',
+        debt.loanType || 'revolving',
+        debt.compoundingFrequency || 'monthly',
+        debt.billingCycleDays || 30
+      );
+      const principalCents = toMoneyCents(breakdown.principalAmount) ?? 0;
+      const interestCents = toMoneyCents(breakdown.interestAmount) ?? 0;
       const currentDebtCents = getDebtRemainingCents(debt);
-      const newCents = Math.max(0, currentDebtCents - paymentCents);
+      const newCents = Math.max(0, currentDebtCents - principalCents);
       await db.insert(debtPayments).values({
         id: paymentId,
         debtId: sourceId,
@@ -323,8 +337,8 @@ export async function POST(request: Request) {
         householdId,
         ...buildDebtPaymentAmountFields({
           amountCents: paymentCents,
-          principalCents: paymentCents,
-          interestCents: 0,
+          principalCents,
+          interestCents,
         }),
         paymentDate,
         transactionId,
