@@ -9,15 +9,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          # Node 22 LTS — 20 went end-of-life 2026-04-30. Matches the Docker
+          # runtime image (node:22-alpine).
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies

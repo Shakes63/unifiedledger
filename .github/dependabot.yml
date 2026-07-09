@@ -1,0 +1,29 @@
+# Tier-3 hardening: automated dependency updates. A finance app with stale
+# dependencies is how CVEs land; Dependabot keeps the surface current without
+# manual sweeps. Minor/patch updates are grouped into one weekly PR to keep
+# noise down; majors stay separate so they get real review.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
