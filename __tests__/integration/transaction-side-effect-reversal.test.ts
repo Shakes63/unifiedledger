@@ -179,6 +179,54 @@ describe('reverseTransactionSideEffects (C-LIFE-1/2/3)', () => {
     expect(payments[0].amountCents).toBe(2000);
   });
 
+  it('unlinkExistingBillInstance fully unwinds paid amounts so relink cannot overpay (H-BILL-2)', async () => {
+    ctx = await setupTestUserWithHousehold();
+    const occurrenceId = nanoid();
+    const templateId = nanoid();
+    await db.insert(billOccurrences).values({
+      id: occurrenceId,
+      templateId,
+      householdId: ctx.householdId,
+      dueDate: '2026-02-01',
+      status: 'paid',
+      amountDueCents: 10000,
+      amountPaidCents: 10000,
+      amountRemainingCents: 0,
+      paidDate: '2026-02-01',
+      lastTransactionId: txId,
+    } as typeof billOccurrences.$inferInsert);
+    await db.insert(billPaymentEvents).values({
+      id: nanoid(),
+      householdId: ctx.householdId,
+      templateId,
+      occurrenceId,
+      transactionId: txId,
+      amountCents: 10000,
+      paymentDate: '2026-02-01',
+      paymentMethod: 'manual',
+    } as typeof billPaymentEvents.$inferInsert);
+
+    const { unlinkExistingBillInstance } = await import(
+      '@/lib/transactions/transaction-update-bill-linking-helpers'
+    );
+    await unlinkExistingBillInstance({ transactionId: txId, householdId: ctx.householdId });
+
+    const [occurrence] = await db
+      .select()
+      .from(billOccurrences)
+      .where(eq(billOccurrences.id, occurrenceId));
+    // The old reset left amountPaidCents = 10000, so a relink stacked another
+    // payment on top -> 'overpaid' with one real transaction.
+    expect(occurrence.amountPaidCents).toBe(0);
+    expect(occurrence.amountRemainingCents).toBe(10000);
+    expect(occurrence.status).toBe('unpaid');
+    const events = await db
+      .select()
+      .from(billPaymentEvents)
+      .where(eq(billPaymentEvents.transactionId, txId));
+    expect(events).toHaveLength(0);
+  });
+
   it('unwinds a bill payment: reduces amount paid and reverts status', async () => {
     ctx = await setupTestUserWithHousehold();
     const occurrenceId = nanoid();

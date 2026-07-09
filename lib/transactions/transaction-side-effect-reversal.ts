@@ -270,7 +270,12 @@ async function reverseGoalContributions(
   }
 }
 
-async function reverseBillPayments(
+/**
+ * Unwind the bill payment(s) a transaction made: restore amountPaid/remaining,
+ * recompute occurrence status, and delete the payment events. Exported for the
+ * bill re-link flow (H-BILL-2), which must fully unwind before re-linking.
+ */
+export async function reverseBillPayments(
   tx: ReversalTx,
   { transactionId, householdId }: { transactionId: string; householdId: string }
 ): Promise<void> {
