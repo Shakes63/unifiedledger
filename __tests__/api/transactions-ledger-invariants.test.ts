@@ -321,15 +321,22 @@ describe('Transaction ledger invariants', () => {
       const tx = {
         select: () => ({
           from: (table: unknown) => ({
-            where: (whereArg: unknown) => ({
-              limit: async () => {
+            where: (whereArg: unknown) => {
+              const resolveRows = async () => {
                 if (table === accounts) {
                   const accountId = extractAccountId(whereArg);
                   return accountId ? [state.accounts[accountId]] : [];
                 }
+                // Side-effect adjustment tables (debtPayments / contributions /
+                // billPaymentEvents) have no rows in this scenario.
                 return [];
-              },
-            }),
+              };
+              // Support both `.where(...).limit()` and awaiting `.where(...)`
+              // directly (the side-effect queries do the latter).
+              const rows: unknown[] & { limit?: () => Promise<unknown[]> } = [];
+              rows.limit = resolveRows;
+              return rows;
+            },
           }),
         }),
         update: (table: unknown) => ({
@@ -442,8 +449,8 @@ describe('Transaction ledger invariants', () => {
       const tx = {
         select: () => ({
           from: (table: unknown) => ({
-            where: (whereArg: unknown) => ({
-              limit: async () => {
+            where: (whereArg: unknown) => {
+              const resolveRows = async () => {
                 if (table === transactions) {
                   const where = whereStr(whereArg);
                   if (where.includes('transfer_in') && where.includes('tx-out') && state.transactions['tx-in']) {
@@ -459,9 +466,17 @@ describe('Transaction ledger invariants', () => {
                   const accountId = extractAccountId(whereArg);
                   return accountId ? [state.accounts[accountId]] : [];
                 }
+                // Side-effect reversal tables (debtPayments / contributions /
+                // billPaymentEvents) have no rows in this scenario.
                 return [];
-              },
-            }),
+              };
+              // Support both `.where(...).limit()` and awaiting `.where(...)`
+              // directly (which the reversal queries do): an empty array that
+              // also exposes a `.limit()`.
+              const rows: unknown[] & { limit?: () => Promise<unknown[]> } = [];
+              rows.limit = resolveRows;
+              return rows;
+            },
           }),
         }),
         update: (table: unknown) => ({

@@ -1,10 +1,11 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories } from '@/lib/db/schema';
+import { budgetCategories } from '@/lib/db/schema';
 import { getMonthRangeForDate } from '@/lib/utils/local-date';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { getCategorySpendingCents } from '@/lib/budgets/category-spending';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,24 +50,17 @@ export async function GET(request: Request) {
     const now = new Date();
     const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForDate(now);
 
-    // Get spending for this month and category
-    const spendingResult = await db
-      .select({
-        totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)`,
-      })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId),
-          eq(transactions.categoryId, categoryId),
-          eq(transactions.type, 'expense'),
-          gte(transactions.date, monthStart),
-          lte(transactions.date, monthEnd)
-        )
-      );
-
-    const spent = new Decimal(spendingResult[0]?.totalCents ?? 0).div(100).toNumber();
+    // Split-aware, HOUSEHOLD-scoped spending (H-DBG-7, H-DBG-16). Budgets are a
+    // household concept, and month-end rollover deducts the whole household's
+    // spend — so the live view must match, not show only the caller's share.
+    const spentCents = await getCategorySpendingCents({
+      categoryId,
+      householdId,
+      startDate: monthStart,
+      endDate: monthEnd,
+      categoryType: 'expense',
+    });
+    const spent = new Decimal(spentCents).div(100).toNumber();
 
     // Calculate percentage
     const percentage = monthlyBudget > 0 ? (spent / monthlyBudget) * 100 : 0;

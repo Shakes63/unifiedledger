@@ -9,6 +9,7 @@ export interface DebtWithPayments {
   startDate: string;
   status: string;
   minimumPayment?: number;
+  additionalMonthlyPayment?: number;
   interestRate?: number;
   loanType?: string;
   compoundingFrequency?: string;
@@ -141,11 +142,19 @@ export async function generateProjection(
     name: debt.name,
     remainingBalance: debt.remainingBalance,
     minimumPayment: debt.minimumPayment || 0,
+    // Include the per-debt extra payment (audit finding M-DBG-13): omitting it
+    // made the chart disagree with the strategy/countdown endpoints.
+    additionalMonthlyPayment: debt.additionalMonthlyPayment || 0,
     interestRate: debt.interestRate || 0,
     type: debt.loanType || 'other', // Type string for debt type
     loanType: (debt.loanType as 'revolving' | 'installment') || 'installment',
     compoundingFrequency: (debt.compoundingFrequency as 'daily' | 'monthly' | 'quarterly' | 'annually') || 'monthly',
   }));
+
+  // The calculator's monthlyBreakdown is indexed by PAYMENT PERIOD, which for
+  // biweekly is a 14-day period — not a calendar month (audit finding M-DBG-13:
+  // indexing it by month made the projected curve shrink ~2.17x too fast).
+  const periodsPerMonth = paymentFrequency === 'biweekly' ? 26 / 12 : 1;
 
   try {
     // Calculate the payoff strategy using the real calculator
@@ -186,9 +195,10 @@ export async function generateProjection(
           continue;
         }
 
-        // Get the balance from the monthly breakdown
-        if (i < schedule.monthlyBreakdown.length) {
-          const monthData = schedule.monthlyBreakdown[i];
+        // Map calendar month i to the corresponding payment-period index.
+        const periodIndex = Math.round(i * periodsPerMonth);
+        if (periodIndex < schedule.monthlyBreakdown.length) {
+          const monthData = schedule.monthlyBreakdown[periodIndex];
           byDebt[debt.id] = monthData.remainingBalance;
           totalDebt += monthData.remainingBalance;
         } else {

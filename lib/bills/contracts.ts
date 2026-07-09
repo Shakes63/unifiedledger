@@ -201,15 +201,16 @@ export interface AutopayRunResultDto {
   runId: string;
   runDate: string;
   runType: 'scheduled' | 'manual' | 'dry_run';
-  status: 'started' | 'completed' | 'failed';
+  /** 'skipped' = a run for this (household, runDate) already exists (H-BILL-4). */
+  status: 'started' | 'completed' | 'failed' | 'skipped';
   processedCount: number;
   successCount: number;
   failedCount: number;
   skippedCount: number;
   totalAmountCents: number;
   errors: Array<{
-    templateId: string;
-    occurrenceId: string;
+    templateId: string | null;
+    occurrenceId: string | null;
     message: string;
     code: string;
   }>;

@@ -106,6 +106,27 @@
       "when": 1772649600000,
       "tag": "0014_add_bill_v2_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1772736000000,
+      "tag": "0015_add_debt_money_cents",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1772822400000,
+      "tag": "0016_add_goal_money_cents",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1772908800000,
+      "tag": "0017_add_integrity_unique_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { betterAuthAccount } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import {
@@ -85,8 +86,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Perform the reset in a transaction
-    const result = await db.transaction(async () => {
+    // Perform the reset in a real, serialized transaction. Using the driver's
+    // native db.transaction() with an async callback silently escapes the
+    // transaction on better-sqlite3 (audit finding H-DB-4).
+    const result = await runInDatabaseTransaction(async () => {
       try {
         return await performUserDataReset(userId);
       } catch (error) {

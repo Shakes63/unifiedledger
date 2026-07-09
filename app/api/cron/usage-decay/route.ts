@@ -7,6 +7,7 @@
 
 import { and, eq, gt } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/api/cron-auth';
 
 import {
   applyBatchDecay,
@@ -35,20 +36,8 @@ interface DecayItem {
   lastUsedAt: string | null;
 }
 
-function verifyCronSecret(request: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    return false;
-  }
-
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) {
-    return false;
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  return token === cronSecret;
-}
+// Shared fail-closed, timing-safe cron auth (M-SEC-9).
+const verifyCronSecret = isAuthorizedCronRequest;
 
 function roundDecayedUsage(value: number): number {
   return Math.max(0, Math.round(value));

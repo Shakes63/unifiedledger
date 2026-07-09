@@ -15,7 +15,13 @@ import {
   debts,
   transactions,
 } from '@/lib/db/schema';
-import { toMoneyCents } from '@/lib/utils/money-cents';
+import { fromMoneyCents, toMoneyCents } from '@/lib/utils/money-cents';
+import {
+  buildDebtBalanceFields,
+  buildDebtPaymentAmountFields,
+  getDebtRemainingCents,
+} from '@/lib/debts/debt-money';
+import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 
 type PaymentSource = 'account' | 'bill' | 'debt';
 
@@ -250,7 +256,16 @@ export async function POST(request: Request) {
     const transactionId = body.transactionId || undefined;
     const now = new Date().toISOString();
 
-    if (!source || !sourceId || Number.isNaN(amount) || amount <= 0) {
+    // `Number("1e999")` is Infinity, which is neither NaN nor <= 0 — it would
+    // slip past a bare check and corrupt the debt/account balance (H-VAL-1).
+    // Require a finite, positive, sanely-bounded amount.
+    if (
+      !source ||
+      !sourceId ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      amount > 1e12
+    ) {
       return Response.json(
         { error: 'source, id, and a valid positive amount are required' },
         { status: 400 }
@@ -297,25 +312,46 @@ export async function POST(request: Request) {
       }
 
       const paymentId = nanoid();
+      // Split principal/interest like the transaction-linked path (L-DBG-15):
+      // recording the whole amount as principal made principal-based charts
+      // (e.g. the reduction chart) undercount the interest portion. Only the
+      // principal reduces the balance, in integer cents (H-DBG-10).
+      const paymentCents = toMoneyCents(amount) ?? 0;
+      const breakdown = calculatePaymentBreakdown(
+        amount,
+        debt.remainingBalance,
+        debt.interestRate || 0,
+        debt.interestType || 'none',
+        debt.loanType || 'revolving',
+        debt.compoundingFrequency || 'monthly',
+        debt.billingCycleDays || 30
+      );
+      const principalCents = toMoneyCents(breakdown.principalAmount) ?? 0;
+      const interestCents = toMoneyCents(breakdown.interestAmount) ?? 0;
+      const currentDebtCents = getDebtRemainingCents(debt);
+      const newCents = Math.max(0, currentDebtCents - principalCents);
       await db.insert(debtPayments).values({
         id: paymentId,
         debtId: sourceId,
         userId,
         householdId,
-        amount,
+        ...buildDebtPaymentAmountFields({
+          amountCents: paymentCents,
+          principalCents,
+          interestCents,
+        }),
         paymentDate,
         transactionId,
         notes,
         createdAt: now,
       });
 
-      const newBalance = Math.max(0, debt.remainingBalance - amount);
       await db
         .update(debts)
         .set({
-          remainingBalance: newBalance,
+          ...buildDebtBalanceFields(newCents),
           updatedAt: now,
-          status: newBalance === 0 ? 'paid_off' : debt.status,
+          status: newCents === 0 ? 'paid_off' : debt.status,
         })
         .where(eq(debts.id, sourceId));
 
@@ -329,6 +365,7 @@ export async function POST(request: Request) {
           )
         );
 
+      const newBalance = fromMoneyCents(newCents) ?? 0;
       for (const milestone of milestones) {
         if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
           await db
@@ -502,9 +539,12 @@ export async function POST(request: Request) {
     }
 
     const amountCents = toMoneyCents(amount) ?? 0;
-    const currentBalanceCents = Math.abs(
-      account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0
-    );
+    // Under the positive-owed convention a payment reduces what you owe. Do NOT
+    // Math.abs the current balance: that flipped the sign of a negative balance
+    // and corrupted it (C-MATH-1). Clamp at zero so a payment can't drive the
+    // owed amount below zero here.
+    const currentBalanceCents =
+      account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0;
     const newBalanceCents = Math.max(0, currentBalanceCents - amountCents);
 
     await db

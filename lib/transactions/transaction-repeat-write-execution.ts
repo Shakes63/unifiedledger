@@ -1,6 +1,7 @@
 import { accounts } from '@/lib/db/schema';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import {
+  computeBalanceDeltaCents,
   getAccountBalanceCents,
   insertTransactionMovement,
   updateScopedAccountBalance,
@@ -58,11 +59,16 @@ export async function executeRepeatTransactionWrite({
       updatedAt: nowIso,
     });
 
+    // Liability-aware delta (C-MATH-1). Uses the account loaded for this repeat;
+    // the wrapping transaction is serialized, so no concurrent write interleaves.
     const currentBalanceCents = getAccountBalanceCents(account);
     const updatedBalanceCents =
-      type === 'expense' || type === 'transfer_out'
-        ? currentBalanceCents - amountCents
-        : currentBalanceCents + amountCents;
+      currentBalanceCents +
+      computeBalanceDeltaCents({
+        accountType: account.type,
+        transactionType: type,
+        amountCents,
+      });
 
     await updateScopedAccountBalance(tx, {
       accountId,

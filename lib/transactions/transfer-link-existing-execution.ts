@@ -66,6 +66,21 @@ export async function executeLinkExistingTransferPair({
     transferInId = transferIn.id;
     const transferAmountCents = getTransactionAmountCents(transferOut);
 
+    // Invariants (audit finding H-XFER-1): the two legs of a transfer must have
+    // EQUAL amounts and DIFFERENT accounts. Linking a $100 expense to a $98
+    // income (rule tolerance matching) stored the out-leg amount on the transfers
+    // row; deleting the pair later reversed the destination by $100 when only
+    // $98 was ever applied — permanent drift the project's own integrity script
+    // flags as corrupt. Same-account pairs corrupt balances on delete (H-XFER-2).
+    if (Math.abs(getTransactionAmountCents(transferIn)) !== Math.abs(transferAmountCents)) {
+      throw new Error(
+        'Cannot link transactions with different amounts as a transfer'
+      );
+    }
+    if (transferOut.accountId === transferIn.accountId) {
+      throw new Error('Cannot link two transactions on the same account as a transfer');
+    }
+
     await tx
       .update(transactions)
       .set({

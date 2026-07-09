@@ -6,6 +6,7 @@ import {
   revertTransferPairBalances,
 } from '@/lib/transactions/transfer-delete-account-updates';
 import { resolveTransferDeleteContext } from '@/lib/transactions/transfer-delete-context';
+import { reverseTransactionSideEffects } from '@/lib/transactions/transaction-side-effect-reversal';
 
 type DbClient = typeof db;
 
@@ -55,6 +56,22 @@ export async function deleteTransferPairRecordsAndRevertBalances(
     transferAmountCents: deleteContext.transferAmountCents,
     totalDebitCents: deleteContext.totalDebitCents,
   });
+
+  // Reverse any goal contribution / bill payment / debt payment linked to either
+  // leg of the pair before deleting them (C-LIFE-2, H-BILL-1). A credit-card
+  // payment transfer, for example, links a bill payment to the transfer_in leg.
+  await reverseTransactionSideEffects(tx, {
+    transactionId: txRecord.id,
+    userId,
+    householdId,
+  });
+  if (paired) {
+    await reverseTransactionSideEffects(tx, {
+      transactionId: paired.id,
+      userId,
+      householdId,
+    });
+  }
 
   if (paired) {
     await tx

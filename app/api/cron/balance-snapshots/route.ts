@@ -16,11 +16,9 @@ import { toMoneyCents } from '@/lib/utils/money-cents';
 import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import Decimal from 'decimal.js';
+import { requireCronAuth } from '@/lib/api/cron-auth';
 
 export const dynamic = 'force-dynamic';
-
-// Cron secret for production security (optional)
-const CRON_SECRET = process.env.CRON_SECRET;
 
 interface SnapshotResult {
   accountId: string;
@@ -157,20 +155,13 @@ async function createSnapshot(
  * Schedule: Daily at 11:59 PM UTC
  */
 export async function POST(request: Request) {
-  try {
-    // Verify cron secret in production
-    if (CRON_SECRET) {
-      const authHeader = request.headers.get('authorization');
-      const providedSecret = authHeader?.replace('Bearer ', '');
-      
-      if (providedSecret !== CRON_SECRET) {
-        return Response.json(
-          { error: 'Unauthorized - Invalid cron secret' },
-          { status: 401 }
-        );
-      }
-    }
+  // Fail-closed cron auth (M-SEC-9).
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
 
+  try {
     const today = getTodayLocalDateString();
     console.log(`[Balance Snapshots] Starting snapshot capture for ${today}`);
 
@@ -236,11 +227,15 @@ export async function POST(request: Request) {
 
 /**
  * GET - Preview credit accounts that would be snapshotted
- * 
- * Useful for debugging and monitoring.
- * Does NOT require cron secret - shows only non-sensitive metadata.
+ *
+ * Requires a valid CRON_SECRET (M-SEC-9): enumerates balances across all households.
  */
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   try {
     const today = getTodayLocalDateString();
     const creditAccounts = await getActiveCreditAccounts();

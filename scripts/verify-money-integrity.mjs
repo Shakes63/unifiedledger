@@ -79,6 +79,21 @@ const checks = [
     sql: 'SELECT COUNT(*) AS count FROM transfers WHERE ABS(COALESCE(fees, 0) - (fees_cents / 100.0)) > 0.000001',
   },
   {
+    name: 'debts.remaining_balance_cents NULL',
+    sql: 'SELECT COUNT(*) AS count FROM debts WHERE remaining_balance_cents IS NULL',
+  },
+  {
+    name: 'debts.remaining_balance decimal/cents drift',
+    sql: 'SELECT COUNT(*) AS count FROM debts WHERE ABS(remaining_balance - (remaining_balance_cents / 100.0)) > 0.000001',
+  },
+  {
+    name: 'debt_payments decimal/cents drift',
+    sql: `SELECT COUNT(*) AS count FROM debt_payments
+          WHERE amount_cents IS NOT NULL
+            AND (ABS(amount - (amount_cents / 100.0)) > 0.000001
+                 OR ABS(COALESCE(principal_amount, 0) - (COALESCE(principal_cents, 0) / 100.0)) > 0.000001)`,
+  },
+  {
     name: 'transfers missing/invalid from_transaction linkage',
     sql: `
       SELECT COUNT(*) AS count

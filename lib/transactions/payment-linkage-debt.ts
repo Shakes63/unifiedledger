@@ -5,6 +5,12 @@ import { db } from '@/lib/db';
 import { debtPayments, debts } from '@/lib/db/schema';
 import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
+import {
+  buildDebtBalanceFields,
+  buildDebtPaymentAmountFields,
+  getDebtRemainingCents,
+} from '@/lib/debts/debt-money';
+import { fromMoneyCents, toMoneyCents } from '@/lib/utils/money-cents';
 
 export type PaymentLinkageDbClient = Pick<typeof db, 'select' | 'insert' | 'update'>;
 
@@ -61,7 +67,14 @@ export async function persistLegacyDebtPayment({
     currentDebt.billingCycleDays || 30
   );
 
-  const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
+  // Work in integer cents so the balance can't accumulate float drift and the
+  // paid-off check is exact (H-DBG-10). The breakdown is computed in dollars but
+  // only its cents value touches the stored balance.
+  const currentCents = getDebtRemainingCents(currentDebt);
+  const principalCents = toMoneyCents(breakdown.principalAmount) ?? 0;
+  const interestCents = toMoneyCents(breakdown.interestAmount) ?? 0;
+  const amountCents = toMoneyCents(paymentAmount) ?? 0;
+  const newCents = Math.max(0, currentCents - principalCents);
   const nowIso = new Date().toISOString();
 
   await Promise.all([
@@ -70,9 +83,7 @@ export async function persistLegacyDebtPayment({
       debtId,
       userId,
       householdId,
-      amount: paymentAmount,
-      principalAmount: breakdown.principalAmount,
-      interestAmount: breakdown.interestAmount,
+      ...buildDebtPaymentAmountFields({ amountCents, principalCents, interestCents }),
       paymentDate,
       transactionId,
       notes,
@@ -81,13 +92,13 @@ export async function persistLegacyDebtPayment({
     dbClient
       .update(debts)
       .set({
-        remainingBalance: newBalance,
-        status: newBalance === 0 ? 'paid_off' : 'active',
+        ...buildDebtBalanceFields(newCents),
+        status: newCents === 0 ? 'paid_off' : 'active',
         updatedAt: nowIso,
       })
       .where(
         and(eq(debts.id, debtId), eq(debts.userId, userId), eq(debts.householdId, householdId))
       ),
-    batchUpdateMilestones(debtId, newBalance),
+    batchUpdateMilestones(debtId, fromMoneyCents(newCents) ?? 0),
   ]);
 }

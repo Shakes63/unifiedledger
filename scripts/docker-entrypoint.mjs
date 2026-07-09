@@ -194,6 +194,19 @@ async function main() {
     if (releaseLock) releaseLock();
   }
 
+  // Money-integrity verification at startup (audit finding L-DB-5: the invariant
+  // checks existed but nothing ran them automatically). Surfaces corruption in
+  // the container logs on every boot; non-fatal so a flagged database still
+  // serves — the checks describe what needs repair.
+  try {
+    run("node", ["scripts/verify-money-integrity.mjs"]);
+  } catch {
+    console.error(
+      "[entrypoint] WARNING: money-integrity verification FAILED — see checks above. " +
+        "The app will start, but flagged data should be repaired."
+    );
+  }
+
   console.log("[entrypoint] Starting server...");
   run("node", ["server.js"], { CI: process.env.CI ?? "0" });
 }

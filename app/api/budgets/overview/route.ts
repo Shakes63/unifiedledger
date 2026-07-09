@@ -1,10 +1,11 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, billTemplates, billOccurrences } from '@/lib/db/schema';
+import { budgetCategories, billTemplates, billOccurrences } from '@/lib/db/schema';
 import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
-import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { getCategorySpendingCents } from '@/lib/budgets/category-spending';
 
 export const dynamic = 'force-dynamic';
 
@@ -143,22 +144,16 @@ export async function GET(request: Request) {
         ? new Decimal(monthlyBudget).plus(rolloverBalance).toNumber()
         : monthlyBudget;
 
-      // Get actual spending/income for this category in this month
-      const spendingResult = await db
-        .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.userId, userId),
-            eq(transactions.householdId, householdId),
-            eq(transactions.categoryId, category.id),
-            eq(transactions.type, category.type === 'income' ? 'income' : 'expense'),
-            gte(transactions.date, monthStart),
-            lte(transactions.date, monthEnd)
-          )
-        );
-
-      const actualSpent = new Decimal(spendingResult[0]?.totalCents ?? 0).div(100).toNumber();
+      // Split-aware, HOUSEHOLD-scoped spending (H-DBG-7, H-DBG-16). Matches the
+      // household-scoped month-end rollover so the two reconcile.
+      const actualSpentCents = await getCategorySpendingCents({
+        categoryId: category.id,
+        householdId,
+        startDate: monthStart,
+        endDate: monthEnd,
+        categoryType: category.type,
+      });
+      const actualSpent = new Decimal(actualSpentCents).div(100).toNumber();
 
       // Use effective budget for remaining calculation when rollover is enabled
       const budgetForCalculation = rolloverEnabled && category.type === 'expense' ? effectiveBudget : monthlyBudget;

@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { billOccurrences, transactions } from '@/lib/db/schema';
 import { processAndLinkTemplatePayment } from '@/lib/transactions/payment-linkage';
+import { reverseBillPayments } from '@/lib/transactions/transaction-side-effect-reversal';
 
 export function shouldRematchUpdatedExpenseBill({
   amountWasProvided,
@@ -33,6 +34,17 @@ export async function unlinkExistingBillInstance({
   transactionId: string;
   householdId: string;
 }): Promise<void> {
+  // Fully unwind the payments this transaction made — restores amountPaidCents/
+  // amountRemainingCents, recomputes status, and deletes the payment events
+  // (audit finding H-BILL-2: the previous reset cleared status/paidDate but left
+  // amountPaidCents, so re-linking stacked the new payment on top and produced
+  // 'overpaid' occurrences with only one real payment; it also found the
+  // occurrence only via lastTransactionId, missing links a later payment
+  // overwrote).
+  await reverseBillPayments(db, { transactionId, householdId });
+
+  // Fallback for legacy links with no payment event: reset any occurrence that
+  // still points at this transaction.
   const oldInstance = await db
     .select()
     .from(billOccurrences)
@@ -54,6 +66,8 @@ export async function unlinkExistingBillInstance({
       status: 'unpaid',
       paidDate: null,
       actualAmountCents: null,
+      amountPaidCents: 0,
+      amountRemainingCents: oldInstance[0].amountDueCents,
       lastTransactionId: null,
       updatedAt: new Date().toISOString(),
     })

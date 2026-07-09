@@ -1,4 +1,4 @@
-import { requireAuth } from '@/lib/auth-helpers';
+import { requireOwner } from '@/lib/auth/owner-helpers';
 import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
 import { user as betterAuthUser } from '@/auth-schema';
@@ -11,10 +11,14 @@ export const dynamic = 'force-dynamic';
  *
  * Backfills userName for all household members that don't have it set.
  * This is useful for fixing existing data created before the userName field was properly populated.
+ *
+ * This is an application-wide maintenance operation that touches EVERY household's
+ * members, so it requires the application owner — not just any authenticated user
+ * (audit finding M-SEC-8).
  */
 export async function POST(_request: Request) {
   try {
-    await requireAuth();
+    await requireOwner();
 
     // Get all household members without userName
     const membersWithoutName = await db
@@ -73,6 +77,9 @@ export async function POST(_request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.startsWith('Forbidden')) {
+      return Response.json({ error: 'Owner access required' }, { status: 403 });
     }
     console.error('Error in backfill-names:', error);
     return Response.json(

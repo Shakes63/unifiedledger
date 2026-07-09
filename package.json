@@ -20,6 +20,7 @@
     "db:migrate:sqlite:safe": "pnpm -s db:bootstrap:sqlite && pnpm -s db:migrate:sqlite",
     "db:migrate:pg": "drizzle-kit migrate --config drizzle.config.pg.ts",
     "db:verify:money": "node scripts/verify-money-integrity.mjs",
+    "db:verify:migrations": "node scripts/verify-migrations.mjs",
     "db:migrate:sqlite:verify": "pnpm -s db:migrate:sqlite:safe && pnpm -s db:verify:money",
     "generate-test-data": "tsx scripts/generate-test-data.ts"
   },

@@ -11,34 +11,24 @@
 import { getAutopayDueToday } from '@/lib/bills/autopay-processor';
 import { runAutopay } from '@/lib/bills/service';
 import { getAutopayProcessingSummary } from '@/lib/notifications/autopay-notifications';
+import { requireCronAuth } from '@/lib/api/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
-// Cron secret for production security (optional)
-const CRON_SECRET = process.env.CRON_SECRET;
-
 /**
  * POST - Process all autopay bills due today
- * 
- * In production, verify the cron secret to prevent unauthorized access.
- * Called by: External cron service (e.g., Vercel Cron, GitHub Actions, etc.)
- * Schedule: Daily at 6:00 AM UTC
+ *
+ * Requires a valid CRON_SECRET (fail-closed). Called by an external cron service.
+ * Schedule: Daily at 6:00 AM UTC.
  */
 export async function POST(request: Request) {
-  try {
-    // Verify cron secret in production
-    if (CRON_SECRET) {
-      const authHeader = request.headers.get('authorization');
-      const providedSecret = authHeader?.replace('Bearer ', '');
-      
-      if (providedSecret !== CRON_SECRET) {
-        return Response.json(
-          { error: 'Unauthorized - Invalid cron secret' },
-          { status: 401 }
-        );
-      }
-    }
+  // Fail-closed cron auth (C-SEC-1). Only a caller holding CRON_SECRET may move money.
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
 
+  try {
     console.log(`[Autopay Cron] Starting autopay processing at ${new Date().toISOString()}`);
 
     const householdId = request.headers.get('x-household-id');
@@ -104,11 +94,16 @@ export async function POST(request: Request) {
 
 /**
  * GET - Preview autopay bills due today without processing
- * 
- * Useful for debugging and monitoring.
- * Does NOT require cron secret - shows only non-sensitive metadata.
+ *
+ * Requires a valid CRON_SECRET (C-SEC-2): the preview enumerates bills across
+ * all households, so it must not be readable by unauthenticated callers.
  */
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   try {
     const preview = await getAutopayDueToday();
 

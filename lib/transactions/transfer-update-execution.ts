@@ -72,6 +72,9 @@ export async function executeTransferPairUpdate(
     userId,
     householdId,
   });
+  const typeByAccountId = new Map(
+    Array.from(accountsById.entries()).map(([id, account]) => [id, account.type])
+  );
   const balanceDeltaByAccountId = buildAccountBalanceDeltaById({
     currentSourceAccountId,
     currentDestinationAccountId,
@@ -81,6 +84,7 @@ export async function executeTransferPairUpdate(
     currentTransferAmountCents,
     nextTransferOutAmountCents,
     nextTransferAmountCents,
+    typeByAccountId,
   });
 
   await applyTransferBalanceDeltas({

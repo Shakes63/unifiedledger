@@ -53,7 +53,25 @@ describe('app/api/cron/autopay/route', () => {
     const data = await res.json();
 
     expect(res.status).toBe(401);
-    expect(data.error).toContain('Invalid cron secret');
+    expect(data.error).toContain('cron secret');
+  });
+
+  it('POST fails CLOSED with 401 when CRON_SECRET is not configured (C-SEC-1)', async () => {
+    // No CRON_SECRET set (beforeEach deletes it). An unauthenticated caller must
+    // NOT be able to trigger money movement, even by supplying headers.
+    const { POST } = await import('@/app/api/cron/autopay/route');
+    const req = new Request('http://localhost/api/cron/autopay', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer anything',
+        'x-household-id': 'household-1',
+        'x-user-id': 'user-1',
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    expect(runAutopay).not.toHaveBeenCalled();
   });
 
   it('POST returns 200 and expected response shape when CRON_SECRET matches', async () => {
@@ -86,12 +104,14 @@ describe('app/api/cron/autopay/route', () => {
   });
 
   it('POST returns 500 when processor throws', async () => {
+    process.env.CRON_SECRET = 'secret';
     (runAutopay as any).mockRejectedValue(new Error('boom'));
 
     const { POST } = await import('@/app/api/cron/autopay/route');
     const req = new Request('http://localhost/api/cron/autopay', {
       method: 'POST',
       headers: {
+        authorization: 'Bearer secret',
         'x-household-id': 'household-1',
         'x-user-id': 'user-1',
       },
@@ -106,7 +126,17 @@ describe('app/api/cron/autopay/route', () => {
     expect(data.message).toBe('boom');
   });
 
-  it('GET returns preview response shape', async () => {
+  it('GET requires cron auth and fails closed when secret is unset (C-SEC-2)', async () => {
+    const { GET } = await import('@/app/api/cron/autopay/route');
+    const req = new Request('http://localhost/api/cron/autopay', { method: 'GET' });
+
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+    expect(getAutopayDueToday).not.toHaveBeenCalled();
+  });
+
+  it('GET returns preview response shape when authorized', async () => {
+    process.env.CRON_SECRET = 'secret';
     (getAutopayDueToday as any).mockResolvedValue({
       count: 2,
       bills: [
@@ -123,7 +153,10 @@ describe('app/api/cron/autopay/route', () => {
     });
 
     const { GET } = await import('@/app/api/cron/autopay/route');
-    const req = new Request('http://localhost/api/cron/autopay', { method: 'GET' });
+    const req = new Request('http://localhost/api/cron/autopay', {
+      method: 'GET',
+      headers: { authorization: 'Bearer secret' },
+    });
 
     const res = await GET(req);
     const data = await res.json();

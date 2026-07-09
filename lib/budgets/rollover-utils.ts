@@ -1,8 +1,9 @@
 import { db } from '@/lib/db';
-import { budgetCategories, transactions, budgetRolloverHistory, householdSettings } from '@/lib/db/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { budgetCategories, budgetRolloverHistory, householdSettings } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { nanoid } from 'nanoid';
+import { getCategorySpendingCents } from '@/lib/budgets/category-spending';
 
 /**
  * Calculate actual spending for a category in a given month
@@ -14,22 +15,15 @@ export async function getCategorySpending(
   monthEnd: string,
   categoryType: string
 ): Promise<number> {
-  const transactionType = categoryType === 'income' ? 'income' : 'expense';
-  
-  const result = await db
-    .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.categoryId, categoryId),
-        eq(transactions.householdId, householdId),
-        eq(transactions.type, transactionType),
-        gte(transactions.date, monthStart),
-        lte(transactions.date, monthEnd)
-      )
-    );
-
-  return new Decimal(result[0]?.totalCents ?? 0).div(100).toNumber();
+  // Split-aware (H-DBG-7): counts split-row categories, not just the parent's.
+  const totalCents = await getCategorySpendingCents({
+    categoryId,
+    householdId,
+    startDate: monthStart,
+    endDate: monthEnd,
+    categoryType,
+  });
+  return new Decimal(totalCents).div(100).toNumber();
 }
 
 /**
@@ -60,18 +54,23 @@ export function calculateRollover(params: {
     };
   }
 
-  const unusedBudget = new Decimal(monthlyBudget).minus(actualSpent).toNumber();
-
-  let rolloverAmount = unusedBudget;
+  // Signed unused budget, rounded to exact cents so persisted balances are
+  // always whole-cent values (RC-4).
+  const rolloverAmount = new Decimal(monthlyBudget)
+    .minus(actualSpent)
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+    .toNumber();
   let wasCapped = false;
 
-  // If overspent and negative rollover is not allowed, don't subtract
-  if (rolloverAmount < 0 && !allowNegativeRollover) {
-    rolloverAmount = 0;
-  }
-
-  // Calculate new balance
-  let newBalance = new Decimal(previousBalance).plus(rolloverAmount).toNumber();
+  // Apply the SIGNED amount to the balance: an overspent month consumes the
+  // accumulated surplus (audit finding H-DBG-6 — the amount used to be clamped
+  // to 0 here, so the stored surplus was never drawn down even though the UI
+  // granted it as spendable, inflating the effective budget forever). The
+  // no-negative floor is applied to the RESULTING BALANCE below.
+  let newBalance = new Decimal(previousBalance)
+    .plus(rolloverAmount)
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+    .toNumber();
 
   // Enforce rollover limit if set
   if (rolloverLimit !== null && newBalance > rolloverLimit) {
@@ -79,7 +78,7 @@ export function calculateRollover(params: {
     wasCapped = true;
   }
 
-  // Balance can go negative if negative rollover is allowed
+  // Balance can go negative only if negative rollover is allowed
   if (newBalance < 0 && !allowNegativeRollover) {
     newBalance = 0;
   }

@@ -95,15 +95,20 @@ export async function GET(request: Request) {
           : period === 'quarterly'
             ? sql<string>`strftime('%Y', ${savingsGoalContributions.createdAt}) || '-Q' || ((cast(strftime('%m', ${savingsGoalContributions.createdAt}) as integer) + 2) / 3)`
             : sql<string>`strftime('%Y-%m', ${savingsGoalContributions.createdAt})`,
-        total: sql<number>`SUM(${savingsGoalContributions.amount})`,
+        // Sum integer cents (M-RPT-11: the float column was summed here while
+        // transfers summed cents — inconsistent precision). COALESCE covers rows
+        // written before the cents backfill.
+        totalCents: sql<number>`SUM(COALESCE(${savingsGoalContributions.amountCents}, CAST(ROUND(${savingsGoalContributions.amount} * 100) AS INTEGER)))`,
       })
       .from(savingsGoalContributions)
       .where(
         and(
           eq(savingsGoalContributions.userId, userId),
           eq(savingsGoalContributions.householdId, householdId),
-          gte(savingsGoalContributions.createdAt, startDateStr),
-          lte(savingsGoalContributions.createdAt, endDateStr)
+          // Compare the DATE part so a contribution made on the end date (whose
+          // createdAt is a full timestamp) is included (M-RPT-11).
+          gte(sql`date(${savingsGoalContributions.createdAt})`, startDateStr),
+          lte(sql`date(${savingsGoalContributions.createdAt})`, endDateStr)
         )
       )
       .groupBy(
@@ -154,7 +159,11 @@ export async function GET(request: Request) {
             eq(transactions.type, 'transfer_in'),
             sql`${transactions.accountId} IN (${sql.join(savingsIds, sql`, `)})`,
             gte(transactions.date, startDateStr),
-            lte(transactions.date, endDateStr)
+            lte(transactions.date, endDateStr),
+            // Exclude transfers that ALSO recorded a goal contribution, so the two
+            // sources can be summed without double-counting (M-RPT-11 replaces the
+            // Decimal.max that under-counted when both existed in a period).
+            sql`NOT EXISTS (SELECT 1 FROM ${savingsGoalContributions} sgc WHERE sgc.transaction_id = ${transactions.id})`
           )
         )
         .groupBy(
@@ -181,7 +190,7 @@ export async function GET(request: Request) {
       ])
     );
     const directContribByPeriod = new Map(
-      directContributions.map((d) => [d.period, new Decimal(d.total || 0)])
+      directContributions.map((d) => [d.period, new Decimal(d.totalCents || 0).div(100)])
     );
     const transferContribByPeriod = new Map(
       transferContributions.map((d) => [
@@ -199,10 +208,11 @@ export async function GET(request: Request) {
       // Transfer contributions are backup for transfers to savings accounts without goal linking
       const directContrib = directContribByPeriod.get(periodStr) || new Decimal(0);
       const transferContrib = transferContribByPeriod.get(periodStr) || new Decimal(0);
-      
-      // Use the maximum to avoid under-counting while preventing obvious double-counting
-      // A more sophisticated approach would deduplicate by transactionId
-      const totalSavings = Decimal.max(directContrib, transferContrib);
+
+      // SUM the two sources: goal contributions plus savings transfers that
+      // aren't already counted as a goal contribution (excluded in SQL above).
+      // The previous Decimal.max under-counted when a period had both.
+      const totalSavings = directContrib.plus(transferContrib);
       
       const rate = income.isZero() 
         ? 0 

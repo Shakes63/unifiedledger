@@ -81,8 +81,47 @@ export async function PUT(
       return new Response(JSON.stringify({ error: 'Goal not found' }), { status: 404 });
     }
 
-    const updates: Partial<typeof savingsGoals.$inferInsert> = { ...(body as Record<string, unknown>) } as Partial<typeof savingsGoals.$inferInsert>;
-    updates.updatedAt = new Date().toISOString();
+    // Explicit allowlist — never spread the request body (audit finding H-SEC-3:
+    // `{ ...body }` let a caller set householdId/userId/id and re-parent the goal
+    // into another household). userId/householdId/id/createdAt stay server-owned.
+    const src = body as Record<string, unknown>;
+    const updates: Partial<typeof savingsGoals.$inferInsert> = {
+      updatedAt: new Date().toISOString(),
+    };
+    const assignIfPresent = <K extends keyof typeof savingsGoals.$inferInsert>(
+      key: K & string
+    ) => {
+      if (src[key] !== undefined) {
+        (updates as Record<string, unknown>)[key] = src[key];
+      }
+    };
+    for (const field of [
+      'name',
+      'description',
+      'accountId',
+      'category',
+      'color',
+      'icon',
+      'targetDate',
+      'status',
+      'priority',
+      'notes',
+    ] as const) {
+      assignIfPresent(field);
+    }
+    // Validate money fields if provided.
+    for (const field of ['targetAmount', 'currentAmount', 'monthlyContribution'] as const) {
+      if (src[field] !== undefined) {
+        const value = Number(src[field]);
+        if (!Number.isFinite(value) || value < 0) {
+          return new Response(
+            JSON.stringify({ error: `Invalid ${field}` }),
+            { status: 400 }
+          );
+        }
+        (updates as Record<string, unknown>)[field] = value;
+      }
+    }
 
     // If targetAmount changed, recalculate milestone amounts
     if (body.targetAmount && body.targetAmount !== goal.targetAmount) {
@@ -121,7 +160,13 @@ export async function PUT(
     await db
       .update(savingsGoals)
       .set(updates)
-      .where(eq(savingsGoals.id, id));
+      .where(
+        and(
+          eq(savingsGoals.id, id),
+          eq(savingsGoals.userId, userId),
+          eq(savingsGoals.householdId, householdId)
+        )
+      );
 
     const updatedGoal = await db
       .select()

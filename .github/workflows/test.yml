@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm exec tsc --noEmit
+
+      # Fail fast if any dialect's migration files and _journal.json have drifted
+      # apart (orphan file, missing entry, non-contiguous idx). That drift is what
+      # breaks `drizzle-kit generate` and forked the Postgres schema.
+      - name: Verify migration journals
+        run: pnpm db:verify:migrations
+
+      - name: Create database schema
+        run: pnpm db:migrate:sqlite:safe
+
+      - name: Run test suite
+        run: pnpm test
+
+      # The suite exercises the real SQLite database; verify the money-integrity
+      # invariants over what it produced (cents non-null, float/cents drift,
+      # debt/goal drift, transfer-pair linkage). Catches any change that starts
+      # writing corrupt money data even when unit assertions pass.
+      - name: Verify money integrity
+        run: node scripts/verify-money-integrity.mjs

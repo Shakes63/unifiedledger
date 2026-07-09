@@ -120,14 +120,27 @@ export async function GET(request: NextRequest) {
     // Get categories with budgets
     const categories = await getUserCategories(userId, householdId);
 
+    // Scale the monthly budget by the number of months in the selected period so
+    // e.g. the yearly view compares actuals against 12x the monthly budget rather
+    // than 1x (audit finding M-RPT-6). Inclusive month count.
+    const rangeStart = new Date(range.startDate);
+    const rangeEnd = new Date(range.endDate);
+    const monthsInPeriod = Math.max(
+      1,
+      (rangeEnd.getFullYear() - rangeStart.getFullYear()) * 12 +
+        (rangeEnd.getMonth() - rangeStart.getMonth()) +
+        1
+    );
+
     // Build comparison data
     const data = categories
       .filter((c: typeof categories[0]) => c.type === 'expense')
       .map((category: typeof categories[0]) => {
         const categoryTxns = grouped.get(category.id) || [];
         const actual = Math.abs(calculateSum(categoryTxns));
-        const budget = category.monthlyBudget || 0;
+        const budget = (category.monthlyBudget || 0) * monthsInPeriod;
         const variance = budget - actual;
+        // Do NOT cap at 100 — hiding overspend magnitude was misleading.
         const percentageUsed = budget > 0 ? (actual / budget) * 100 : 0;
 
         return {
@@ -135,7 +148,7 @@ export async function GET(request: NextRequest) {
           budget,
           actual,
           variance,
-          percentageUsed: Math.min(percentageUsed, 100),
+          percentageUsed,
           status: actual > budget ? 'over' : actual > budget * 0.8 ? 'warning' : 'on_track',
           categoryId: category.id,
         };

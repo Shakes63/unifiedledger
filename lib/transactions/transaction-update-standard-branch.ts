@@ -8,6 +8,7 @@ import {
   resolveUpdatedTransactionEntityId,
   shouldAdjustAccountBalances,
 } from '@/lib/transactions/transaction-update-nontransfer';
+import { adjustTransactionSideEffectsForAmountChange } from '@/lib/transactions/transaction-side-effect-reversal';
 import {
   type TransactionUpdateInput,
 } from '@/lib/transactions/transaction-update-validation';
@@ -67,6 +68,19 @@ export async function executeStandardTransactionUpdateBranch({
       await adjustUpdatedTransactionAccountBalances(tx, {
         transaction,
         newAccountId,
+        oldAmountCents,
+        newAmountCents,
+      });
+    }
+
+    // Keep linked debt payments / goal contributions / bill payments in step
+    // with an amount edit (C-LIFE-3): reverse the old side effects and re-apply
+    // them scaled to the new amount, atomically with the update.
+    if (updateInput.amount !== undefined && oldAmountCents !== newAmountCents) {
+      await adjustTransactionSideEffectsForAmountChange(tx, {
+        transactionId: id,
+        userId,
+        householdId,
         oldAmountCents,
         newAmountCents,
       });

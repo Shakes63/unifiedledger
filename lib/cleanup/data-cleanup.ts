@@ -17,6 +17,10 @@ import {
   transactionTags,
   customFieldValues,
   tags,
+  debtPayments,
+  savingsGoalContributions,
+  billPaymentEvents,
+  // Note: 'transfers' / 'transactions' referenced in raw SQL, not as Drizzle objects
 } from "@/lib/db/schema";
 
 export interface CleanupStats {
@@ -318,6 +322,79 @@ export async function cleanOrphanedCustomFieldValues(): Promise<CleanupStats> {
 }
 
 /**
+ * Clean orphaned MONEY links (audit finding C-DB-2: no foreign keys enforce
+ * these relationships, so a deleted parent can leave dangling children/refs).
+ * The reversal layer already unwinds these on a normal transaction delete; this
+ * is the safety net for legacy data and any path that bypasses it.
+ *
+ *  - debt_payments / goal_contributions / bill_payment_events whose parent debt /
+ *    goal / occurrence is gone are DELETED (cascade semantics — the payment
+ *    record is meaningless without its parent).
+ *  - debt_payments.transaction_id and transfers.from/to_transaction_id that point
+ *    at a deleted transaction are SET NULL (the record is still valid; only the
+ *    dangling reference is cleared — this is what verify-money-integrity flags).
+ */
+export async function cleanOrphanedMoneyLinks(): Promise<CleanupStats> {
+  const startTime = performance.now();
+  const name = "orphanedMoneyLinks";
+
+  try {
+    let deleted = 0;
+
+    const delDebtPayments = await db
+      .delete(debtPayments)
+      .where(sql`${debtPayments.debtId} NOT IN (SELECT id FROM debts)`);
+    deleted += delDebtPayments.changes || 0;
+
+    const delContribs = await db
+      .delete(savingsGoalContributions)
+      .where(sql`${savingsGoalContributions.goalId} NOT IN (SELECT id FROM savings_goals)`);
+    deleted += delContribs.changes || 0;
+
+    const delBillEvents = await db
+      .delete(billPaymentEvents)
+      .where(sql`${billPaymentEvents.occurrenceId} NOT IN (SELECT id FROM bill_occurrences)`);
+    deleted += delBillEvents.changes || 0;
+
+    // Clear dangling transaction references (SET NULL, not delete).
+    await db.run(sql`
+      UPDATE debt_payments SET transaction_id = NULL
+      WHERE transaction_id IS NOT NULL
+        AND transaction_id NOT IN (SELECT id FROM transactions)
+    `);
+    await db.run(sql`
+      UPDATE transfers SET from_transaction_id = NULL
+      WHERE from_transaction_id IS NOT NULL
+        AND from_transaction_id NOT IN (SELECT id FROM transactions)
+    `);
+    await db.run(sql`
+      UPDATE transfers SET to_transaction_id = NULL
+      WHERE to_transaction_id IS NOT NULL
+        AND to_transaction_id NOT IN (SELECT id FROM transactions)
+    `);
+
+    const duration = performance.now() - startTime;
+    return {
+      name,
+      deletedRecords: deleted,
+      duration,
+      status: "success",
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    const duration = performance.now() - startTime;
+    return {
+      name,
+      deletedRecords: 0,
+      duration,
+      status: "error",
+      error: error instanceof Error ? error.message : "Unknown error",
+      timestamp: Date.now(),
+    };
+  }
+}
+
+/**
  * Clean unused tags with zero usage
  * Deletes tags that haven't been used in a long time
  */
@@ -435,6 +512,7 @@ export async function runAllCleanups(): Promise<CleanupResult> {
   stats.push(await cleanOrphanedSplits());
   stats.push(await cleanOrphanedTags());
   stats.push(await cleanOrphanedCustomFieldValues());
+  stats.push(await cleanOrphanedMoneyLinks());
   stats.push(await cleanUnusedTags());
 
   // Optimize database
@@ -487,6 +565,12 @@ export function getCleanupConfig() {
       {
         name: "orphanedCustomFieldValues",
         description: "Remove custom field values for deleted transactions",
+        frequency: "daily",
+      },
+      {
+        name: "orphanedMoneyLinks",
+        description:
+          "Remove debt/goal/bill payment records for deleted parents and clear dangling transaction references",
         frequency: "daily",
       },
       {

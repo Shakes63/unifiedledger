@@ -42,10 +42,24 @@ export const TEST_SESSION_ID = 'test-session-001';
 /**
  * Check if test mode is enabled via environment variable
  *
- * @returns true if TEST_MODE environment variable is set to 'true'
+ * TEST_MODE bypasses ALL authentication, owner, and household-membership checks
+ * (see requireAuth/requireOwner/isMemberOfHousehold and proxy.ts). It must never
+ * be active in a production build. This is the single chokepoint every consumer
+ * routes through, so the production guard here fails the whole app closed rather
+ * than silently disabling auth (audit finding M-SEC-10).
+ *
+ * @returns true if TEST_MODE is set to 'true' (non-production only)
+ * @throws if TEST_MODE is 'true' while NODE_ENV is 'production'
  */
 export function isTestMode(): boolean {
-  return process.env.TEST_MODE === 'true';
+  const enabled = process.env.TEST_MODE === 'true';
+  if (enabled && process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'TEST_MODE=true is not permitted when NODE_ENV=production: it disables all ' +
+        'authentication. Unset TEST_MODE or use a non-production build.'
+    );
+  }
+  return enabled;
 }
 
 /**

@@ -31,8 +31,30 @@ export async function linkTransactionDebt({
 }: LinkTransactionDebtParams): Promise<{ linkedDebtId: string | null }> {
   let linkedDebtId: string | null = null;
 
+  if (type !== 'expense') {
+    return { linkedDebtId };
+  }
+
+  // Apply the payment to AT MOST ONE debt (H-TXN-5). An explicit directDebtId
+  // wins; otherwise fall back to category auto-matching. The two used to be
+  // independent `if`s, so an expense that both named a debt and matched a debt
+  // category applied the payment twice.
   try {
-    if (type === 'expense' && appliedCategoryId && !linkedBillId) {
+    if (directDebtId) {
+      linkedDebtId = directDebtId;
+      await applyLegacyDebtPayment({
+        debtId: directDebtId,
+        userId,
+        householdId,
+        paymentAmount: amount,
+        paymentDate: date,
+        transactionId,
+        notes: `Direct payment: ${description}`,
+      });
+      return { linkedDebtId };
+    }
+
+    if (appliedCategoryId && !linkedBillId) {
       const matchingDebts = await db
         .select()
         .from(debts)
@@ -70,23 +92,7 @@ export async function linkTransactionDebt({
       }
     }
   } catch (error) {
-    console.error('Error auto-linking debt by category:', error);
-  }
-
-  if (type === 'expense' && directDebtId) {
-    try {
-      await applyLegacyDebtPayment({
-        debtId: directDebtId,
-        userId,
-        householdId,
-        paymentAmount: amount,
-        paymentDate: date,
-        transactionId,
-        notes: `Direct payment: ${description}`,
-      });
-    } catch (error) {
-      console.error('Error updating direct debt payment:', error);
-    }
+    console.error('Error auto-linking debt payment:', error);
   }
 
   return { linkedDebtId };

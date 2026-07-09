@@ -346,11 +346,23 @@ function simulatePayoffParallel(
     return { totalPeriods: 0, totalInterest: 0, schedules: [], payoffOrder: [] };
   }
 
-  const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
+  // Periods per month for each supported frequency (audit finding H-DBG-8: only
+  // biweekly was special-cased, so weekly applied a full MONTH's payment every 7
+  // days and quarterly applied one month's payment per quarter, while both
+  // counted each period as one month — timeline and interest were meaningless).
+  const PERIODS_PER_MONTH: Record<PaymentFrequency, number> = {
+    monthly: 1,
+    biweekly: 26 / 12,
+    weekly: 52 / 12,
+    quarterly: 1 / 3,
+  };
+  const periodsPerMonth = PERIODS_PER_MONTH[paymentFrequency] ?? 1;
+  const paymentDivisor = periodsPerMonth;
   const totalMinimums = debts.reduce((sum, debt) => sum + (debt.minimumPayment || 0), 0);
   const totalPerDebtExtras = debts.reduce((sum, debt) => sum + (debt.additionalMonthlyPayment || 0), 0);
   const availablePayment = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
-  const maxPeriods = paymentFrequency === 'biweekly' ? 780 : 360;
+  // 30-year horizon expressed in this frequency's periods.
+  const maxPeriods = Math.ceil(360 * periodsPerMonth);
 
   // Track all debts once, including paid-off debts, so no second simulation pass is needed.
   const simDebts: DebtSimulationState[] = debts.map((debt) => ({
@@ -366,13 +378,16 @@ function simulatePayoffParallel(
   let excessPayment = new Decimal(0);
   const payoffOrderWithPeriods: { debtId: string; order: number; period: number }[] = [];
   let payoffCounter = 0;
+  // Each lump sum must be applied exactly once (audit finding H-DBG-9: the
+  // biweekly month mapping assigned two consecutive periods the same
+  // currentMonth and the `.find(month === currentMonth)` matched in BOTH,
+  // double-applying every lump sum).
+  const appliedLumpSums = new Set<LumpSumPayment>();
 
   while (simDebts.some((debt) => debt.paidOffAtPeriod === null) && period < maxPeriods) {
     period++;
 
-    const currentMonth = paymentFrequency === 'biweekly'
-      ? Math.floor(period / 2.17) + 1
-      : period;
+    const currentMonth = Math.floor((period - 1) / periodsPerMonth) + 1;
 
     const activeDebts = simDebts.filter((debt) => debt.paidOffAtPeriod === null);
     if (activeDebts.length === 0) break;
@@ -399,12 +414,17 @@ function simulatePayoffParallel(
       let payment = new Decimal(debtState.effectiveMinimum);
       if (isFocusDebt) {
         payment = payment.plus(extraThisPeriod);
+        // Apply each lump sum ONCE, on the first period at-or-after its month
+        // (H-DBG-9). `<=` also catches lump sums whose month has no exactly-
+        // matching period under fractional periods-per-month.
         const lumpSum = lumpSumPayments.find(
           (entry) =>
-            entry.month === currentMonth &&
+            !appliedLumpSums.has(entry) &&
+            entry.month <= currentMonth &&
             (!entry.targetDebtId || entry.targetDebtId === debtState.debt.id)
         );
         if (lumpSum) {
+          appliedLumpSums.add(lumpSum);
           payment = payment.plus(new Decimal(lumpSum.amount));
         }
       }
@@ -453,9 +473,9 @@ function simulatePayoffParallel(
   const schedules: DebtPayoffSchedule[] = simDebts.map((debtState) => {
     const payoffInfo = payoffOrderWithPeriods.find((entry) => entry.debtId === debtState.debt.id);
     const periodsToPayoff = payoffInfo ? payoffInfo.period : period;
-    const monthsToPayoff = paymentFrequency === 'biweekly'
-      ? Math.ceil(periodsToPayoff / 2.17)
-      : periodsToPayoff;
+    // Convert this frequency's periods to calendar months (H-DBG-8: quarterly
+    // periods were previously counted as one month each, weekly likewise).
+    const monthsToPayoff = Math.ceil(periodsToPayoff / periodsPerMonth);
 
     const payoffDate = new Date();
     payoffDate.setMonth(payoffDate.getMonth() + monthsToPayoff);
@@ -504,23 +524,28 @@ function _calculateDebtSchedule(
     .filter(ls => !ls.targetDebtId || ls.targetDebtId === debt.id)
     .sort((a, b) => a.month - b.month);
 
-  // Track payment periods (26 for biweekly, 12 for monthly per year)
+  // Track payment periods, scaled per frequency (H-DBG-8).
   let paymentPeriod = 0;
 
-  // Safety limit: max 360 months (30 years) to prevent memory issues
-  // For biweekly, this means ~780 payment periods (360 months * 2.17 periods/month)
+  const SCHEDULE_PERIODS_PER_MONTH: Record<string, number> = {
+    monthly: 1,
+    biweekly: 26 / 12,
+    weekly: 52 / 12,
+    quarterly: 1 / 3,
+  };
+  const schedulePeriodsPerMonth = SCHEDULE_PERIODS_PER_MONTH[paymentFrequency] ?? 1;
+
+  // Safety limit: max 360 months (30 years) to prevent memory issues.
   const MAX_MONTHS = 360;
-  const MAX_PERIODS = paymentFrequency === 'biweekly' ? Math.ceil(MAX_MONTHS * 2.17) : MAX_MONTHS;
+  const MAX_PERIODS = Math.ceil(MAX_MONTHS * schedulePeriodsPerMonth);
+
+  // Each lump sum applies exactly once (H-DBG-9).
+  const appliedScheduleLumpSums = new Set<(typeof relevantLumpSums)[number]>();
 
   while (balance.greaterThan(0) && paymentPeriod < MAX_PERIODS) {
     paymentPeriod++;
 
-    // Calculate current month based on payment periods
-    // For biweekly: every 2 periods ≈ 1 month
-    // For monthly: 1 period = 1 month
-    const currentMonth = paymentFrequency === 'biweekly'
-      ? startMonth + Math.floor(paymentPeriod / 2.17) + 1  // 26 periods ÷ 12 months ≈ 2.17 periods/month
-      : startMonth + paymentPeriod;
+    const currentMonth = startMonth + Math.floor((paymentPeriod - 1) / schedulePeriodsPerMonth) + 1;
 
     const interestAmount = calculateInterestForPeriod(
       balance,
@@ -532,9 +557,12 @@ function _calculateDebtSchedule(
     );
     let payment = new Decimal(paymentAmount);
 
-    // Check if there's a lump sum payment this month
-    const lumpSumThisMonth = relevantLumpSums.find(ls => ls.month === currentMonth);
+    // Apply each lump sum once, on the first period at-or-after its month (H-DBG-9).
+    const lumpSumThisMonth = relevantLumpSums.find(
+      (ls) => !appliedScheduleLumpSums.has(ls) && ls.month <= currentMonth
+    );
     if (lumpSumThisMonth) {
+      appliedScheduleLumpSums.add(lumpSumThisMonth);
       payment = payment.plus(new Decimal(lumpSumThisMonth.amount));
     }
 
@@ -571,12 +599,8 @@ function _calculateDebtSchedule(
     }
   }
 
-  // Convert payment periods to months
-  // For biweekly: 26 periods ≈ 12 months (26 ÷ 2.17 ≈ 12)
-  // For monthly: periods = months
-  monthsToPayoff = paymentFrequency === 'biweekly'
-    ? Math.ceil(paymentPeriod / 2.17)
-    : paymentPeriod;
+  // Convert this frequency's payment periods to calendar months (H-DBG-8).
+  monthsToPayoff = Math.ceil(paymentPeriod / schedulePeriodsPerMonth);
 
   const payoffDate = new Date();
   payoffDate.setMonth(payoffDate.getMonth() + startMonth + monthsToPayoff);
@@ -815,10 +839,17 @@ export function calculatePayoffStrategy(
   // Sort payoff order by actual payoff sequence
   payoffOrder.sort((a, b) => a.order - b.order);
 
-  // Calculate total months (use cumulative from simulation)
-  const totalMonths = paymentFrequency === 'biweekly'
-    ? Math.ceil(simulation.totalPeriods / 2.17)
-    : simulation.totalPeriods;
+  // Calculate total months from the simulation's periods (H-DBG-8: quarterly
+  // and weekly periods were previously counted as one month each).
+  const RESULT_PERIODS_PER_MONTH: Record<string, number> = {
+    monthly: 1,
+    biweekly: 26 / 12,
+    weekly: 52 / 12,
+    quarterly: 1 / 3,
+  };
+  const totalMonths = Math.ceil(
+    simulation.totalPeriods / (RESULT_PERIODS_PER_MONTH[paymentFrequency] ?? 1)
+  );
 
   const debtFreeDate = new Date();
   debtFreeDate.setMonth(debtFreeDate.getMonth() + totalMonths);

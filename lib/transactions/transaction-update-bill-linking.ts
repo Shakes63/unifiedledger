@@ -6,7 +6,6 @@ import {
 import {
   clearTransactionBillLink,
   executeMatchedBillLink,
-  matchAndExecuteCategoryFallbackUpdatedBillLink,
   matchAndExecuteGeneralUpdatedBillLink,
 } from '@/lib/transactions/transaction-update-bill-linking-flow';
 import {
@@ -78,7 +77,6 @@ export async function autoLinkUpdatedExpenseBill({
       newCategoryId,
       transaction,
     });
-    const categoryChanged = newCategoryId !== transaction.categoryId;
 
     if (!shouldRematch) {
       return;
@@ -92,7 +90,7 @@ export async function autoLinkUpdatedExpenseBill({
       await clearTransactionBillLink(transactionId);
     }
 
-    const matchedAny = await matchAndExecuteGeneralUpdatedBillLink({
+    await matchAndExecuteGeneralUpdatedBillLink({
       transactionId,
       userId,
       householdId,
@@ -103,26 +101,9 @@ export async function autoLinkUpdatedExpenseBill({
       newCategoryId,
       newAccountId,
     });
-    if (matchedAny) {
-      return;
-    }
-
-    if (!newCategoryId || !categoryChanged) {
-      return;
-    }
-
-    const categoryMatched = await matchAndExecuteCategoryFallbackUpdatedBillLink({
-      transactionId,
-      userId,
-      householdId,
-      newAmount,
-      newDate,
-      newCategoryId: newCategoryId,
-      newAccountId,
-    });
-    if (!categoryMatched) {
-      return;
-    }
+    // Category-only fallback intentionally omitted here (audit finding C-BILL-2):
+    // editing a transaction's category previously marked an unrelated bill paid
+    // with no amount/name/date check. Phase 3 will reintroduce a gated version.
   } catch (error) {
     console.error('Error auto-linking bill on update:', error);
   }

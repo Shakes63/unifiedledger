@@ -1,10 +1,11 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { db } from '@/lib/db';
-import { merchants } from '@/lib/db/schema';
+import { accounts, merchants } from '@/lib/db/schema';
 import { resolveAccountEntityId } from '@/lib/household/entities';
 import {
+  computeBalanceDeltaCents,
   getAccountBalanceCents,
   insertTransactionMovement,
   updateScopedAccountBalance,
@@ -122,9 +123,35 @@ export async function executeNonTransferCreate({
       updatedAt: nowIso,
     });
 
-    const currentBalanceCents = getAccountBalanceCents(account);
+    // Read the balance INSIDE the transaction (not from the pre-load) so a
+    // concurrent create can't be lost (C-ATOM-2). transfer_out is a debit like
+    // expense; the previous `type === 'expense'` test wrongly ADDED for a lone
+    // transfer_out leg (H-TXN-3).
+    const [freshAccount] = await tx
+      .select({
+        currentBalanceCents: accounts.currentBalanceCents,
+        usageCount: accounts.usageCount,
+      })
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.id, accountId),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      )
+      .limit(1);
+
+    const currentBalanceCents = getAccountBalanceCents(freshAccount ?? account);
+    // Liability-aware: on a credit account a charge (expense/transfer_out)
+    // INCREASES what you owe; a payment/refund decreases it (C-MATH-1).
     const updatedBalanceCents =
-      type === 'expense' ? currentBalanceCents - amountCents : currentBalanceCents + amountCents;
+      currentBalanceCents +
+      computeBalanceDeltaCents({
+        accountType: account.type,
+        transactionType: type,
+        amountCents,
+      });
 
     await updateScopedAccountBalance(tx, {
       accountId,
@@ -132,7 +159,7 @@ export async function executeNonTransferCreate({
       householdId,
       balanceCents: updatedBalanceCents,
       lastUsedAt: nowIso,
-      usageCount: (account.usageCount || 0) + 1,
+      usageCount: ((freshAccount?.usageCount ?? account.usageCount) || 0) + 1,
     });
   });
 }

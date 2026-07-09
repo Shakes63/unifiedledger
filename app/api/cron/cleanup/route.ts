@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/api/cron-auth";
 import {
   runAllCleanups,
   cleanOldSearchHistory,
@@ -27,24 +28,8 @@ import {
   getCleanupConfig,
 } from "@/lib/cleanup/data-cleanup";
 
-/**
- * Verify cron secret for security
- */
-function verifyCronSecret(request: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    console.warn("[Cleanup] CRON_SECRET not configured");
-    return false;
-  }
-
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) {
-    return false;
-  }
-
-  const token = authHeader.replace("Bearer ", "");
-  return token === cronSecret;
-}
+// Shared fail-closed, timing-safe cron auth (M-SEC-9).
+const verifyCronSecret = isAuthorizedCronRequest;
 
 /**
  * POST: Run cleanup operations
