@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthorizedCronRequest } from '@/lib/api/cron-auth';
 import { processScheduledBackups } from '@/lib/backups/backup-scheduler';
+import { createAppDatabaseSnapshot } from '@/lib/backups/db-snapshot';
 
 /**
  * Verify cron secret for security
@@ -40,10 +41,24 @@ export async function POST(request: NextRequest) {
 
     const result = await processScheduledBackups();
 
+    // Raw DB-file snapshot (VACUUM INTO): the durable, restore-tested layer
+    // under the per-household JSON exports. Age-gated internally to ~daily;
+    // failures are logged but never fail the household backups.
+    let snapshot: Awaited<ReturnType<typeof createAppDatabaseSnapshot>> | null = null;
+    try {
+      snapshot = await createAppDatabaseSnapshot();
+      if (snapshot.created) {
+        console.log(`[Backup Scheduler] DB snapshot written: ${snapshot.snapshotPath}`);
+      }
+    } catch (snapshotError) {
+      console.error('[Backup Scheduler] DB snapshot failed:', snapshotError);
+    }
+
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
       summary: result,
+      dbSnapshot: snapshot,
     });
   } catch (error) {
     console.error('[Backup Scheduler] Error:', error);

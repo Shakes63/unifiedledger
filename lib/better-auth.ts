@@ -43,6 +43,24 @@ export const auth = betterAuth({
   }),
   // Use different base path to avoid conflicts with Clerk
   basePath: "/api/better-auth",
+  // Brute-force protection (production hardening item 4). Windows are in
+  // seconds; memory storage is correct for this single-instance deployment.
+  // Disabled outside production so tests and local dev are unaffected.
+  rateLimit: {
+    enabled: process.env.NODE_ENV === "production",
+    window: 60,
+    max: 100,
+    customRules: {
+      // Credential guessing: 5 attempts/min, then 429 with Retry-After.
+      "/sign-in/email": { window: 60, max: 5 },
+      // 2FA code guessing (6-digit codes are brute-forceable at high rates).
+      "/two-factor/*": { window: 60, max: 5 },
+      // Account enumeration / signup abuse.
+      "/sign-up/email": { window: 300, max: 5 },
+      // Password-reset email spam.
+      "/forget-password": { window: 300, max: 3 },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     // Email verification - Soft launch: emails are sent but not required for login

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -63,6 +63,82 @@ function ensureRuntimeAuthSecret() {
   );
 }
 
+/**
+ * The in-container cron scheduler authenticates against the fail-closed
+ * /api/cron/* endpoints with CRON_SECRET. Same contract as the auth secret:
+ * use the env var when provided, otherwise generate once and persist under
+ * /config so scheduled work (autopay, backups, cleanup) runs out of the box.
+ */
+function ensureRuntimeCronSecret() {
+  if (process.env.NODE_ENV !== "production") return;
+
+  const envSecret = process.env.CRON_SECRET?.trim();
+  if (envSecret) {
+    return;
+  }
+
+  const secretFilePath = "/config/.cron-secret";
+  try {
+    const fileSecret = fs.existsSync(secretFilePath)
+      ? fs.readFileSync(secretFilePath, "utf8").trim()
+      : "";
+    if (fileSecret) {
+      process.env.CRON_SECRET = fileSecret;
+      console.log(`[entrypoint] Loaded CRON_SECRET from ${secretFilePath}`);
+      return;
+    }
+  } catch (error) {
+    console.error(
+      `[entrypoint] Failed reading persisted CRON_SECRET at ${secretFilePath}:`,
+      error
+    );
+    process.exit(1);
+  }
+
+  const generatedSecret = crypto.randomBytes(32).toString("hex");
+  try {
+    fs.mkdirSync("/config", { recursive: true });
+    fs.writeFileSync(secretFilePath, `${generatedSecret}\n`, { mode: 0o600 });
+  } catch (error) {
+    console.error(
+      `[entrypoint] Failed generating persisted CRON_SECRET at ${secretFilePath}:`,
+      error
+    );
+    process.exit(1);
+  }
+
+  process.env.CRON_SECRET = generatedSecret;
+  console.log(
+    `[entrypoint] Generated CRON_SECRET and persisted it to ${secretFilePath}.`
+  );
+}
+
+/**
+ * Spawn the cron scheduler alongside the server. Without it nothing triggers
+ * the /api/cron/* endpoints, so autopay / scheduled backups / cleanup silently
+ * never run on a stock deployment. Non-fatal: a scheduler crash is logged but
+ * must not take the app down.
+ */
+function startCronScheduler() {
+  if (process.env.CRON_SCHEDULER_DISABLED === "true") {
+    console.log("[entrypoint] Cron scheduler disabled via CRON_SCHEDULER_DISABLED.");
+    return;
+  }
+
+  const child = spawn("node", ["scripts/cron-scheduler.mjs"], {
+    stdio: "inherit",
+    env: process.env,
+  });
+  child.on("exit", (code) => {
+    if (code !== 0) {
+      console.error(
+        `[entrypoint] Cron scheduler exited with code ${code} — scheduled jobs ` +
+          `(autopay, backups, cleanup) are NOT running. Restart the container to recover.`
+      );
+    }
+  });
+}
+
 function run(cmd, args, extraEnv = {}) {
   const result = spawnSync(cmd, args, {
     stdio: "inherit",
@@ -123,6 +199,7 @@ function acquireSqliteMigrateLock() {
 
 async function main() {
   ensureRuntimeAuthSecret();
+  ensureRuntimeCronSecret();
 
   const databaseUrl = process.env.DATABASE_URL?.trim() || defaultDatabaseUrl();
   process.env.DATABASE_URL = databaseUrl;
@@ -177,6 +254,10 @@ async function main() {
         "The app will start, but flagged data should be repaired."
     );
   }
+
+  // Trigger loop for the /api/cron/* endpoints (autopay, backups, cleanup...).
+  // It waits for /api/health before firing anything.
+  startCronScheduler();
 
   console.log("[entrypoint] Starting server...");
   run("node", ["server.js"], { CI: process.env.CI ?? "0" });
