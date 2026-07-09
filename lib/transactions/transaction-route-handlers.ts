@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { handleRouteError } from '@/lib/api/route-helpers';
+import { parsePagination } from '@/lib/api/pagination';
 import {
   type CreateTransactionBody,
   validateCreateTransactionBody,
@@ -57,8 +58,8 @@ export async function handleListTransactions(request: Request) {
     });
 
     const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get('limit') || '50');
-    const offset = parseInt(url.searchParams.get('offset') || '0');
+    // Clamped pagination (L-SEC-12): `?limit=abc` no longer yields .limit(NaN).
+    const { limit, offset } = parsePagination(url.searchParams);
     const accountId = url.searchParams.get('accountId');
 
     return await executeListTransactionsOrchestration({

@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
+import { debts, debtPayments, debtPayoffMilestones, accounts, budgetCategories } from '@/lib/db/schema';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 import { eq, and } from 'drizzle-orm';
 import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
@@ -150,6 +150,62 @@ export async function PUT(
         (updates as Record<string, unknown>)[field] = value;
       }
     }
+
+    // Validate money fields are finite (M-SEC-11: the PUT accepted NaN/Infinity/
+    // strings into money columns, poisoning downstream payoff math).
+    for (const field of [
+      'originalAmount',
+      'remainingBalance',
+      'minimumPayment',
+      'additionalMonthlyPayment',
+      'interestRate',
+      'creditLimit',
+      'lastStatementBalance',
+    ] as const) {
+      if (body[field] !== undefined && body[field] !== null) {
+        const num = Number(body[field]);
+        if (!Number.isFinite(num)) {
+          return new Response(JSON.stringify({ error: `Invalid ${field}` }), { status: 400 });
+        }
+        (updates as Record<string, unknown>)[field] = num;
+      }
+    }
+
+    // Validate any re-parented account/category belongs to this household
+    // (M-SEC-11: unlike POST, the PUT didn't check, allowing a dangling
+    // cross-household FK).
+    if (typeof body.accountId === 'string' && body.accountId) {
+      const [acct] = await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, body.accountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1);
+      if (!acct) {
+        return new Response(JSON.stringify({ error: 'Account not found in household' }), { status: 400 });
+      }
+    }
+    if (typeof body.categoryId === 'string' && body.categoryId) {
+      const [cat] = await db
+        .select({ id: budgetCategories.id })
+        .from(budgetCategories)
+        .where(
+          and(
+            eq(budgetCategories.id, body.categoryId),
+            eq(budgetCategories.householdId, householdId)
+          )
+        )
+        .limit(1);
+      if (!cat) {
+        return new Response(JSON.stringify({ error: 'Category not found in household' }), { status: 400 });
+      }
+    }
+
     // Keep the integer-cents source of truth in sync when the balance is edited (RC-4).
     if (typeof body.remainingBalance === 'number') {
       updates.remainingBalanceCents = toMoneyCents(body.remainingBalance) ?? 0;
