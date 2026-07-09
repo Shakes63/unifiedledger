@@ -30,7 +30,7 @@ describe('lib/budgets/rollover-utils - calculateRollover', () => {
     expect(result.wasCapped).toBe(false);
   });
 
-  it('clamps negative rollover to 0 when not allowed', () => {
+  it('overspend consumes the accumulated surplus, floored at 0 (H-DBG-6)', () => {
     const result = calculateRollover({
       monthlyBudget: 500,
       actualSpent: 600,
@@ -39,8 +39,36 @@ describe('lib/budgets/rollover-utils - calculateRollover', () => {
       allowNegativeRollover: false,
       categoryType: 'expense',
     });
-    expect(result.rolloverAmount).toBe(0); // Clamped from -100
-    expect(result.newBalance).toBe(50); // Previous balance unchanged
+    // The signed month amount is applied to the balance; the no-negative floor
+    // applies to the RESULTING balance. Previously the amount was clamped to 0
+    // so the $50 surplus survived a $100 overspend and inflated forever.
+    expect(result.rolloverAmount).toBe(-100);
+    expect(result.newBalance).toBe(0); // 50 - 100 floored at 0
+  });
+
+  it('audit scenario: granted surplus is drawn down when spent (H-DBG-6)', () => {
+    // $100/mo budget. Month 1: unspent -> balance $100.
+    const month1 = calculateRollover({
+      monthlyBudget: 100,
+      actualSpent: 0,
+      previousBalance: 0,
+      rolloverLimit: null,
+      allowNegativeRollover: false,
+      categoryType: 'expense',
+    });
+    expect(month1.newBalance).toBe(100);
+
+    // Month 2: UI grants $200 effective; user spends all $200.
+    const month2 = calculateRollover({
+      monthlyBudget: 100,
+      actualSpent: 200,
+      previousBalance: month1.newBalance,
+      rolloverLimit: null,
+      allowNegativeRollover: false,
+      categoryType: 'expense',
+    });
+    // Correct: the $100 surplus is consumed -> balance 0 (the bug left it at $100).
+    expect(month2.newBalance).toBe(0);
   });
 
   it('applies rollover cap', () => {
@@ -94,9 +122,9 @@ describe('lib/budgets/rollover-utils - calculateRollover', () => {
       allowNegativeRollover: false,
       categoryType: 'expense',
     });
-    // rolloverAmount would be -400 but clamped to 0
-    // newBalance = -200 + 0 = -200, but clamped to 0
-    expect(result.rolloverAmount).toBe(0);
+    // The month amount stays signed (-400); the no-negative floor applies to the
+    // RESULTING balance: -200 + (-400) = -600 -> floored at 0 (H-DBG-6).
+    expect(result.rolloverAmount).toBe(-400);
     expect(result.newBalance).toBe(0);
   });
 
