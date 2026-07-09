@@ -1,8 +1,9 @@
 import { db } from '@/lib/db';
-import { budgetCategories, transactions, budgetRolloverHistory, householdSettings } from '@/lib/db/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { budgetCategories, budgetRolloverHistory, householdSettings } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { nanoid } from 'nanoid';
+import { getCategorySpendingCents } from '@/lib/budgets/category-spending';
 
 /**
  * Calculate actual spending for a category in a given month
@@ -14,22 +15,15 @@ export async function getCategorySpending(
   monthEnd: string,
   categoryType: string
 ): Promise<number> {
-  const transactionType = categoryType === 'income' ? 'income' : 'expense';
-  
-  const result = await db
-    .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.categoryId, categoryId),
-        eq(transactions.householdId, householdId),
-        eq(transactions.type, transactionType),
-        gte(transactions.date, monthStart),
-        lte(transactions.date, monthEnd)
-      )
-    );
-
-  return new Decimal(result[0]?.totalCents ?? 0).div(100).toNumber();
+  // Split-aware (H-DBG-7): counts split-row categories, not just the parent's.
+  const totalCents = await getCategorySpendingCents({
+    categoryId,
+    householdId,
+    startDate: monthStart,
+    endDate: monthEnd,
+    categoryType,
+  });
+  return new Decimal(totalCents).div(100).toNumber();
 }
 
 /**
