@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { AlertTriangle, CheckCircle2, PartyPopper } from 'lucide-react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
+import { allocatePercentages } from '@/lib/utils/percentages';
 import type { PieLabelRenderProps, PieChartDataPoint, RechartsTooltipPayloadItem } from '@/lib/types';
 
 interface TotalCostPieChartProps {
@@ -87,8 +88,12 @@ export function TotalCostPieChart({
     const interest = schedule.totalInterestPaid;
     const totalCost = principal + interest;
     const interestMultiplier = totalCost / principal;
-    const principalPercent = (principal / totalCost) * 100;
-    const interestPercent = (interest / totalCost) * 100;
+    // Largest-remainder allocation so the two displayed one-decimal
+    // percentages sum to exactly 100 (L-RPT-13).
+    const [principalPercent, interestPercent] = allocatePercentages(
+      [principal, interest],
+      1
+    );
 
     return {
       principal,
