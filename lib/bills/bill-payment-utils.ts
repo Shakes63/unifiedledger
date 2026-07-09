@@ -12,6 +12,7 @@
 import Decimal from 'decimal.js';
 import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { billOccurrences, billPaymentEvents, billTemplates } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { calculatePaymentBreakdown, PaymentBreakdown } from '@/lib/debts/payment-calculator';
@@ -90,7 +91,15 @@ export async function processBillPayment({
       };
     }
 
-    const [joined] = await db
+    // Read the occurrence and apply every write inside ONE serialized transaction
+    // (audit finding H-BILL-5): the previous shape — read, compute newTotalPaid in
+    // JS, then fire the event insert + occurrence update + debt update via
+    // Promise.all on the raw handle — let two concurrent linkages both read
+    // amountPaidCents = 0 and lose one payment from the occurrence, and let a
+    // partial Promise.all failure leave payment history and occurrence state
+    // permanently disagreeing.
+    return await runInDatabaseTransaction(async (tx) => {
+    const [joined] = await tx
       .select({
         template: billTemplates,
         occurrence: billOccurrences,
@@ -178,10 +187,9 @@ export async function processBillPayment({
     const paymentId = nanoid();
     const now = new Date().toISOString();
 
-    // Batch all database operations
-    const dbOperations: Promise<unknown>[] = [
-      // Create template payment event record
-      db.insert(billPaymentEvents).values({
+    // Apply the writes sequentially inside the transaction.
+    // Create template payment event record
+    await tx.insert(billPaymentEvents).values({
         id: paymentId,
         householdId,
         templateId: resolvedBillId,
@@ -209,45 +217,41 @@ export async function processBillPayment({
             : null,
         notes: notes || null,
         createdAt: now,
-      }),
+      });
 
-      // Update occurrence
-      db.update(billOccurrences)
-        .set({
-          amountPaidCents: new Decimal(newTotalPaid).times(100).toDecimalPlaces(0).toNumber(),
-          amountRemainingCents: Math.max(
-            0,
-            new Decimal(remaining).times(100).toDecimalPlaces(0).toNumber()
-          ),
-          status: occurrenceStatus,
-          paidDate:
-            paymentStatus === 'paid' || paymentStatus === 'overpaid'
-              ? paymentDate.slice(0, 10)
-              : occurrence.paidDate,
-          lastTransactionId: transactionId,
-          actualAmountCents: new Decimal(newTotalPaid).times(100).toDecimalPlaces(0).toNumber(),
-          updatedAt: now,
-        })
-        .where(eq(billOccurrences.id, resolvedInstanceId)),
-    ];
+    // Update occurrence
+    await tx
+      .update(billOccurrences)
+      .set({
+        amountPaidCents: new Decimal(newTotalPaid).times(100).toDecimalPlaces(0).toNumber(),
+        amountRemainingCents: Math.max(
+          0,
+          new Decimal(remaining).times(100).toDecimalPlaces(0).toNumber()
+        ),
+        status: occurrenceStatus,
+        paidDate:
+          paymentStatus === 'paid' || paymentStatus === 'overpaid'
+            ? paymentDate.slice(0, 10)
+            : occurrence.paidDate,
+        lastTransactionId: transactionId,
+        actualAmountCents: new Decimal(newTotalPaid).times(100).toDecimalPlaces(0).toNumber(),
+        updatedAt: now,
+      })
+      .where(eq(billOccurrences.id, resolvedInstanceId));
 
     // If debt-enabled template, update remaining balance
     if (template.debtEnabled && newDebtBalance !== undefined) {
-      dbOperations.push(
-        db.update(billTemplates)
-          .set({
-            debtRemainingBalanceCents: new Decimal(newDebtBalance)
-              .times(100)
-              .toDecimalPlaces(0)
-              .toNumber(),
-            updatedAt: now,
-          })
-          .where(eq(billTemplates.id, resolvedBillId))
-      );
+      await tx
+        .update(billTemplates)
+        .set({
+          debtRemainingBalanceCents: new Decimal(newDebtBalance)
+            .times(100)
+            .toDecimalPlaces(0)
+            .toNumber(),
+          updatedAt: now,
+        })
+        .where(eq(billTemplates.id, resolvedBillId));
     }
-
-    // Execute all operations in parallel
-    await Promise.all(dbOperations);
 
     // Phase 11: Auto-classify interest for tax deduction if applicable
     let taxDeductionInfo: BillPaymentResult['taxDeductionInfo'];
@@ -293,6 +297,7 @@ export async function processBillPayment({
       newDebtBalance,
       taxDeductionInfo,
     };
+    }); // end runInDatabaseTransaction
   } catch (error) {
     console.error('Error processing template payment:', error);
     return {

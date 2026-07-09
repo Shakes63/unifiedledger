@@ -279,6 +279,27 @@ export async function handleTransferConversion(
         return { success: false, error: 'Matched transaction is already linked as a transfer' };
       }
 
+      // Transfer invariants (audit finding H-XFER-1): the matcher scores within a
+      // configurable amount TOLERANCE, but a persisted pair must have exactly
+      // equal leg amounts and distinct accounts — an unequal pair reverses the
+      // wrong amount on delete/update (permanent balance drift), and a
+      // same-account pair corrupts the balance on delete (H-XFER-2). Tolerance
+      // matches become suggestions instead of auto-links.
+      const sourceAmountCents = Math.abs(getTransactionAmountCents(transaction));
+      const matchedAmountCents = Math.abs(getTransactionAmountCents(matchedTransaction));
+      if (sourceAmountCents !== matchedAmountCents) {
+        return {
+          success: false,
+          error: 'Matched transaction amount differs; not auto-linking (suggestion only)',
+        };
+      }
+      if (matchedTransaction.accountId === transaction.accountId) {
+        return {
+          success: false,
+          error: 'Matched transaction is on the same account; not auto-linking',
+        };
+      }
+
       const transferGroupId = nanoid();
       const sourceIsOut = transaction.type === 'expense';
       const sourceType = sourceIsOut ? 'transfer_out' : 'transfer_in';
