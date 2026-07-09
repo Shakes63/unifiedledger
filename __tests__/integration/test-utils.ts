@@ -18,6 +18,7 @@ import {
   merchants,
   transactions,
   transactionSplits,
+  transfers,
   categorizationRules,
   ruleExecutionLog,
   transferSuggestions,
@@ -514,6 +515,9 @@ export async function cleanupTestHousehold(
   }
   await db.delete(ruleExecutionLog).where(eq(ruleExecutionLog.userId, userId));
   await db.delete(transactionSplits).where(eq(transactionSplits.userId, userId));
+  // Delete transfers BEFORE their transactions: leaving them behind orphans
+  // from/to_transaction_id references that verify-money-integrity rightly flags.
+  await db.delete(transfers).where(eq(transfers.userId, userId));
   await db.delete(transactions).where(eq(transactions.userId, userId));
   await db.delete(categorizationRules).where(eq(categorizationRules.userId, userId));
   await db.delete(merchants).where(eq(merchants.userId, userId));
