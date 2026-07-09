@@ -96,6 +96,15 @@ function amountToCents(amount: number): number {
 }
 
 function asMonthKey(dateValue: string): string {
+  // Read the month from the DATE STRING, not a parsed Date (audit finding
+  // M-DBG-14): `new Date('2026-03-01')` is UTC midnight, whose local getMonth()
+  // in any UTC-negative timezone is the PREVIOUS month — so a rent bill due the
+  // 1st bucketed into February. Bill dates are stored as 'YYYY-MM-DD'.
+  const match = /^(\d{4})-(\d{2})/.exec(dateValue.trim());
+  if (match) {
+    return `${match[1]}-${match[2]}`;
+  }
+  // Fallback for non-ISO inputs: construct as local time.
   const parsed = new Date(dateValue);
   return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
 }

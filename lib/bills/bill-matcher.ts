@@ -118,9 +118,13 @@ function checkAmountMatch(
  * Check if transaction day of month matches bill due date
  * Allows 2-day variance for processing delays
  */
-function checkDateMatch(transactionDate: string, billDueDate: number): boolean {
-  const txDate = new Date(transactionDate);
-  const txDayOfMonth = txDate.getDate();
+export function checkDateMatch(transactionDate: string, billDueDate: number): boolean {
+  // Read the day from the DATE STRING (audit finding M-BILL-7 / M-DBG-14):
+  // `new Date('2026-03-03').getDate()` returns the 2nd in UTC-negative
+  // timezones, shifting the due-day match window by a day. Transaction dates are
+  // stored as 'YYYY-MM-DD'.
+  const match = /^\d{4}-\d{2}-(\d{2})/.exec(transactionDate.trim());
+  const txDayOfMonth = match ? parseInt(match[1], 10) : new Date(transactionDate).getDate();
 
   // Check if day matches (within 2 days - accounts for processing delays)
   const dayDifference = Math.abs(txDayOfMonth - billDueDate);
