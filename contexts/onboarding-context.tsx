@@ -97,14 +97,16 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           clearPersistedProgress();
         }
       } else {
-        // If error, assume onboarding not completed (safer default)
-        setIsOnboardingActive(true);
+        // Fail quiet: only activate onboarding on a CONFIRMED not-completed
+        // status. Activating on error threw the full onboarding modal at
+        // long-time users whenever this request transiently failed.
+        setIsOnboardingActive(false);
       }
     } catch (err) {
       console.error('Failed to check onboarding status:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));
-      // On error, assume onboarding not completed (safer default)
-      setIsOnboardingActive(true);
+      // Fail quiet on transport errors too (see above).
+      setIsOnboardingActive(false);
     } finally {
       setIsLoading(false);
     }
@@ -241,6 +243,12 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Only persist while onboarding is actually running. Persisting
+    // unconditionally re-wrote the snapshot immediately after
+    // completeOnboarding() cleared it (its own state updates re-triggered
+    // this effect), leaving stale progress in storage forever.
+    if (!isOnboardingActive) return;
+
     const snapshot: OnboardingProgressSnapshot = {
       currentStep,
       completedSteps: Array.from(completedSteps),
@@ -253,7 +261,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore storage errors
     }
-  }, [completedSteps, currentStep, demoDataCleared, skippedSteps]);
+  }, [completedSteps, currentStep, demoDataCleared, isOnboardingActive, skippedSteps]);
 
   useEffect(() => {
     try {

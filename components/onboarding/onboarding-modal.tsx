@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { OnboardingProgress } from './onboarding-progress';
 import { useOnboarding } from '@/contexts/onboarding-context';
+import { useHousehold } from '@/contexts/household-context';
 import { WelcomeStep } from './steps/welcome-step';
 import { CreateHouseholdStep } from './steps/create-household-step';
 import { CreateAccountStep } from './steps/create-account-step';
@@ -37,14 +38,21 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
     isLoading,
     isDemoMode,
     isInvitedUser,
+    invitationHouseholdId,
     setInvitationContext,
+    clearInvitationContext,
     demoDataCleared,
     setDemoDataCleared,
   } = useOnboarding();
+  const { households, initialized: householdsInitialized } = useHousehold();
+
+  // Once membership validation rejects the invitation context, don't let the
+  // URL-init effect below re-apply it from the (unchanged) query params.
+  const invitationRejectedRef = useRef(false);
 
   // Initialize invitation context from URL parameters or localStorage
   useEffect(() => {
-    if (open && !isInvitedUser) {
+    if (open && !isInvitedUser && !invitationRejectedRef.current) {
       const invitedParam = searchParams?.get('invited') === 'true';
       const tokenFromQuery = searchParams?.get('token');
       const householdIdFromQuery = searchParams?.get('householdId');
@@ -62,6 +70,23 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
       }
     }
   }, [open, searchParams, isInvitedUser, setInvitationContext]);
+
+  // Validate the invitation context against ACTUAL membership. The invited
+  // flag comes from localStorage/URL, which survives failed or abandoned
+  // acceptances (expired token, wrong email, cleared halfway). Trusting it
+  // blindly showed "Welcome to the household!" for a household the user never
+  // joined and ran the 2-step invited flow — completing with NO household at
+  // all. If the user is not really a member, fall back to the regular flow.
+  useEffect(() => {
+    if (!open || !isInvitedUser || !householdsInitialized) return;
+    const isMember =
+      invitationHouseholdId !== null &&
+      households.some((h) => h.id === invitationHouseholdId);
+    if (!isMember) {
+      invitationRejectedRef.current = true;
+      clearInvitationContext();
+    }
+  }, [open, isInvitedUser, householdsInitialized, households, invitationHouseholdId, clearInvitationContext]);
 
   // Reset scroll position when step changes
   useEffect(() => {
