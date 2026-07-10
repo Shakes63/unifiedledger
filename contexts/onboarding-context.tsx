@@ -22,6 +22,7 @@ interface OnboardingContextType {
   isInvitedUser: boolean;
   invitationHouseholdId: string | null;
   isDemoMode: boolean;
+  setDemoMode: (enabled: boolean) => void;
   invitationToken: string | null;
   setInvitationContext: (householdId: string, token?: string | null) => void;
   clearInvitationContext: () => void;
@@ -45,6 +46,7 @@ interface OnboardingProgressSnapshot {
   completedSteps: number[];
   skippedSteps: number[];
   demoDataCleared: boolean;
+  isDemoMode?: boolean;
 }
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
@@ -180,8 +182,19 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setSkippedSteps(new Set());
     setError(null);
     setDemoDataCleared(false);
+    setIsDemoMode(false);
     clearPersistedProgress();
   }, [clearPersistedProgress]);
+
+  // Demo mode is the "explore with sample data" variant of the regular flow,
+  // chosen on the Welcome step. Never for invited users — they join an
+  // existing household and must not have data created during onboarding.
+  const setDemoMode = useCallback((enabled: boolean) => {
+    setIsDemoMode((_prev) => {
+      if (enabled && isInvitedUser) return false;
+      return enabled;
+    });
+  }, [isInvitedUser]);
 
   // Invitation context methods
   const setInvitationContext = useCallback((householdId: string, token?: string | null) => {
@@ -237,6 +250,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       if (typeof saved.demoDataCleared === 'boolean') {
         setDemoDataCleared(saved.demoDataCleared);
       }
+      // Restore demo mode so a refresh keeps the 10-step numbering — but
+      // never over an invitation (invited users must not create data).
+      const hasInvitation = Boolean(
+        localStorage.getItem('unified-ledger:invitation-household-id')
+      );
+      if (saved.isDemoMode === true && !hasInvitation) {
+        setIsDemoMode(true);
+      }
     } catch {
       // Ignore malformed/blocked storage
     }
@@ -254,6 +275,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       completedSteps: Array.from(completedSteps),
       skippedSteps: Array.from(skippedSteps),
       demoDataCleared,
+      isDemoMode,
     };
 
     try {
@@ -261,7 +283,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore storage errors
     }
-  }, [completedSteps, currentStep, demoDataCleared, isOnboardingActive, skippedSteps]);
+  }, [completedSteps, currentStep, demoDataCleared, isDemoMode, isOnboardingActive, skippedSteps]);
 
   useEffect(() => {
     try {
@@ -310,6 +332,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         isInvitedUser,
         invitationHouseholdId,
         isDemoMode,
+        setDemoMode,
         invitationToken,
         setInvitationContext,
         clearInvitationContext,

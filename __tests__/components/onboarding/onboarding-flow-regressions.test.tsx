@@ -34,6 +34,7 @@ function baseOnboarding(overrides: Record<string, unknown> = {}) {
     isInvitedUser: false,
     invitationHouseholdId: null,
     setInvitationContext: vi.fn(),
+    setDemoMode: vi.fn(),
     clearInvitationContext: vi.fn(),
     demoDataCleared: false,
     setDemoDataCleared: vi.fn(),
