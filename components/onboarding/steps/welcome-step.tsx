@@ -2,7 +2,7 @@
 
 import { OnboardingStep } from '../onboarding-step';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, FlaskConical } from 'lucide-react';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -11,12 +11,22 @@ interface WelcomeStepProps {
 }
 
 export function WelcomeStep({ onNext }: WelcomeStepProps) {
-  const { isInvitedUser, invitationHouseholdId } = useOnboarding();
+  const { isInvitedUser, invitationHouseholdId, setDemoMode } = useOnboarding();
   const { households } = useHousehold();
-  
+
   // Find household name
   const invitedHousehold = households.find(h => h.id === invitationHouseholdId);
   const householdName = invitedHousehold?.name || 'the household';
+
+  const handleStartFresh = () => {
+    setDemoMode(false);
+    onNext();
+  };
+
+  const handleExploreWithDemoData = () => {
+    setDemoMode(true);
+    onNext();
+  };
 
   const lbl = { color: 'var(--color-muted-foreground)' };
 
@@ -89,10 +99,32 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           )}
         </div>
 
-        <Button onClick={onNext} className="h-10 px-6 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
-          {isInvitedUser ? 'Join Household' : 'Get Started'}
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
+        {isInvitedUser ? (
+          <Button onClick={onNext} className="h-10 px-6 text-[13px]" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+            Join Household
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        ) : (
+          <div className="flex flex-col items-center gap-2.5 w-full max-w-md">
+            <Button onClick={handleStartFresh} className="h-10 px-6 text-[13px] w-full" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-foreground)' }}>
+              Get Started
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+            <Button
+              onClick={handleExploreWithDemoData}
+              variant="outline"
+              className="h-10 px-6 text-[13px] w-full"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-foreground)', backgroundColor: 'var(--color-elevated)' }}
+            >
+              <FlaskConical className="w-4 h-4 mr-2" style={{ color: 'var(--color-primary)' }} />
+              Explore with Demo Data
+            </Button>
+            <p className="text-[11px] text-center" style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
+              Demo mode fills a practice household with sample finances — clearly
+              marked, and you choose to keep or wipe them at the end.
+            </p>
+          </div>
+        )}
       </div>
     </OnboardingStep>
   );

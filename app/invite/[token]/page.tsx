@@ -92,16 +92,21 @@ export default function InvitationPage() {
 
   const handleAccept = async () => {
     if (!isSignedIn) {
-      // Store token before redirecting so it's available after sign-in
+      // Store token before redirecting so it's available after sign-in.
+      // Do NOT set selected-household here: the user has not accepted yet, so
+      // pointing the household selector at a household they aren't a member
+      // of just breaks the dashboard if they wander off mid-flow.
       if (typeof window !== 'undefined') {
         localStorage.setItem('unified-ledger:invitation-token', token);
         if (invitation?.householdId) {
           localStorage.setItem('unified-ledger:invitation-household-id', invitation.householdId);
-          localStorage.setItem('unified-ledger:selected-household', invitation.householdId);
         }
       }
-      // Redirect to sign in, then come back
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(window.location.href)}&invitation_token=${token}`);
+      // Redirect to sign in, then come back to this invite page to accept.
+      // The sign-in page (and the auth proxy) read `callbackUrl` — the old
+      // `redirect_url` param was ignored, so existing users landed on the
+      // dashboard with the invitation never accepted.
+      router.push(`/sign-in?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
 

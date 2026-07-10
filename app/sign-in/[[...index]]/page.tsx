@@ -18,6 +18,21 @@ import { Loader2, Shield, Globe, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { hardRedirect } from '@/lib/navigation/hard-redirect';
 
+/**
+ * Only allow same-origin relative paths as post-login destinations. An
+ * unvalidated callbackUrl is an open redirect: /sign-in?callbackUrl=https://
+ * evil.example sent freshly-authenticated users to an attacker's site.
+ */
+function safeCallbackUrl(raw: string | null): string {
+  if (!raw) return '/dashboard';
+  // Must be a relative path ("/..."), not protocol-relative ("//...") and not
+  // an absolute URL with a scheme.
+  if (raw.startsWith('/') && !raw.startsWith('//') && !raw.includes(':')) {
+    return raw;
+  }
+  return '/dashboard';
+}
+
 export default function SignInPage() {
   const searchParams = useSearchParams();
 
@@ -181,7 +196,7 @@ export default function SignInPage() {
     }
 
     // Redirect to callback URL or dashboard
-    const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+    const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'));
 
     // Use window.location for a hard redirect to ensure middleware runs
     hardRedirect(callbackUrl);
@@ -198,7 +213,7 @@ export default function SignInPage() {
       setOauthLoading(providerId);
       setError(null);
 
-      const callbackURL = searchParams.get('callbackUrl') || '/dashboard';
+      const callbackURL = safeCallbackUrl(searchParams.get('callbackUrl'));
       const result = await betterAuthClient.signIn.social({
         provider: providerId,
         callbackURL,
