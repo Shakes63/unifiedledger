@@ -35,10 +35,7 @@ Mount `/config` as a persistent volume.
 - **`NEXT_PUBLIC_APP_URL`**: public base URL used for auth redirects and email links  
   Example: `http://tower:3000` or `https://unifiedledger.example.com`
 - **`BETTER_AUTH_SECRET`**: long random secret (required for production)
-- **`DATABASE_URL`**:
-  - SQLite default: `file:/config/finance.db`
-  - Postgres optional: `postgresql://USER:PASSWORD@HOST:5432/unifiedledger` (Postgres **17+**)
-    - Postgres migrations are shipped in-image under `drizzle/postgres` and run automatically on startup.
+- **`DATABASE_URL`**: SQLite, default `file:/config/finance.db`
 - **`FORCE_SECURE_COOKIES`**: defaults to `false`  
   If `NEXT_PUBLIC_APP_URL` starts with `https://`, cookies are marked Secure automatically; set `FORCE_SECURE_COOKIES=true` only if you know you need it.
 
@@ -69,16 +66,27 @@ Login/session loops are almost always caused by:
 - `NEXT_PUBLIC_APP_URL` not matching the public URL, or
 - missing/incorrect forwarded headers.
 
-### Maintainers: publishing the Unraid image (GHCR)
+### Maintainers: cutting a release
 
-This repo includes a GitHub Actions workflow that publishes images to GHCR on release tags:
+CI (type check, migration verification, full test suite, money-integrity check)
+runs when a release is cut and on pull requests — not on every push to `main`.
+To cut a release from `main`:
 
-- Tag format: `vX.Y.Z`
-- Image tags pushed:
-  - `ghcr.io/<owner>/<repo>:X.Y.Z`
-  - `ghcr.io/<owner>/<repo>:latest`
+```bash
+pnpm release:patch   # or release:minor / release:major
+```
 
-Workflow file: `.github/workflows/publish-ghcr.yml`
+This bumps `package.json`, commits, tags `vX.Y.Z`, and pushes `main` with the
+tag. The tag triggers `.github/workflows/publish-ghcr.yml`, which:
+
+1. Runs the full test workflow — a failing suite blocks the release
+2. Builds and pushes the image to GHCR tagged `X.Y.Z`, `X.Y`, and `latest`
+3. Scans the published image with Trivy (results in the repo's Security tab)
+4. Creates a GitHub Release with auto-generated notes
+
+Deployments should track `ghcr.io/<owner>/<repo>:latest` (or pin a specific
+`X.Y.Z`). The old `:nightly` tag is no longer published and will not receive
+updates.
 
 ### Common Unraid failure modes (quick fixes)
 
