@@ -1,9 +1,16 @@
 import { db } from '@/lib/db';
 import { transactions, accounts, activityLog, householdMembers } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  computeBalanceDeltaCents,
+  getAccountBalanceCents,
+  updateScopedAccountBalance,
+} from '@/lib/transactions/money-movement-service';
+import type { MovementTransactionType } from '@/lib/transactions/money-movement-fields';
 
 /**
  * Result of account change operation
@@ -161,76 +168,67 @@ async function updateAccountBalances(
   oldAccountId: string,
   newAccountId: string,
   transactionType: string,
-  amount: Decimal,
+  _amount: Decimal,
   amountCents: number
 ): Promise<void> {
-  const amountStr = amount.toString();
+  // Liability-aware (C-MATH-1): reverse the transaction's effect on the OLD
+  // account and apply it to the NEW one via computeBalanceDeltaCents. The old
+  // raw-SQL ± applied the asset rule to every account, so a rule moving an
+  // expense onto a credit card DECREASED the card's owed balance. Reading the
+  // rows and writing absolute values also keeps float/cents in lockstep.
+  const movementType = transactionType as MovementTransactionType;
 
-  // Reverse impact on old account
-  if (transactionType === 'income') {
-    // Remove income from old account (subtract)
-    await db
-      .update(accounts)
-      .set({
-        currentBalance: sql`current_balance - ${amountStr}`,
-        currentBalanceCents: sql`current_balance_cents - ${amountCents}`,
-      })
+  const loadAccount = async (accountId: string) => {
+    const [account] = await db
+      .select()
+      .from(accounts)
       .where(
         and(
-          eq(accounts.id, oldAccountId),
+          eq(accounts.id, accountId),
           eq(accounts.userId, userId),
           eq(accounts.householdId, householdId)
         )
-      );
-  } else if (transactionType === 'expense') {
-    // Add back expense to old account (add)
-    await db
-      .update(accounts)
-      .set({
-        currentBalance: sql`current_balance + ${amountStr}`,
-        currentBalanceCents: sql`current_balance_cents + ${amountCents}`,
-      })
-      .where(
-        and(
-          eq(accounts.id, oldAccountId),
-          eq(accounts.userId, userId),
-          eq(accounts.householdId, householdId)
-        )
-      );
-  }
+      )
+      .limit(1);
+    return account ?? null;
+  };
 
-  // Apply impact to new account
-  if (transactionType === 'income') {
-    // Add income to new account (add)
-    await db
-      .update(accounts)
-      .set({
-        currentBalance: sql`current_balance + ${amountStr}`,
-        currentBalanceCents: sql`current_balance_cents + ${amountCents}`,
-      })
-      .where(
-        and(
-          eq(accounts.id, newAccountId),
-          eq(accounts.userId, userId),
-          eq(accounts.householdId, householdId)
-        )
-      );
-  } else if (transactionType === 'expense') {
-    // Subtract expense from new account (subtract)
-    await db
-      .update(accounts)
-      .set({
-        currentBalance: sql`current_balance - ${amountStr}`,
-        currentBalanceCents: sql`current_balance_cents - ${amountCents}`,
-      })
-      .where(
-        and(
-          eq(accounts.id, newAccountId),
-          eq(accounts.userId, userId),
-          eq(accounts.householdId, householdId)
-        )
-      );
-  }
+  await runInDatabaseTransaction(async (tx) => {
+    const [oldAccount, newAccount] = await Promise.all([
+      loadAccount(oldAccountId),
+      loadAccount(newAccountId),
+    ]);
+
+    if (oldAccount) {
+      await updateScopedAccountBalance(tx, {
+        accountId: oldAccountId,
+        userId,
+        householdId,
+        balanceCents:
+          getAccountBalanceCents(oldAccount) -
+          computeBalanceDeltaCents({
+            accountType: oldAccount.type,
+            transactionType: movementType,
+            amountCents,
+          }),
+      });
+    }
+
+    if (newAccount) {
+      await updateScopedAccountBalance(tx, {
+        accountId: newAccountId,
+        userId,
+        householdId,
+        balanceCents:
+          getAccountBalanceCents(newAccount) +
+          computeBalanceDeltaCents({
+            accountType: newAccount.type,
+            transactionType: movementType,
+            amountCents,
+          }),
+      });
+    }
+  });
 }
 
 /**
