@@ -13,6 +13,7 @@ import { db } from '@/lib/db';
 import { accounts, transactions } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import {
+  computeBalanceDeltaCents,
   getAccountBalanceCents,
   getTransactionAmountCents,
   insertTransactionMovement,
@@ -415,7 +416,16 @@ async function executeExpenseConversionWrites({
     pairedLinkTransactionId: id,
     pairedSourceAccountId: transaction.accountId,
     pairedDestinationAccountId: targetAccountId,
-    balanceDeltaCents: amountCents,
+    // Liability-aware (C-MATH-1): the paired leg is a transfer_in TO the
+    // target. On an asset target this is +amount; on a credit/line_of_credit
+    // target it REDUCES what is owed. The old hardcoded +amountCents applied
+    // the asset rule to every account, so converting an expense into a
+    // credit-card payment INCREASED the card's owed balance.
+    balanceDeltaCents: computeBalanceDeltaCents({
+      accountType: targetAccount.type,
+      transactionType: 'transfer_in',
+      amountCents,
+    }),
     canonicalFromAccountId: transaction.accountId,
     canonicalToAccountId: targetAccountId,
     canonicalFromTransactionId: id,
@@ -461,7 +471,14 @@ async function executeIncomeConversionWrites({
     pairedLinkTransactionId: id,
     pairedSourceAccountId: targetAccountId,
     pairedDestinationAccountId: transaction.accountId,
-    balanceDeltaCents: -amountCents,
+    // Liability-aware (C-MATH-1): the paired leg is a transfer_out FROM the
+    // target. On an asset target this is -amount; on a credit/line_of_credit
+    // target a draw INCREASES what is owed.
+    balanceDeltaCents: computeBalanceDeltaCents({
+      accountType: targetAccount.type,
+      transactionType: 'transfer_out',
+      amountCents,
+    }),
     canonicalFromAccountId: targetAccountId,
     canonicalToAccountId: transaction.accountId,
     canonicalFromTransactionId: pairedTransactionId,
