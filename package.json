@@ -23,6 +23,7 @@
     "release:patch": "npm version patch -m \"release: v%s\" && git push origin main --follow-tags",
     "release:minor": "npm version minor -m \"release: v%s\" && git push origin main --follow-tags",
     "release:major": "npm version major -m \"release: v%s\" && git push origin main --follow-tags",
+    "release:rc": "npm version prerelease --preid rc -m \"release: v%s\" && git push origin main --follow-tags",
     "db:migrate:sqlite:verify": "pnpm -s db:migrate:sqlite:safe && pnpm -s db:verify:money",
     "generate-test-data": "tsx scripts/generate-test-data.ts"
   },

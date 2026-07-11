@@ -66,14 +66,23 @@ Login/session loops are almost always caused by:
 - `NEXT_PUBLIC_APP_URL` not matching the public URL, or
 - missing/incorrect forwarded headers.
 
-### Maintainers: cutting a release
+### Maintainers: release channels
+
+Two image channels are published to GHCR:
+
+- **`:nightly` (pre-release channel)** — rebuilt on every push to `main`
+  (`.github/workflows/nightly.yml`). Ungated (no test run) and intended for the
+  maintainer's own box to try changes before cutting a release. Each build is
+  also tagged `sha-<commit>` for rollback.
+- **`:latest` / `X.Y.Z` (stable channel)** — published only when a version tag
+  is cut. This is what user deployments should track.
 
 CI (type check, migration verification, full test suite, money-integrity check)
-runs when a release is cut and on pull requests — not on every push to `main`.
+runs when a release is cut and on pull requests — not on pushes to `main`.
 To cut a release from `main`:
 
 ```bash
-pnpm release:patch   # or release:minor / release:major
+pnpm release:patch   # or release:minor / release:major / release:rc
 ```
 
 This bumps `package.json`, commits, tags `vX.Y.Z`, and pushes `main` with the
@@ -84,9 +93,10 @@ tag. The tag triggers `.github/workflows/publish-ghcr.yml`, which:
 3. Scans the published image with Trivy (results in the repo's Security tab)
 4. Creates a GitHub Release with auto-generated notes
 
-Deployments should track `ghcr.io/<owner>/<repo>:latest` (or pin a specific
-`X.Y.Z`). The old `:nightly` tag is no longer published and will not receive
-updates.
+`release:rc` cuts a pre-release (`vX.Y.Z-rc.N`): same gated pipeline, but the
+image is tagged only with its exact version (`:latest` and `X.Y` don't move)
+and the GitHub Release is marked as a pre-release — useful for sharing a
+release candidate without pushing it to everyone on `:latest`.
 
 ### Common Unraid failure modes (quick fixes)
 
