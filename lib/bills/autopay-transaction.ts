@@ -15,6 +15,7 @@ import { processBillPayment } from '@/lib/bills/bill-payment-utils';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import {
   amountToCents,
+  computeBalanceDeltaCents,
   getAccountBalanceCents,
   insertTransactionMovement,
   updateScopedAccountBalance,
@@ -306,11 +307,21 @@ export async function processAutopayForInstance(
           updatedAt: now,
         });
 
+        // Liability-aware (C-MATH-1): the linked account for a card-payment
+        // bill IS the credit card — a transfer_in there REDUCES what is owed.
+        // The old hardcoded +amount applied the asset rule, so every autopay
+        // card payment INCREASED the card's owed balance.
         await updateScopedAccountBalance(tx, {
           accountId: bill.autopayAccountId!,
           userId,
           householdId,
-          balanceCents: getAccountBalanceCents(autopayAccountResult) - paymentAmountCents,
+          balanceCents:
+            getAccountBalanceCents(autopayAccountResult) +
+            computeBalanceDeltaCents({
+              accountType: autopayAccountResult.type,
+              transactionType: 'transfer_out',
+              amountCents: paymentAmountCents,
+            }),
           updatedAt: now,
         });
 
@@ -318,7 +329,13 @@ export async function processAutopayForInstance(
           accountId: linkedAccountId,
           userId,
           householdId,
-          balanceCents: getAccountBalanceCents(linkedAccountRecord) + paymentAmountCents,
+          balanceCents:
+            getAccountBalanceCents(linkedAccountRecord) +
+            computeBalanceDeltaCents({
+              accountType: linkedAccountRecord.type,
+              transactionType: 'transfer_in',
+              amountCents: paymentAmountCents,
+            }),
           updatedAt: now,
         });
       });
@@ -345,11 +362,19 @@ export async function processAutopayForInstance(
           updatedAt: now,
         });
 
+        // Liability-aware (C-MATH-1): paying a bill WITH a credit card
+        // increases what is owed; the old hardcoded -amount was the asset rule.
         await updateScopedAccountBalance(tx, {
           accountId: bill.autopayAccountId!,
           userId,
           householdId,
-          balanceCents: getAccountBalanceCents(autopayAccountResult) - paymentAmountCents,
+          balanceCents:
+            getAccountBalanceCents(autopayAccountResult) +
+            computeBalanceDeltaCents({
+              accountType: autopayAccountResult.type,
+              transactionType: 'expense',
+              amountCents: paymentAmountCents,
+            }),
           updatedAt: now,
         });
       });
