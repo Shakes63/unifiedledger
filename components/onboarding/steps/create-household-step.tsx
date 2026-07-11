@@ -45,8 +45,12 @@ export function CreateHouseholdStep({
   }, [isDemoMode, onNext]);
 
   // If a household already exists (e.g., refresh after creating one), skip creation.
+  // NOT while a submit is in flight: handleSubmit's refreshHouseholds() populates
+  // `households` mid-submit, and this effect firing then made the step advance
+  // TWICE (its onNext + handleSubmit's onNext), silently skipping the Create
+  // Account step for every fresh user.
   useEffect(() => {
-    if (isDemoMode || hasAutoAdvancedRef.current || households.length === 0) {
+    if (isDemoMode || isSubmitting || hasAutoAdvancedRef.current || households.length === 0) {
       return;
     }
 
@@ -59,7 +63,7 @@ export function CreateHouseholdStep({
       }
       onNext();
     })();
-  }, [households, isDemoMode, onNext, setSelectedHouseholdId]);
+  }, [households, isDemoMode, isSubmitting, onNext, setSelectedHouseholdId]);
 
   const handleSubmit = async () => {
     if (isSubmitting) {

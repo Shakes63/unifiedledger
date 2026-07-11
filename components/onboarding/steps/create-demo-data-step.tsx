@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { OnboardingStep } from '../onboarding-step';
-import { useOnboarding } from '@/contexts/onboarding-context';
+import { useHousehold } from '@/contexts/household-context';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -12,7 +12,7 @@ interface CreateDemoDataStepProps {
 }
 
 export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepProps) {
-  const { invitationHouseholdId } = useOnboarding();
+  const { households, refreshHouseholds, setSelectedHouseholdId } = useHousehold();
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState('Initializing...');
   const [result, setResult] = useState<{
@@ -25,22 +25,48 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
     merchantsCreated: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Generation must run exactly once — Strict Mode double-mounts effects, and
+  // a second run would create a duplicate household + duplicate demo data.
+  const hasRunRef = useRef(false);
 
   useEffect(() => {
-    const createDemoData = async () => {
-      if (!invitationHouseholdId) {
-        setError('Household ID not found');
-        setLoading(false);
-        return;
-      }
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
 
+    const createDemoData = async () => {
       try {
+        // Demo data needs a household. Reuse the user's existing one (e.g. a
+        // refresh mid-onboarding) or create their first household here — demo
+        // mode replaces the manual household-creation step.
+        let householdId = households[0]?.id ?? null;
+        if (!householdId) {
+          setProgress('Creating your household...');
+          const createResponse = await fetch('/api/households', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name: 'My Household' }),
+          });
+          if (!createResponse.ok) {
+            const errorData = await createResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to create household');
+          }
+          const newHousehold = await createResponse.json();
+          householdId = newHousehold.id as string;
+          await refreshHouseholds();
+        }
+        try {
+          await setSelectedHouseholdId(householdId);
+        } catch {
+          // Selection failure should not block demo data generation
+        }
+
         setProgress('Creating accounts...');
         const response = await fetch('/api/onboarding/generate-demo-data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ householdId: invitationHouseholdId }),
+          body: JSON.stringify({ householdId }),
         });
 
         if (!response.ok) {
@@ -52,7 +78,7 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
         setResult(data);
         setProgress('Complete!');
         toast.success('Demo data created successfully');
-        
+
         // Auto-advance after 2 seconds
         setTimeout(() => {
           onNext();
@@ -71,7 +97,10 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
     };
 
     createDemoData();
-  }, [invitationHouseholdId, onNext]);
+    // Run-once by design (ref-guarded); deps would only re-trigger after
+    // refreshHouseholds() updates the list mid-run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <OnboardingStep

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { OnboardingStep } from '../onboarding-step';
-import { useOnboarding } from '@/contexts/onboarding-context';
+import { useHousehold } from '@/contexts/household-context';
 import { Loader2, Database, Sparkles, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -30,7 +30,10 @@ export function DemoDataChoiceStep({
   onPrevious,
   onDemoDataCleared,
 }: DemoDataChoiceStepProps) {
-  const { invitationHouseholdId } = useOnboarding();
+  const { households, selectedHouseholdId } = useHousehold();
+  // Demo data lives in the selected household (created/selected by the
+  // demo-data step); fall back to the first membership after a refresh.
+  const demoHouseholdId = selectedHouseholdId ?? households[0]?.id ?? null;
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [summary, setSummary] = useState<DemoDataSummary | null>(null);
@@ -40,7 +43,7 @@ export function DemoDataChoiceStep({
   // Fetch demo data summary on mount
   useEffect(() => {
     const fetchSummary = async () => {
-      if (!invitationHouseholdId) {
+      if (!demoHouseholdId) {
         setError('Household ID not found');
         setLoading(false);
         return;
@@ -48,7 +51,7 @@ export function DemoDataChoiceStep({
 
       try {
         const response = await fetch(
-          `/api/onboarding/clear-demo-data?householdId=${invitationHouseholdId}`,
+          `/api/onboarding/clear-demo-data?householdId=${demoHouseholdId}`,
           {
             credentials: 'include',
           }
@@ -69,7 +72,7 @@ export function DemoDataChoiceStep({
     };
 
     fetchSummary();
-  }, [invitationHouseholdId]);
+  }, [demoHouseholdId]);
 
   const handleContinue = async () => {
     if (choice === 'keep') {
@@ -82,7 +85,7 @@ export function DemoDataChoiceStep({
   };
 
   const clearDemoData = async () => {
-    if (!invitationHouseholdId) {
+    if (!demoHouseholdId) {
       toast.error('Household ID not found');
       return;
     }
@@ -95,7 +98,7 @@ export function DemoDataChoiceStep({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ householdId: invitationHouseholdId }),
+        body: JSON.stringify({ householdId: demoHouseholdId }),
       });
 
       if (!response.ok) {

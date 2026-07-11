@@ -28,9 +28,11 @@ describe('account-action-handler household scoping', () => {
     // db.select() chain calls:
     // 1) tx fetch (limit 1)
     // 2) target account validation (limit 1)
-    // 3) member fetch for log (limit 1)
-    // 4) old account name (limit 1)
-    // 5) new account name (limit 1)
+    // 3) old account load for liability-aware balance math (limit 1)
+    // 4) new account load for liability-aware balance math (limit 1)
+    // 5) member fetch for log (limit 1)
+    // 6) old account name (limit 1)
+    // 7) new account name (limit 1)
 
     const limitMock = vi
       .fn<(n: number) => Promise<unknown[]>>()
@@ -49,6 +51,24 @@ describe('account-action-handler household scoping', () => {
           id: 'acct_new',
           userId: 'user_1',
           householdId: 'hh_1',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'acct_old',
+          userId: 'user_1',
+          householdId: 'hh_1',
+          type: 'checking',
+          currentBalanceCents: 100000,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'acct_new',
+          userId: 'user_1',
+          householdId: 'hh_1',
+          type: 'checking',
+          currentBalanceCents: 50000,
         },
       ])
       .mockResolvedValueOnce([{ householdId: 'hh_1' }])
