@@ -1,9 +1,11 @@
 name: Tests
 
+# CI runs when a release is cut (via workflow_call from the release pipeline)
+# and on pull requests (Dependabot updates and any future PR flow) — not on
+# every push to main.
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_call:
 
 jobs:
   test:
