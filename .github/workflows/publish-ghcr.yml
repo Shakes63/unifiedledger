@@ -1,24 +1,36 @@
-name: Publish Docker image (GHCR)
+name: Release (test, publish image, GitHub release)
 
+# Versioned releases: this pipeline runs ONLY when a version tag is pushed
+# (`pnpm release:patch|minor|major|rc` locally, which bumps package.json, tags
+# vX.Y.Z, and pushes). Pushes to main publish the ungated :nightly channel
+# instead (nightly.yml) — they don't run tests or touch :latest.
+#
+# Pre-release tags (vX.Y.Z-rc.N) run the same gated pipeline but do NOT move
+# :latest or X.Y (metadata-action skips those for prereleases) and the GitHub
+# Release is marked as a pre-release.
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*.*.*"
 
 permissions:
-  contents: read
+  contents: write # create the GitHub Release
   packages: write
   # Trivy scan results land in the repo's Security tab (code scanning).
   security-events: write
 
 concurrency:
-  group: publish-ghcr-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # Full suite gates the release — a version tag with failing tests publishes
+  # nothing.
+  test:
+    uses: ./.github/workflows/test.yml
+
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,13 +51,14 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          # Stable tags get X.Y.Z + X.Y + latest; prerelease tags (vX.Y.Z-rc.N)
+          # get only their exact version — latest=auto and the semver patterns
+          # both skip prereleases, so :latest never points at an rc.
           tags: |
-            # Nightly: on push to main branch
-            type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/main' }}
-            type=sha,prefix=sha-,enable=${{ github.ref == 'refs/heads/main' }}
-            # Stable: on version tags
-            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          flavor: |
+            latest=auto
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -59,24 +72,42 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Tier-3 hardening: vulnerability scan of the image that was just
-      # published. Informational (never blocks a deploy — most findings are
-      # upstream base-image CVEs on their own patch timeline); results appear
-      # in the repo's Security tab, which notifies the owner on new CRITICAL/
-      # HIGH findings.
+      # Vulnerability scan of the image that was just published. Informational
+      # (never blocks a release — most findings are upstream base-image CVEs on
+      # their own patch timeline); results appear in the repo's Security tab,
+      # which notifies the owner on new CRITICAL/HIGH findings.
+      - name: Lowercase image name for Trivy
+        id: image
+        # OCI references must be lowercase; github.repository is Shakes63/...
+        # Scan the exact version tag so this also works for prereleases,
+        # which don't get :latest.
+        run: echo "ref=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: Scan image with Trivy
-        if: github.ref == 'refs/heads/main'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ghcr.io/${{ github.repository }}:nightly
+          image-ref: ${{ steps.image.outputs.ref }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
           ignore-unfixed: true
 
       - name: Upload Trivy results to the Security tab
-        if: github.ref == 'refs/heads/main'
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
           category: container-image
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          prerelease=""
+          case "${GITHUB_REF_NAME}" in
+            *-*) prerelease="--prerelease" ;;
+          esac
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            $prerelease

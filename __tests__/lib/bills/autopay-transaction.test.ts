@@ -296,6 +296,82 @@ describe('lib/bills/autopay-transaction', () => {
     );
   });
 
+  it('autopaying a credit-card bill REDUCES the card owed balance (C-MATH-1)', async () => {
+    vi.mocked(validateAutopayConfiguration).mockReturnValueOnce(null);
+
+    vi.mocked(db.select)
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () => ({
+            limit: async () => [
+              { id: 'pay-acc', currentBalance: 500, currentBalanceCents: 50000, type: 'checking' },
+            ],
+          }),
+        }),
+      } as unknown)
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () => ({
+            limit: async () => [
+              {
+                id: 'cc-acc',
+                // Positive-owed convention: the user owes $1000.
+                currentBalance: 1000,
+                currentBalanceCents: 100000,
+                type: 'credit',
+                statementBalance: 900,
+                minimumPaymentAmount: 25,
+                creditLimit: 5000,
+                creditLimitCents: 500000,
+              },
+            ],
+          }),
+        }),
+      } as unknown);
+
+    vi.mocked(calculateAutopayAmount).mockReturnValueOnce({
+      amount: 50,
+      amountSource: 'Fixed Amount',
+      minimumRequired: 25,
+      insufficientFunds: false,
+      availableBalance: 500,
+    });
+
+    const values1 = vi.fn(async () => undefined);
+    const values2 = vi.fn(async () => undefined);
+    vi.mocked(db.insert)
+      .mockReturnValueOnce({ values: values1 } as unknown)
+      .mockReturnValueOnce({ values: values2 } as unknown);
+
+    const whereA = vi.fn(async () => undefined);
+    const setA = vi.fn(() => ({ where: whereA }));
+    const whereB = vi.fn(async () => undefined);
+    const setB = vi.fn(() => ({ where: whereB }));
+    vi.mocked(db.update)
+      .mockReturnValueOnce({ set: setA } as unknown)
+      .mockReturnValueOnce({ set: setB } as unknown);
+
+    vi.mocked(processBillPayment).mockResolvedValueOnce({ success: true, paymentId: 'p1' });
+
+    vi.mocked(nanoid)
+      .mockReturnValueOnce('transfer-id')
+      .mockReturnValueOnce('tx-out')
+      .mockReturnValueOnce('tx-in');
+
+    const { processAutopayForInstance } = await import('@/lib/bills/autopay-transaction');
+    const res = await processAutopayForInstance(
+      baseBill({ linkedAccountId: 'cc-acc' }),
+      baseInstance({ id: 'inst-1' })
+    );
+
+    expect(res.success).toBe(true);
+    // Checking is debited: $500 - $50.
+    expect(setA).toHaveBeenCalledWith(expect.objectContaining({ currentBalanceCents: 45000 }));
+    // The card's OWED balance goes DOWN: $1000 - $50 = $950. The old asset
+    // rule (+amount) wrote 105000 — every autopay card payment grew the debt.
+    expect(setB).toHaveBeenCalledWith(expect.objectContaining({ currentBalanceCents: 95000 }));
+  });
+
   it('returns SYSTEM_ERROR when processBillPayment fails', async () => {
     vi.mocked(validateAutopayConfiguration).mockReturnValueOnce(null);
     vi.mocked(db.select).mockReturnValueOnce({

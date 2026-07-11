@@ -35,10 +35,7 @@ Mount `/config` as a persistent volume.
 - **`NEXT_PUBLIC_APP_URL`**: public base URL used for auth redirects and email links  
   Example: `http://tower:3000` or `https://unifiedledger.example.com`
 - **`BETTER_AUTH_SECRET`**: long random secret (required for production)
-- **`DATABASE_URL`**:
-  - SQLite default: `file:/config/finance.db`
-  - Postgres optional: `postgresql://USER:PASSWORD@HOST:5432/unifiedledger` (Postgres **17+**)
-    - Postgres migrations are shipped in-image under `drizzle/postgres` and run automatically on startup.
+- **`DATABASE_URL`**: SQLite, default `file:/config/finance.db`
 - **`FORCE_SECURE_COOKIES`**: defaults to `false`  
   If `NEXT_PUBLIC_APP_URL` starts with `https://`, cookies are marked Secure automatically; set `FORCE_SECURE_COOKIES=true` only if you know you need it.
 
@@ -69,16 +66,37 @@ Login/session loops are almost always caused by:
 - `NEXT_PUBLIC_APP_URL` not matching the public URL, or
 - missing/incorrect forwarded headers.
 
-### Maintainers: publishing the Unraid image (GHCR)
+### Maintainers: release channels
 
-This repo includes a GitHub Actions workflow that publishes images to GHCR on release tags:
+Two image channels are published to GHCR:
 
-- Tag format: `vX.Y.Z`
-- Image tags pushed:
-  - `ghcr.io/<owner>/<repo>:X.Y.Z`
-  - `ghcr.io/<owner>/<repo>:latest`
+- **`:nightly` (pre-release channel)** — rebuilt on every push to `main`
+  (`.github/workflows/nightly.yml`). Ungated (no test run) and intended for the
+  maintainer's own box to try changes before cutting a release. Each build is
+  also tagged `sha-<commit>` for rollback.
+- **`:latest` / `X.Y.Z` (stable channel)** — published only when a version tag
+  is cut. This is what user deployments should track.
 
-Workflow file: `.github/workflows/publish-ghcr.yml`
+CI (type check, migration verification, full test suite, money-integrity check)
+runs when a release is cut and on pull requests — not on pushes to `main`.
+To cut a release from `main`:
+
+```bash
+pnpm release:patch   # or release:minor / release:major / release:rc
+```
+
+This bumps `package.json`, commits, tags `vX.Y.Z`, and pushes `main` with the
+tag. The tag triggers `.github/workflows/publish-ghcr.yml`, which:
+
+1. Runs the full test workflow — a failing suite blocks the release
+2. Builds and pushes the image to GHCR tagged `X.Y.Z`, `X.Y`, and `latest`
+3. Scans the published image with Trivy (results in the repo's Security tab)
+4. Creates a GitHub Release with auto-generated notes
+
+`release:rc` cuts a pre-release (`vX.Y.Z-rc.N`): same gated pipeline, but the
+image is tagged only with its exact version (`:latest` and `X.Y` don't move)
+and the GitHub Release is marked as a pre-release — useful for sharing a
+release candidate without pushing it to everyone on `:latest`.
 
 ### Common Unraid failure modes (quick fixes)
 
