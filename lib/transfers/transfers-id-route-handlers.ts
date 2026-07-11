@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { accounts, transfers, transactions } from '@/lib/db/schema';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import {
+  computeBalanceDeltaCents,
   getAccountBalanceCents,
   getTransferAmountCents,
   getTransferFeesCents,
@@ -196,11 +197,21 @@ async function deleteLegacyTransferAndRevertBalances({
         .limit(1),
     ]);
 
+    // Liability-aware reversal (C-MATH-1): undo each leg's original effect
+    // via -computeBalanceDeltaCents. The old hardcoded +debit/-amount was the
+    // asset rule — deleting a legacy card-payment transfer through this route
+    // pushed the credit account's owed balance the wrong way.
     if (fromAccount.length > 0) {
       const transferAmountCents = getTransferAmountCents(transferData);
       const transferFeesCents = getTransferFeesCents(transferData);
       const totalDebitCents = transferAmountCents + transferFeesCents;
-      const newFromBalanceCents = getAccountBalanceCents(fromAccount[0]) + totalDebitCents;
+      const newFromBalanceCents =
+        getAccountBalanceCents(fromAccount[0]) -
+        computeBalanceDeltaCents({
+          accountType: fromAccount[0].type,
+          transactionType: 'transfer_out',
+          amountCents: totalDebitCents,
+        });
 
       await updateScopedAccountBalance(tx, {
         accountId: transferData.fromAccountId,
@@ -212,7 +223,13 @@ async function deleteLegacyTransferAndRevertBalances({
 
     if (toAccount.length > 0) {
       const transferAmountCents = getTransferAmountCents(transferData);
-      const newToBalanceCents = getAccountBalanceCents(toAccount[0]) - transferAmountCents;
+      const newToBalanceCents =
+        getAccountBalanceCents(toAccount[0]) -
+        computeBalanceDeltaCents({
+          accountType: toAccount[0].type,
+          transactionType: 'transfer_in',
+          amountCents: transferAmountCents,
+        });
 
       await updateScopedAccountBalance(tx, {
         accountId: transferData.toAccountId,

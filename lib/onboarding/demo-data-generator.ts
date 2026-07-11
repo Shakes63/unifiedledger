@@ -16,6 +16,8 @@ import {
   buildAccountBalanceFields,
   insertTransactionMovement,
 } from '@/lib/transactions/money-movement-service';
+import { buildDebtBalanceFields } from '@/lib/debts/debt-money';
+import { buildGoalCurrentFields } from '@/lib/goals/goal-money';
 import { createBillTemplate } from '@/lib/bills/service';
 
 interface DemoDataResult {
@@ -276,7 +278,9 @@ export async function generateDemoData(
       householdId,
       name: goal.name,
       targetAmount: goal.targetAmount.toNumber(),
-      currentAmount: goal.currentAmount.toNumber(),
+      targetAmountCents: amountToCents(goal.targetAmount),
+      // Cents are canonical (RC-4); the builder keeps the float column derived.
+      ...buildGoalCurrentFields(amountToCents(goal.currentAmount)),
       category: goal.category,
       accountId: goal.accountId,
       color: goal.color,
@@ -316,7 +320,8 @@ export async function generateDemoData(
     name: demoDebt.name,
     creditorName: demoDebt.creditorName,
     originalAmount: demoDebt.originalAmount.toNumber(),
-    remainingBalance: demoDebt.remainingBalance.toNumber(),
+    // Cents are canonical (RC-4); the builder keeps the float column derived.
+    ...buildDebtBalanceFields(amountToCents(demoDebt.remainingBalance)),
     minimumPayment: demoDebt.minimumPayment.toNumber(),
     interestRate: demoDebt.interestRate.toNumber(),
     interestType: demoDebt.interestType,

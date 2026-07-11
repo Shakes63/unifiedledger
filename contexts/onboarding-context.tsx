@@ -22,6 +22,7 @@ interface OnboardingContextType {
   isInvitedUser: boolean;
   invitationHouseholdId: string | null;
   isDemoMode: boolean;
+  setDemoMode: (enabled: boolean) => void;
   invitationToken: string | null;
   setInvitationContext: (householdId: string, token?: string | null) => void;
   clearInvitationContext: () => void;
@@ -45,6 +46,7 @@ interface OnboardingProgressSnapshot {
   completedSteps: number[];
   skippedSteps: number[];
   demoDataCleared: boolean;
+  isDemoMode?: boolean;
 }
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
@@ -97,14 +99,16 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           clearPersistedProgress();
         }
       } else {
-        // If error, assume onboarding not completed (safer default)
-        setIsOnboardingActive(true);
+        // Fail quiet: only activate onboarding on a CONFIRMED not-completed
+        // status. Activating on error threw the full onboarding modal at
+        // long-time users whenever this request transiently failed.
+        setIsOnboardingActive(false);
       }
     } catch (err) {
       console.error('Failed to check onboarding status:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));
-      // On error, assume onboarding not completed (safer default)
-      setIsOnboardingActive(true);
+      // Fail quiet on transport errors too (see above).
+      setIsOnboardingActive(false);
     } finally {
       setIsLoading(false);
     }
@@ -178,8 +182,19 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setSkippedSteps(new Set());
     setError(null);
     setDemoDataCleared(false);
+    setIsDemoMode(false);
     clearPersistedProgress();
   }, [clearPersistedProgress]);
+
+  // Demo mode is the "explore with sample data" variant of the regular flow,
+  // chosen on the Welcome step. Never for invited users — they join an
+  // existing household and must not have data created during onboarding.
+  const setDemoMode = useCallback((enabled: boolean) => {
+    setIsDemoMode((_prev) => {
+      if (enabled && isInvitedUser) return false;
+      return enabled;
+    });
+  }, [isInvitedUser]);
 
   // Invitation context methods
   const setInvitationContext = useCallback((householdId: string, token?: string | null) => {
@@ -235,17 +250,32 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       if (typeof saved.demoDataCleared === 'boolean') {
         setDemoDataCleared(saved.demoDataCleared);
       }
+      // Restore demo mode so a refresh keeps the 10-step numbering — but
+      // never over an invitation (invited users must not create data).
+      const hasInvitation = Boolean(
+        localStorage.getItem('unified-ledger:invitation-household-id')
+      );
+      if (saved.isDemoMode === true && !hasInvitation) {
+        setIsDemoMode(true);
+      }
     } catch {
       // Ignore malformed/blocked storage
     }
   }, []);
 
   useEffect(() => {
+    // Only persist while onboarding is actually running. Persisting
+    // unconditionally re-wrote the snapshot immediately after
+    // completeOnboarding() cleared it (its own state updates re-triggered
+    // this effect), leaving stale progress in storage forever.
+    if (!isOnboardingActive) return;
+
     const snapshot: OnboardingProgressSnapshot = {
       currentStep,
       completedSteps: Array.from(completedSteps),
       skippedSteps: Array.from(skippedSteps),
       demoDataCleared,
+      isDemoMode,
     };
 
     try {
@@ -253,7 +283,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore storage errors
     }
-  }, [completedSteps, currentStep, demoDataCleared, skippedSteps]);
+  }, [completedSteps, currentStep, demoDataCleared, isDemoMode, isOnboardingActive, skippedSteps]);
 
   useEffect(() => {
     try {
@@ -302,6 +332,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         isInvitedUser,
         invitationHouseholdId,
         isDemoMode,
+        setDemoMode,
         invitationToken,
         setInvitationContext,
         clearInvitationContext,

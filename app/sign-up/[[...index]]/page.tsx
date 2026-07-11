@@ -18,6 +18,15 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { hardRedirect } from '@/lib/navigation/hard-redirect';
 
+function clearStoredInvitationContext() {
+  try {
+    localStorage.removeItem('unified-ledger:invitation-token');
+    localStorage.removeItem('unified-ledger:invitation-household-id');
+  } catch {
+    // storage unavailable — nothing to clear
+  }
+}
+
 export default function SignUpPage() {
   const searchParams = useSearchParams();
   const isFirstSetup = searchParams.get('firstSetup') === 'true';
@@ -122,12 +131,18 @@ export default function SignUpPage() {
           } else {
             const errorData = await acceptResponse.json().catch(() => ({}));
             console.error('Failed to accept invitation:', errorData.error || 'Unknown error');
-            // Continue with normal flow even if invitation acceptance fails
+            // Continue with normal flow even if invitation acceptance fails.
+            // Clear the stored invitation context: leaving it made the
+            // onboarding modal run the 2-step "invited" flow for a household
+            // the user never joined — they finished onboarding with NO
+            // household at all (dead end).
+            clearStoredInvitationContext();
             toast.error('Account created, but invitation could not be accepted. Please try accepting it manually.');
           }
         } catch (error) {
           console.error('Failed to accept invitation:', error);
           // Continue with normal flow even if invitation acceptance fails
+          clearStoredInvitationContext();
           toast.error('Account created, but invitation could not be accepted. Please try accepting it manually.');
         }
       }
