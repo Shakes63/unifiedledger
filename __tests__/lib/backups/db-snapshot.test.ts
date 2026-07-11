@@ -52,9 +52,12 @@ describe('snapshotSqliteDatabase', () => {
     expect(skipped.skippedReason).toBe('recent-snapshot-exists');
 
     // Age the existing snapshot on disk past the gate -> a new one is taken.
-    const old = Date.now() - 25 * 3600 * 1000;
+    // Derive the mtime from the same fake clock passed as `now` — mixing in
+    // the real Date.now() made this pass or fail depending on the wall clock.
+    const refreshNow = new Date('2026-07-10T13:00:00Z');
+    const old = refreshNow.getTime() - 25 * 3600 * 1000;
     fs.utimesSync(first.snapshotPath!, old / 1000, old / 1000);
-    const refreshed = snapshotSqliteDatabase(db, { now: new Date('2026-07-10T13:00:00Z') });
+    const refreshed = snapshotSqliteDatabase(db, { now: refreshNow });
     expect(refreshed.created).toBe(true);
     db.close();
   });
