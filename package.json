@@ -62,7 +62,7 @@
     "fastest-levenshtein": "^1.0.16",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
-    "lucide-react": "^0.553.0",
+    "lucide-react": "^1.24.0",
     "nanoid": "^5.1.6",
     "next": "16.1.6",
     "nodemailer": "^7.0.11",
