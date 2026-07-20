@@ -17,7 +17,7 @@ jobs:
         with:
           version: 9
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # Node 22 LTS — 20 went end-of-life 2026-04-30. Matches the Docker
           # runtime image (node:22-alpine).
