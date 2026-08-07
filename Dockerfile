@@ -4,7 +4,7 @@
 # Stage 1: Base image with pnpm
 # Node 22 LTS (supported until 2027-04). Node 20 went end-of-life 2026-04-30 —
 # an EOL runtime receives no security patches.
-FROM node:22-alpine AS base
+FROM node:26-alpine AS base
 # Pin pnpm to v9 to avoid build-script approval behavior that blocks native deps in CI/Docker.
 RUN npm install -g pnpm@9.15.5
 WORKDIR /app
