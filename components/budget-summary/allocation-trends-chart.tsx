@@ -138,12 +138,6 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
     }));
   };
 
-  // Memoize tooltip with chartData
-  const tooltipContent = useMemo(() => 
-    function TrendsTooltipWrapper(props: { active?: boolean; payload?: readonly TrendsTooltipPayloadItem[]; label?: string | number }) {
-      return <TrendsTooltip {...props} chartData={chartData} />;
-    }, [chartData]);
-
   // Series configuration
   const seriesConfig = [
     { 
@@ -261,7 +255,7 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
             width={60}
           />
           
-          <Tooltip content={tooltipContent} />
+          <Tooltip content={<TrendsTooltip chartData={chartData} />} />
 
           {seriesConfig.map((series) => (
             visibleSeries[series.key as keyof typeof visibleSeries] && (
