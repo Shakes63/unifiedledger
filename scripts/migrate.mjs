@@ -26,19 +26,26 @@ function isPostgresUrl(databaseUrl) {
   return v.startsWith('postgres://') || v.startsWith('postgresql://');
 }
 
-function countJournalEntries(migrationsFolder) {
+function readJournalWhens(migrationsFolder) {
   const journalPath = path.join(migrationsFolder, 'meta', '_journal.json');
   const journal = JSON.parse(fs.readFileSync(journalPath, 'utf8'));
-  return (journal.entries ?? []).length;
+  return (journal.entries ?? []).map((entry) => Number(entry.when));
 }
 
-function countAppliedMigrations(sqlite) {
+/**
+ * Mirror drizzle's own apply criterion: it runs a journal entry iff its `when`
+ * timestamp exceeds MAX(created_at) of the recorded rows. Counting table ROWS
+ * instead is wrong on databases whose journal rows were partially backfilled
+ * (production has 19 rows for 20 entries) — that reported a phantom pending
+ * migration on every boot and burned a pre-migration snapshot slot each time.
+ */
+function getLastAppliedMillis(sqlite) {
   try {
-    const row = sqlite.prepare('SELECT count(*) AS n FROM __drizzle_migrations').get();
-    return Number(row?.n ?? 0);
+    const row = sqlite.prepare('SELECT max(created_at) AS m FROM __drizzle_migrations').get();
+    return row?.m == null ? null : Number(row.m);
   } catch {
     // Table doesn't exist yet -> brand-new database, nothing applied.
-    return 0;
+    return null;
   }
 }
 
@@ -48,8 +55,8 @@ function countAppliedMigrations(sqlite) {
  * empty file has nothing worth snapshotting). Failures ABORT the migration:
  * proceeding without the safety copy defeats the point.
  */
-function snapshotBeforeMigration(sqlite, dbPath, { pending, applied }) {
-  if (pending <= 0 || applied === 0) return null;
+function snapshotBeforeMigration(sqlite, dbPath, { pending, isNewDatabase }) {
+  if (pending <= 0 || isNewDatabase) return null;
 
   const dir = path.join(path.dirname(dbPath), 'backups', 'pre-migration');
   fs.mkdirSync(dir, { recursive: true });
@@ -103,12 +110,19 @@ async function main() {
     const dbPath = databaseUrl.replace(/^file:/, '');
     const sqlite = new Database(dbPath);
 
-    const total = countJournalEntries(migrationsFolder);
-    const applied = countAppliedMigrations(sqlite);
-    const pending = total - applied;
-    console.log(`[migrate] Journal: ${total} migrations, applied: ${applied}, pending: ${Math.max(0, pending)}`);
+    const whens = readJournalWhens(migrationsFolder);
+    const lastApplied = getLastAppliedMillis(sqlite);
+    const pending =
+      lastApplied === null ? whens.length : whens.filter((when) => when > lastApplied).length;
+    console.log(
+      `[migrate] Journal: ${whens.length} migrations, pending: ${pending}` +
+        (lastApplied === null ? ' (new database)' : '')
+    );
 
-    const snapshotPath = snapshotBeforeMigration(sqlite, dbPath, { pending, applied });
+    const snapshotPath = snapshotBeforeMigration(sqlite, dbPath, {
+      pending,
+      isNewDatabase: lastApplied === null,
+    });
     if (snapshotPath) {
       console.log(`[migrate] Pre-migration snapshot: ${snapshotPath}`);
     }

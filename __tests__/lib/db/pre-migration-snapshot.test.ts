@@ -94,4 +94,38 @@ describe('migrate.mjs pre-migration snapshot', () => {
     expect(run3.status).toBe(0);
     expect(fs.readdirSync(snapDir).filter((f) => f.endsWith('.db')).length).toBe(1);
   });
+
+  it('reports pending 0 (no snapshot) when journal rows were partially backfilled', () => {
+    // Production regression: the bootstrap never recorded a row for an EARLY
+    // migration, so the table has fewer rows than the journal has entries.
+    // Drizzle applies by `when > MAX(created_at)` — nothing is actually
+    // pending — but the old row-count logic reported a phantom pending
+    // migration on every boot and burned a pre-migration snapshot slot.
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ul-premig3-'));
+    cleanup.push(root);
+    const dbPath = path.join(root, 'finance.db');
+    const snapDir = path.join(root, 'backups', 'pre-migration');
+
+    const migrations = writeFixtureMigrations(root, ['0000_init', '0001_add_col'], {
+      '0000_init': 'CREATE TABLE money (id INTEGER PRIMARY KEY, cents INTEGER NOT NULL);',
+      '0001_add_col': 'ALTER TABLE money ADD COLUMN note TEXT;',
+    });
+    const run1 = runMigrate(dbPath, migrations);
+    expect(run1.status).toBe(0);
+
+    // Simulate the backfill gap: drop the row for the FIRST migration while
+    // the newest row (highest created_at) stays in place.
+    const db = new Database(dbPath);
+    db.prepare(
+      'DELETE FROM __drizzle_migrations WHERE created_at = (SELECT min(created_at) FROM __drizzle_migrations)'
+    ).run();
+    expect(db.prepare('SELECT count(*) AS n FROM __drizzle_migrations').get()).toEqual({ n: 1 });
+    db.close();
+
+    const run2 = runMigrate(dbPath, migrations);
+    expect(run2.status).toBe(0);
+    expect(run2.stdout).toContain('pending: 0');
+    expect(run2.stdout).not.toContain('Pre-migration snapshot');
+    expect(fs.existsSync(snapDir)).toBe(false);
+  });
 });
