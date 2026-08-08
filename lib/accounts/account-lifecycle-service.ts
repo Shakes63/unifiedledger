@@ -535,7 +535,7 @@ export async function updateAccountWithLifecycleEffects({
         })
       );
     } else if ((!newFee || newFee <= 0) && existingFeeBillId) {
-      postUpdateTasks.push(deactivateBillTemplate(existingFeeBillId));
+      postUpdateTasks.push(deactivateBillTemplate(existingFeeBillId, householdId));
       postUpdateTasks.push(
         db
           .update(accounts)
@@ -547,7 +547,7 @@ export async function updateAccountWithLifecycleEffects({
 
   // Cleanup credit-linked annual fee bill when transitioning away from credit account types.
   if (wasCreditType && !isCreditType && existing.annualFeeBillId) {
-    postUpdateTasks.push(deactivateBillTemplate(existing.annualFeeBillId));
+    postUpdateTasks.push(deactivateBillTemplate(existing.annualFeeBillId, householdId));
   }
 
   await Promise.all(postUpdateTasks);

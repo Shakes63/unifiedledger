@@ -84,11 +84,15 @@ const RECURRENCE_HORIZON_COUNT: Record<
   BillTemplateDto['recurrenceType'],
   number
 > = {
+  // Sized so an explicit ~13-month window (e.g. ensure-instances for a full
+  // year) is never silently truncated — the old monthly cap of 8 made a
+  // January "generate 2027" request stop at August (bug-hunt finding R5).
+  // These are runaway guards, not pagination.
   one_time: 1,
-  weekly: 18,
-  biweekly: 12,
-  semi_monthly: 16,
-  monthly: 8,
+  weekly: 54,
+  biweekly: 27,
+  semi_monthly: 27,
+  monthly: 14,
   quarterly: 8,
   semi_annual: 6,
   annual: 4,
@@ -430,17 +434,29 @@ export function generateOccurrenceDates(
   toDate: Date
 ): string[] {
   const dates: string[] = [];
-  const from = startOfDay(fromDate);
+  const requestedFrom = startOfDay(fromDate);
   const to = endOfDay(toDate);
 
   if (template.recurrenceType === 'one_time') {
     if (!template.recurrenceSpecificDueDate) return dates;
     const dueDate = parseDateOrThrow(template.recurrenceSpecificDueDate, 'recurrenceSpecificDueDate');
-    if ((isAfter(dueDate, from) || dueDate.getTime() === from.getTime()) && !isAfter(dueDate, to)) {
+    if (
+      (isAfter(dueDate, requestedFrom) || dueDate.getTime() === requestedFrom.getTime()) &&
+      !isAfter(dueDate, to)
+    ) {
       dates.push(format(dueDate, 'yyyy-MM-dd'));
     }
     return dates;
   }
+
+  // Recurring bills never generate occurrences from before the template
+  // existed (bug-hunt finding R3): callers can pass arbitrary past windows
+  // (ensure-instances accepts any year >= 2000), which retro-created
+  // instantly-overdue occurrences and permanently inflated the dashboard's
+  // overdue counts. One-time bills above keep an explicitly chosen past date.
+  const creationFloor = template.createdAt ? startOfDay(new Date(template.createdAt)) : null;
+  const from =
+    creationFloor && isBefore(requestedFrom, creationFloor) ? creationFloor : requestedFrom;
 
   if (template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly') {
     const weekday = template.recurrenceDueWeekday;
@@ -636,22 +652,46 @@ async function ensureTemplateOccurrences(
           )
         );
 
-      const allocationInserts = createdRows.map((occurrence) => ({
-        id: nanoid(),
-        occurrenceId: occurrence.id,
-        templateId: template.id,
-        householdId: template.householdId,
-        periodNumber: template.budgetPeriodAssignment as number,
-        allocatedAmountCents: occurrence.amountDueCents,
-        paidAmountCents: 0,
-        isPaid: false,
-        paymentEventId: null,
-        createdAt: now,
-        updatedAt: now,
-      }));
+      // Only backfill occurrences that don't have an allocation yet, and
+      // insert idempotently (bug-hunt finding R4): two concurrent requests
+      // both survive the occurrence onConflictDoNothing above, and the loser
+      // used to 500 on the (occurrenceId, periodNumber) unique index; a crash
+      // between the two inserts also left occurrences permanently
+      // allocation-less because the date-based dedupe skipped them on retry.
+      const existingAllocations = createdRows.length
+        ? await db
+            .select({ occurrenceId: billOccurrenceAllocations.occurrenceId })
+            .from(billOccurrenceAllocations)
+            .where(
+              inArray(
+                billOccurrenceAllocations.occurrenceId,
+                createdRows.map((occurrence) => occurrence.id)
+              )
+            )
+        : [];
+      const allocated = new Set(existingAllocations.map((row) => row.occurrenceId));
+
+      const allocationInserts = createdRows
+        .filter((occurrence) => !allocated.has(occurrence.id))
+        .map((occurrence) => ({
+          id: nanoid(),
+          occurrenceId: occurrence.id,
+          templateId: template.id,
+          householdId: template.householdId,
+          periodNumber: template.budgetPeriodAssignment as number,
+          allocatedAmountCents: occurrence.amountDueCents,
+          paidAmountCents: 0,
+          isPaid: false,
+          paymentEventId: null,
+          createdAt: now,
+          updatedAt: now,
+        }));
 
       if (allocationInserts.length > 0) {
-        await db.insert(billOccurrenceAllocations).values(allocationInserts);
+        await db
+          .insert(billOccurrenceAllocations)
+          .values(allocationInserts)
+          .onConflictDoNothing();
       }
     }
   }
@@ -856,12 +896,41 @@ export async function listBillTemplates(options: ListTemplatesOptions) {
   };
 }
 
+/**
+ * Every account id persisted onto a bill template or autopay rule must belong
+ * to the caller's household (bug-hunt finding S1) — the fields were previously
+ * stored straight from the request body, allowing dangling references to other
+ * households' accounts.
+ */
+export async function assertHouseholdAccounts(
+  householdId: string,
+  accountIds: Array<string | null | undefined>
+): Promise<void> {
+  const ids = [...new Set(accountIds.filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return;
+  const rows = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(inArray(accounts.id, ids), eq(accounts.householdId, householdId)));
+  const found = new Set(rows.map((row) => row.id));
+  const missing = ids.filter((id) => !found.has(id));
+  if (missing.length > 0) {
+    throw new Error(`Account not found in household: ${missing.join(', ')}`);
+  }
+}
+
 export async function createBillTemplate(
   userId: string,
   householdId: string,
   input: CreateBillTemplateRequest
 ): Promise<BillTemplateDto> {
   normalizeTemplatePatch(input, 'create');
+
+  await assertHouseholdAccounts(householdId, [
+    input.paymentAccountId,
+    input.linkedLiabilityAccountId,
+    input.chargedToAccountId,
+  ]);
 
   const now = nowIso();
   const templateId = nanoid();
@@ -881,7 +950,7 @@ export async function createBillTemplate(
     recurrenceDueWeekday: input.recurrenceDueWeekday ?? null,
     recurrenceSpecificDueDate: input.recurrenceSpecificDueDate ?? null,
     recurrenceStartMonth: input.recurrenceStartMonth ?? null,
-    defaultAmountCents: Math.max(0, input.defaultAmountCents),
+    defaultAmountCents: Math.max(0, assertIntegerCents(input.defaultAmountCents)),
     isVariableAmount: input.isVariableAmount ?? false,
     amountToleranceBps: input.amountToleranceBps ?? 500,
     categoryId: input.categoryId ?? null,
@@ -939,6 +1008,12 @@ export async function updateBillTemplate(
     throw new Error('Template not found');
   }
 
+  await assertHouseholdAccounts(householdId, [
+    input.paymentAccountId,
+    input.linkedLiabilityAccountId,
+    input.chargedToAccountId,
+  ]);
+
   const nextValues: Partial<typeof billTemplates.$inferInsert> = {
     updatedAt: nowIso(),
   };
@@ -958,7 +1033,8 @@ export async function updateBillTemplate(
     nextValues.recurrenceSpecificDueDate = input.recurrenceSpecificDueDate;
   }
   if (input.recurrenceStartMonth !== undefined) nextValues.recurrenceStartMonth = input.recurrenceStartMonth;
-  if (input.defaultAmountCents !== undefined) nextValues.defaultAmountCents = Math.max(0, input.defaultAmountCents);
+  if (input.defaultAmountCents !== undefined)
+    nextValues.defaultAmountCents = Math.max(0, assertIntegerCents(input.defaultAmountCents));
   if (input.isVariableAmount !== undefined) nextValues.isVariableAmount = input.isVariableAmount;
   if (input.amountToleranceBps !== undefined) nextValues.amountToleranceBps = input.amountToleranceBps;
   if (input.categoryId !== undefined) nextValues.categoryId = input.categoryId;

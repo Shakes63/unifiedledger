@@ -109,6 +109,29 @@ describe('generateOccurrenceDates determinism (C-BILL-1)', () => {
     expect(dates).toEqual(['2027-01-15']);
   });
 
+  it('recurring bills never generate occurrences before the template existed (R3)', () => {
+    const tpl = template({
+      recurrenceType: 'monthly',
+      recurrenceDueDay: 1,
+      createdAt: '2026-06-15T12:00:00.000Z',
+    });
+    // A caller-supplied past window (ensure-instances accepts any year >= 2000)
+    // used to retro-create instantly-overdue occurrences.
+    const dates = generateOccurrenceDates(tpl, new Date(2024, 0, 1), new Date(2026, 7, 31));
+    expect(dates).toEqual(['2026-07-01', '2026-08-01']);
+  });
+
+  it('a full-year window is not truncated by the horizon cap (R5)', () => {
+    const tpl = template({
+      recurrenceType: 'monthly',
+      recurrenceDueDay: 1,
+      createdAt: '2026-01-02T12:00:00.000Z',
+    });
+    const dates = generateOccurrenceDates(tpl, new Date(2027, 0, 1), new Date(2027, 11, 31));
+    // The old monthly cap of 8 stopped a January "generate 2027" at August.
+    expect(dates).toHaveLength(12);
+  });
+
   it('biweekly keeps a stable 14-day phase as the query window slides (no weekly degeneration)', () => {
     const tpl = template({
       recurrenceType: 'biweekly',
