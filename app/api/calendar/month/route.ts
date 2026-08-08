@@ -1,8 +1,7 @@
-import { format } from 'date-fns';
-
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { requireAuth } from '@/lib/auth-helpers';
 import { normalizeCalendarBillDisplayMode } from '@/lib/calendar/bill-display-mode';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import { getMonthCalendarSummary } from '@/lib/calendar/data-service';
 
 export const dynamic = 'force-dynamic';
@@ -31,19 +30,26 @@ export async function GET(request: Request) {
       );
     }
 
-    const startDate = new Date(startDateStr);
-    const endDate = new Date(endDateStr);
+    // Use the client's date-only keys verbatim (bug-hunt finding T4): the old
+    // code re-formatted the client's UTC instant in the server's timezone,
+    // shifting the range and the reported `month` a day under TZ skew.
+    const startDate = /^\d{4}-\d{2}-\d{2}$/.test(startDateStr)
+      ? startDateStr
+      : toLocalDateString(new Date(startDateStr));
+    const endDate = /^\d{4}-\d{2}-\d{2}$/.test(endDateStr)
+      ? endDateStr
+      : toLocalDateString(new Date(endDateStr));
     const daySummaries = await getMonthCalendarSummary({
       userId,
       householdId,
-      startDate: format(startDate, 'yyyy-MM-dd'),
-      endDate: format(endDate, 'yyyy-MM-dd'),
+      startDate,
+      endDate,
       billDisplayMode,
     });
 
     return Response.json({
       daySummaries,
-      month: format(startDate, 'yyyy-MM'),
+      month: startDate.slice(0, 7),
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

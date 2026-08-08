@@ -112,7 +112,7 @@ interface CalendarWeekProps {
 export function CalendarWeek({
   currentDate,
   daySummaries = {},
-  onDayClick: _onDayClick,
+  onDayClick,
   billDisplayMode,
 }: CalendarWeekProps) {
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
@@ -178,7 +178,23 @@ export function CalendarWeek({
           return (
             <div
               key={dayKey}
-              className="p-3 rounded-lg border-2 transition-all flex flex-col min-h-[300px]"
+              // The day-detail modal must open from week view too (bug-hunt
+              // finding U2): onDayClick was previously renamed to _onDayClick
+              // and never wired, so clicking a week day did nothing.
+              onClick={onDayClick ? () => onDayClick(day) : undefined}
+              role={onDayClick ? 'button' : undefined}
+              tabIndex={onDayClick ? 0 : undefined}
+              onKeyDown={
+                onDayClick
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onDayClick(day);
+                      }
+                    }
+                  : undefined
+              }
+              className={`p-3 rounded-lg border-2 transition-all flex flex-col min-h-[300px]${onDayClick ? ' cursor-pointer' : ''}`}
             style={{
               backgroundColor: isTodayDate ? 'color-mix(in oklch, var(--color-primary) 10%, transparent)' : 'var(--color-background)',
               borderColor: isTodayDate ? 'var(--color-primary)' : 'var(--color-border)',

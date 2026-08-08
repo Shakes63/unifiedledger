@@ -29,7 +29,11 @@ import {
   getBillCalendarQueryEndDate,
   type CalendarBillDisplayMode,
 } from '@/lib/calendar/bill-display-mode';
-import { parseLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
+import {
+  getRelativeLocalDateString,
+  parseLocalDateString,
+  toLocalDateString,
+} from '@/lib/utils/local-date';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export interface GoalSummary {
@@ -338,6 +342,12 @@ export async function getMonthCalendarSummary(params: {
       ? await getBudgetSettings(userId, householdId)
       : undefined;
   const billQueryEndDate = getBillCalendarQueryEndDate(endDate, billDisplayMode);
+  // Milestone achievedAt is a UTC-ISO timestamp but the range bounds are
+  // local-naive; widen by a day each side so a milestone achieved in the
+  // local evening of a month-edge day isn't excluded, then bucket by local
+  // date (bug-hunt finding T3).
+  const milestoneRangeStart = `${getRelativeLocalDateString(-1, parseLocalDateString(startDate))}T00:00:00`;
+  const milestoneRangeEnd = `${getRelativeLocalDateString(1, parseLocalDateString(endDate))}T23:59:59.999Z`;
 
   const [monthTransactions, occurrencesWithTemplates, monthGoals, monthDebts, monthMilestones, unifiedMilestones] =
     await Promise.all([
@@ -403,8 +413,8 @@ export async function getMonthCalendarSummary(params: {
             eq(debtPayoffMilestones.householdId, householdId),
             eq(debts.householdId, householdId),
             isNotNull(debtPayoffMilestones.achievedAt),
-            gte(debtPayoffMilestones.achievedAt, `${startDate}T00:00:00`),
-            lte(debtPayoffMilestones.achievedAt, `${endDate}T23:59:59`)
+            gte(debtPayoffMilestones.achievedAt, milestoneRangeStart),
+            lte(debtPayoffMilestones.achievedAt, milestoneRangeEnd)
           )
         ),
       db
@@ -415,8 +425,8 @@ export async function getMonthCalendarSummary(params: {
             eq(billMilestones.userId, userId),
             eq(billMilestones.householdId, householdId),
             isNotNull(billMilestones.achievedAt),
-            gte(billMilestones.achievedAt, `${startDate}T00:00:00`),
-            lte(billMilestones.achievedAt, `${endDate}T23:59:59`)
+            gte(billMilestones.achievedAt, milestoneRangeStart),
+            lte(billMilestones.achievedAt, milestoneRangeEnd)
           )
         ),
     ]);
@@ -569,7 +579,7 @@ export async function getMonthCalendarSummary(params: {
 
     const autopayRule = autopayRuleMap.get(template.id);
     if (!autopayRule) continue;
-    const autopayDate = format(subDays(new Date(occurrence.dueDate), autopayRule.daysBeforeDue || 0), 'yyyy-MM-dd');
+    const autopayDate = format(subDays(parseLocalDateString(occurrence.dueDate), autopayRule.daysBeforeDue || 0), 'yyyy-MM-dd');
     if (autopayDate < startDate || autopayDate > endDate) continue;
 
     const autopaySummary = upsertSummary(daySummaries, autopayDate);
@@ -1039,7 +1049,7 @@ export async function getDayCalendarDetails(params: {
     .map<CalendarAutopayEventDetail | null>((row) => {
       const rule = autopayRuleMap.get(row.template.id);
       if (!rule) return null;
-      const autopayDate = format(subDays(new Date(row.occurrence.dueDate), rule.daysBeforeDue || 0), 'yyyy-MM-dd');
+      const autopayDate = format(subDays(parseLocalDateString(row.occurrence.dueDate), rule.daysBeforeDue || 0), 'yyyy-MM-dd');
       if (autopayDate !== dateKey) return null;
       return {
         id: `autopay-${row.occurrence.id}`,
