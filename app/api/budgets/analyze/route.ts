@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
+import { getCategorySpendingCents } from '@/lib/budgets/category-spending';
 import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
@@ -95,7 +96,6 @@ async function calculateBudgetAdherence(
     .from(budgetCategories)
     .where(
       and(
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.householdId, householdId),
         eq(budgetCategories.isActive, true)
       )
@@ -112,22 +112,20 @@ async function calculateBudgetAdherence(
   let onTrackCount = 0;
 
   for (const category of categoriesWithBudgets) {
-    // Get actual spending for this category
-    const spendingResult = await db
-      .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId),
-          eq(transactions.categoryId, category.id),
-          eq(transactions.type, category.type === 'income' ? 'income' : 'expense'),
-          gte(transactions.date, monthStart),
-          lte(transactions.date, monthEnd)
-        )
-      );
+    // Use the shared split-aware oracle (bug-hunt finding M1): this route used
+    // to re-implement spending as a raw SUM grouped by categoryId, which was
+    // neither split-aware nor household-scoped — so it contradicted
+    // /api/budgets/overview on the same headline number and could flag a
+    // category as critically over budget when it was exactly on target.
+    const actualSpentCents = await getCategorySpendingCents({
+      categoryId: category.id,
+      householdId,
+      startDate: monthStart,
+      endDate: monthEnd,
+      categoryType: category.type,
+    });
 
-    const actualSpent = amountFromTotalCents(spendingResult[0]?.totalCents);
+    const actualSpent = amountFromTotalCents(actualSpentCents);
     const budgeted = new Decimal(category.monthlyBudget!);
 
     if (actualSpent.lte(budgeted)) {
@@ -291,7 +289,6 @@ export async function GET(request: Request) {
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )
@@ -313,22 +310,16 @@ export async function GET(request: Request) {
         const monthStart = `${monthData.str}-01`;
         const { endDate: monthEnd } = getMonthRangeForYearMonth(monthData.year, monthData.month);
 
-        // Get actual spending
-        const spendingResult = await db
-          .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
-          .from(transactions)
-          .where(
-            and(
-              eq(transactions.userId, userId),
-              eq(transactions.householdId, householdId),
-              eq(transactions.categoryId, category.id),
-              eq(transactions.type, category.type === 'income' ? 'income' : 'expense'),
-              gte(transactions.date, monthStart),
-              lte(transactions.date, monthEnd)
-            )
-          );
+        // Shared split-aware oracle (M1) — see the adherence loop above.
+        const actualCents = await getCategorySpendingCents({
+          categoryId: category.id,
+          householdId,
+          startDate: monthStart,
+          endDate: monthEnd,
+          categoryType: category.type,
+        });
 
-        const actual = amountFromTotalCents(spendingResult[0]?.totalCents);
+        const actual = amountFromTotalCents(actualCents);
         const budgeted = new Decimal(category.monthlyBudget || 0);
         const variance = actual.minus(budgeted);
         const percentOfBudget = budgeted.gt(0) ? actual.div(budgeted).times(100) : new Decimal(0);

@@ -148,7 +148,6 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(budgetCategories.id, parentId),
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.householdId, householdId)
           )
         )
@@ -193,7 +192,6 @@ export async function POST(request: Request) {
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.name, name)
         )
@@ -272,7 +270,6 @@ export async function PUT(request: Request) {
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId)
         )
       )

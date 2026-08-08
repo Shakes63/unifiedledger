@@ -130,7 +130,6 @@ export async function GET(request: Request) {
         .from(budgetCategories)
         .where(
           and(
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.householdId, householdId),
             inArray(budgetCategories.id, categoryIds)
           )

@@ -141,6 +141,13 @@
       "when": 1773081600000,
       "tag": "0019_strict_money_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1773168000000,
+      "tag": "0020_unique_rollover_history",
+      "breakpoints": true
     }
   ]
 }

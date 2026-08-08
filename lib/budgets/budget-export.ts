@@ -68,7 +68,6 @@ async function getBudgetDataForMonth(
     .from(budgetCategories)
     .where(
       and(
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.householdId, householdId),
         eq(budgetCategories.isActive, true)
       )

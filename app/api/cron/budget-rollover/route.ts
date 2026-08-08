@@ -1,229 +1,196 @@
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { households } from '@/lib/db/schema';
 import { processMonthlyRollover } from '@/lib/budgets/rollover-utils';
+import { requireCronAuth } from '@/lib/api/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Budget Rollover Cron Job
- * 
- * This endpoint processes monthly budget rollovers for all households.
- * It should be called on the 1st of each month to calculate rollovers
- * for the previous month.
- * 
- * Example cron schedule: 0 0 1 * * (midnight on the 1st of every month)
- * 
- * Security: This endpoint should be protected by a CRON_SECRET in production.
+ *
+ * Processes monthly budget rollovers for every household. Runs daily; the
+ * per-(category, month) history row (UNIQUE since migration 0020) makes
+ * repeat runs no-ops, so a daily cadence simply guarantees the month gets
+ * processed shortly after it closes.
+ *
+ * Security: fail-closed CRON_SECRET via the shared helper — the same guard
+ * every other /api/cron/* route uses. This route previously gated its check on
+ * NODE_ENV === 'production', leaving it fully unauthenticated on any other
+ * build (bug-hunt finding SEC1).
  */
-export async function GET(request: Request) {
-  try {
-    // Verify cron secret in production
-    const cronSecret = process.env.CRON_SECRET;
-    const authHeader = request.headers.get('authorization');
 
-    if (process.env.NODE_ENV === 'production') {
-      if (!cronSecret) {
-        console.error('CRON_SECRET not configured');
-        return Response.json(
-          { error: 'Server configuration error' },
-          { status: 500 }
-        );
-      }
+/** How many closed months back a run will catch up on (bug-hunt finding R2). */
+const CATCH_UP_MONTHS = 3;
 
-      if (authHeader !== `Bearer ${cronSecret}`) {
-        return Response.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
-    }
+function monthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
 
-    // Calculate the previous month (the month we're processing rollover for)
-    const now = new Date();
-    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const monthToProcess = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+/**
+ * The closed months this run should process, oldest first. The route used to
+ * process ONLY `now − 1 month`, so a month with no successful run (container
+ * down across a boundary) was never processed by any future run — silently,
+ * forever. Processing a short trailing window is safe because an
+ * already-recorded month is skipped.
+ */
+function monthsToProcess(now: Date): string[] {
+  const months: string[] = [];
+  for (let i = CATCH_UP_MONTHS; i >= 1; i--) {
+    months.push(monthKey(new Date(now.getFullYear(), now.getMonth() - i, 1)));
+  }
+  return months;
+}
 
-    console.log(`[Budget Rollover] Starting rollover processing for month: ${monthToProcess}`);
+interface HouseholdRunResult {
+  householdId: string;
+  householdName: string;
+  month: string;
+  processed: number;
+  skipped: number;
+  errors: string[];
+}
 
-    // Get all households
-    const allHouseholds = await db.select().from(households);
+async function runRollover(
+  months: string[],
+  options: { householdId?: string; force?: boolean } = {}
+): Promise<{ results: HouseholdRunResult[]; totals: { processed: number; skipped: number; errors: number } }> {
+  const targetHouseholds = options.householdId
+    ? await db.select().from(households).where(eq(households.id, options.householdId))
+    : await db.select().from(households);
 
-    const results: Array<{
-      householdId: string;
-      householdName: string;
-      processed: number;
-      skipped: number;
-      errors: string[];
-    }> = [];
+  const results: HouseholdRunResult[] = [];
+  const totals = { processed: 0, skipped: 0, errors: 0 };
 
-    let totalProcessed = 0;
-    let totalSkipped = 0;
-    let totalErrors = 0;
-
-    // Process each household
-    for (const household of allHouseholds) {
+  for (const household of targetHouseholds) {
+    for (const month of months) {
       try {
-        const result = await processMonthlyRollover(household.id, monthToProcess);
-
-        results.push({
-          householdId: household.id,
-          householdName: household.name,
-          processed: result.processed,
-          skipped: result.skipped,
-          errors: result.errors,
+        const result = await processMonthlyRollover(household.id, month, {
+          force: options.force,
         });
 
-        totalProcessed += result.processed;
-        totalSkipped += result.skipped;
-        totalErrors += result.errors.length;
+        // Only report months that actually did something, so catch-up months
+        // don't drown the log in no-ops.
+        if (result.processed > 0 || result.errors.length > 0) {
+          results.push({
+            householdId: household.id,
+            householdName: household.name,
+            month,
+            processed: result.processed,
+            skipped: result.skipped,
+            errors: result.errors,
+          });
+        }
+
+        totals.processed += result.processed;
+        totals.skipped += result.skipped;
+        totals.errors += result.errors.length;
 
         if (result.processed > 0) {
           console.log(
-            `[Budget Rollover] Household "${household.name}": ${result.processed} categories processed, ${result.skipped} skipped`
+            `[Budget Rollover] "${household.name}" ${month}: ${result.processed} processed, ${result.skipped} skipped`
           );
         }
-
         if (result.errors.length > 0) {
-          console.error(
-            `[Budget Rollover] Household "${household.name}" errors:`,
-            result.errors
-          );
+          console.error(`[Budget Rollover] "${household.name}" ${month} errors:`, result.errors);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        console.error(
-          `[Budget Rollover] Failed to process household "${household.name}":`,
-          errorMessage
-        );
-        
+        console.error(`[Budget Rollover] Failed "${household.name}" ${month}:`, errorMessage);
         results.push({
           householdId: household.id,
           householdName: household.name,
+          month,
           processed: 0,
           skipped: 0,
           errors: [errorMessage],
         });
-
-        totalErrors++;
+        totals.errors += 1;
       }
     }
+  }
+
+  return { results, totals };
+}
+
+export async function GET(request: Request) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
+  try {
+    const months = monthsToProcess(new Date());
+    console.log(`[Budget Rollover] Starting; months in scope: ${months.join(', ')}`);
+
+    const { results, totals } = await runRollover(months);
 
     console.log(
-      `[Budget Rollover] Complete. Total: ${totalProcessed} processed, ${totalSkipped} skipped, ${totalErrors} errors`
+      `[Budget Rollover] Complete. ${totals.processed} processed, ${totals.skipped} skipped, ${totals.errors} errors`
     );
 
     return Response.json({
       success: true,
-      month: monthToProcess,
+      months,
       summary: {
-        householdsProcessed: allHouseholds.length,
-        totalCategoriesProcessed: totalProcessed,
-        totalSkipped,
-        totalErrors,
+        totalCategoriesProcessed: totals.processed,
+        totalSkipped: totals.skipped,
+        totalErrors: totals.errors,
       },
       details: results,
     });
   } catch (error) {
     console.error('[Budget Rollover] Fatal error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 /**
- * POST endpoint for manual/ad-hoc rollover processing
- * 
- * Body: { month?: string, householdId?: string }
- * - month: YYYY-MM format (defaults to previous month)
- * - householdId: specific household to process (defaults to all)
+ * POST — manual/ad-hoc rollover.
+ *
+ * Body: { month?: string, householdId?: string, force?: boolean }
+ * - month: YYYY-MM (defaults to the same catch-up window as the scheduled run)
+ * - householdId: restrict to one household (defaults to all)
+ * - force: recompute a month that already has history rows, e.g. after
+ *   backdating or importing transactions for a closed month (finding R3)
+ *
+ * Requires CRON_SECRET — the caller is the server operator, which is what
+ * makes an operator-supplied householdId acceptable here.
  */
 export async function POST(request: Request) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   try {
-    // Verify cron secret in production
-    const cronSecret = process.env.CRON_SECRET;
-    const authHeader = request.headers.get('authorization');
-
-    if (process.env.NODE_ENV === 'production') {
-      if (!cronSecret) {
-        return Response.json(
-          { error: 'Server configuration error' },
-          { status: 500 }
-        );
-      }
-
-      if (authHeader !== `Bearer ${cronSecret}`) {
-        return Response.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
-    }
-
     const body = await request.json().catch(() => ({}));
-    
-    // Get month to process
-    let monthToProcess = body.month as string | undefined;
-    if (!monthToProcess) {
-      const now = new Date();
-      const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      monthToProcess = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+
+    const requestedMonth = body.month as string | undefined;
+    if (requestedMonth && !/^\d{4}-\d{2}$/.test(requestedMonth)) {
+      return Response.json({ error: 'Invalid month format. Use YYYY-MM' }, { status: 400 });
     }
 
-    // Validate month format
-    if (!/^\d{4}-\d{2}$/.test(monthToProcess)) {
-      return Response.json(
-        { error: 'Invalid month format. Use YYYY-MM' },
-        { status: 400 }
-      );
-    }
-
+    const months = requestedMonth ? [requestedMonth] : monthsToProcess(new Date());
     const householdId = body.householdId as string | undefined;
+    const force = body.force === true;
 
-    if (householdId) {
-      // Process single household
-      const result = await processMonthlyRollover(householdId, monthToProcess);
-      
-      return Response.json({
-        success: true,
-        month: monthToProcess,
-        householdId,
-        ...result,
-      });
-    } else {
-      // Process all households
-      const allHouseholds = await db.select().from(households);
-      
-      const results: Array<{
-        householdId: string;
-        householdName: string;
-        processed: number;
-        skipped: number;
-        errors: string[];
-      }> = [];
+    const { results, totals } = await runRollover(months, { householdId, force });
 
-      for (const household of allHouseholds) {
-        const result = await processMonthlyRollover(household.id, monthToProcess);
-        results.push({
-          householdId: household.id,
-          householdName: household.name,
-          ...result,
-        });
-      }
-
-      return Response.json({
-        success: true,
-        month: monthToProcess,
-        results,
-      });
-    }
+    return Response.json({
+      success: true,
+      months,
+      force,
+      householdId,
+      summary: {
+        totalCategoriesProcessed: totals.processed,
+        totalSkipped: totals.skipped,
+        totalErrors: totals.errors,
+      },
+      results,
+    });
   } catch (error) {
     console.error('[Budget Rollover] Manual trigger error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

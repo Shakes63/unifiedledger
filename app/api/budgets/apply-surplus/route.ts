@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { calculatePayoffStrategy, type DebtInput, type PayoffMethod, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
+import { calculateBudgetSurplusSummary } from '@/lib/budgets/surplus-summary';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,9 +19,27 @@ export async function POST(request: Request) {
     // 1. Get amount from request
     const { amount } = body;
 
-    if (typeof amount !== 'number' || amount < 0) {
+    // Number.isFinite (SEC2): Infinity/NaN pass `typeof === 'number'` and were
+    // persisted straight into debtSettings.extraMonthlyPayment, poisoning every
+    // later payoff calculation for the household.
+    if (!Number.isFinite(amount) || amount < 0) {
       return Response.json(
-        { error: 'Invalid amount. Must be a positive number.' },
+        { error: 'Invalid amount. Must be a non-negative finite number.' },
+        { status: 400 }
+      );
+    }
+
+    // The endpoint is "apply this month's surplus to debt", so the amount is
+    // bounded by the surplus that actually exists (SEC4). Without this a client
+    // could post any figure and it landed in extraMonthlyPayment verbatim,
+    // producing payoff projections funded by money the household doesn't have.
+    const surplus = await calculateBudgetSurplusSummary({ userId, householdId });
+    if (amount > surplus.availableToApply) {
+      return Response.json(
+        {
+          error: 'Amount exceeds the available surplus',
+          availableToApply: surplus.availableToApply,
+        },
         { status: 400 }
       );
     }

@@ -50,7 +50,7 @@ import {
   getNextBudgetPeriod,
 } from '@/lib/budgets/budget-schedule';
 import {
-  dueDateMatchesPeriodMonth,
+  dueDateBelongsToAssignedPeriod,
   instanceBelongsToPeriod,
 } from '@/lib/budgets/bill-period-assignment';
 import {
@@ -980,7 +980,7 @@ function occurrenceMatchesPeriod(
 ) {
   if (allocations.length > 0) {
     const hasCurrentPeriodAllocation = allocations.some((allocation) => allocation.periodNumber === period.periodNumber);
-    return hasCurrentPeriodAllocation && dueDateMatchesPeriodMonth(row.occurrence.dueDate, period);
+    return hasCurrentPeriodAllocation && dueDateBelongsToAssignedPeriod(row.occurrence.dueDate, period);
   }
 
   return instanceBelongsToPeriod({

@@ -535,7 +535,6 @@ async function updateRepeatCategoryUsage({
     .where(
       and(
         eq(budgetCategories.id, appliedCategoryId),
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.householdId, householdId)
       )
     )
@@ -554,7 +553,6 @@ async function updateRepeatCategoryUsage({
     .where(
       and(
         eq(budgetCategories.id, appliedCategoryId),
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.householdId, householdId)
       )
     );

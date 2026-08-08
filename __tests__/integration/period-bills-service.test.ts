@@ -70,8 +70,11 @@ describe('Integration: period bills service', () => {
       status: 'unpaid',
     });
 
-    const firstWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-02T12:00:00'));
-    const fifthWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-29T12:00:00'));
+    // Periods are numbered by their START DAY (Monday) within the month it
+    // falls in: May 2025 has Mondays on 5, 12, 19, 26 -> periods 1..4. (The
+    // Apr 28 - May 4 period belongs to APRIL as its 4th, so it is not May's.)
+    const firstWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-06T12:00:00'));
+    const lastWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-29T12:00:00'));
 
     const firstWeekRows = await getPeriodBillsForBudgetPeriod({
       householdId,
@@ -81,18 +84,22 @@ describe('Integration: period bills service', () => {
       statuses: ['pending', 'overdue'],
     });
 
-    const fifthWeekRows = await getPeriodBillsForBudgetPeriod({
+    const lastWeekRows = await getPeriodBillsForBudgetPeriod({
       householdId,
       userId,
       settings: weeklySettings,
-      period: fifthWeekPeriod,
+      period: lastWeekPeriod,
       statuses: ['pending', 'overdue'],
     });
 
+    expect(firstWeekPeriod.startStr).toBe('2025-05-05');
     expect(firstWeekPeriod.periodNumber).toBe(1);
-    expect(fifthWeekPeriod.periodNumber).toBe(5);
+    expect(lastWeekPeriod.startStr).toBe('2025-05-26');
+    expect(lastWeekPeriod.periodNumber).toBe(4);
+    // The bill is due May 30 but assigned to period 1 — pay it from the first
+    // paycheck of the month. It belongs to period 1 and NOT the last period.
     expect(firstWeekRows.map((row) => row.instance.id)).toContain(occurrenceId);
-    expect(fifthWeekRows.map((row) => row.instance.id)).not.toContain(occurrenceId);
+    expect(lastWeekRows.map((row) => row.instance.id)).not.toContain(occurrenceId);
   });
 
   it('returns split bills only in periods that have an allocation', async () => {
@@ -137,15 +144,19 @@ describe('Integration: period bills service', () => {
         occurrenceId,
         templateId,
         householdId,
-        periodNumber: 5,
+        // May 2025 has 4 Monday periods, so the split's second half goes to
+        // period 4 (the last), not a period 5 that no longer exists.
+        periodNumber: 4,
         allocatedAmountCents: 40000,
         paidAmountCents: 0,
         isPaid: false,
       },
     ]);
 
-    const firstWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-02T12:00:00'));
-    const thirdWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-15T12:00:00'));
+    // Periods are numbered by their Monday start within its month:
+    // May 5 = #1, May 12 = #2, May 19 = #3, May 26 = #4.
+    const firstWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-06T12:00:00'));
+    const thirdWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-21T12:00:00'));
     const fifthWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-29T12:00:00'));
 
     const firstWeekRows = await getPeriodBillsForBudgetPeriod({

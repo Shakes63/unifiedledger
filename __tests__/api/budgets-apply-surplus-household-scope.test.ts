@@ -19,6 +19,12 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+// The surplus bound (SEC4) is exercised in budgets-apply-surplus-validation;
+// stubbed here so this test stays about query scoping.
+vi.mock('@/lib/budgets/surplus-summary', () => ({
+  calculateBudgetSurplusSummary: vi.fn(async () => ({ availableToApply: 1000 })),
+}));
+
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';

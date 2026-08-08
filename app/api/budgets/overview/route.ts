@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { budgetCategories, billTemplates, billOccurrences } from '@/lib/db/schema';
-import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
+import { getMonthRangeForYearMonth, parseYearMonthParam } from '@/lib/utils/local-date';
 import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { getCategorySpendingCents } from '@/lib/budgets/category-spending';
@@ -75,20 +75,14 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const monthParam = url.searchParams.get('month');
 
-    let year: number;
-    let month: number;
-
-    if (monthParam) {
-      // Parse month from YYYY-MM format
-      const [yearStr, monthStr] = monthParam.split('-');
-      year = parseInt(yearStr);
-      month = parseInt(monthStr);
-    } else {
-      // Default to current month
-      const now = new Date();
-      year = now.getFullYear();
-      month = now.getMonth() + 1; // JavaScript months are 0-indexed
+    const parsedMonth = parseYearMonthParam(monthParam);
+    if (!parsedMonth) {
+      return Response.json(
+        { error: 'Invalid month. Expected YYYY-MM' },
+        { status: 400 }
+      );
     }
+    const { year, month } = parsedMonth;
 
     // Calculate month start and end dates
     const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
@@ -123,7 +117,6 @@ export async function GET(request: Request) {
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )

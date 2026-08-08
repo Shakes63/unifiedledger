@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
-import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
+import { getMonthRangeForYearMonth, parseYearMonthParam } from '@/lib/utils/local-date';
 import type { PaymentFrequency, PayoffMethod } from '@/lib/debts/payoff-calculator';
 import { getUnifiedDebtBudget } from '@/lib/debts/debt-budget-service';
 
@@ -43,18 +43,14 @@ export async function GET(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const monthParam = url.searchParams.get('month');
 
-    let year: number;
-    let month: number;
-
-    if (monthParam) {
-      const [yearStr, monthStr] = monthParam.split('-');
-      year = parseInt(yearStr);
-      month = parseInt(monthStr);
-    } else {
-      const now = new Date();
-      year = now.getFullYear();
-      month = now.getMonth() + 1;
+    const parsedMonth = parseYearMonthParam(monthParam);
+    if (!parsedMonth) {
+      return Response.json(
+        { error: 'Invalid month. Expected YYYY-MM' },
+        { status: 400 }
+      );
     }
+    const { year, month } = parsedMonth;
 
     // Calculate month start and end dates
     const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);

@@ -111,15 +111,40 @@ describe('lib/budgets/budget-schedule', () => {
       expect(period.startStr).toBe('2025-01-12');
     });
 
-    it('calculates dynamic periodsInMonth for five-week months', () => {
+    it('counts periods by START DAY within the month (May 2025 has 4 Mondays)', () => {
       const period = getCurrentBudgetPeriod(
         defaultSettings({ budgetCycleFrequency: 'weekly', budgetCycleStartDay: 1 }), // Monday
         new Date(2025, 4, 29), // May 29, 2025
       );
 
+      // Mondays in May 2025: 5, 12, 19, 26 -> the May 26 period is #4 of 4.
       expect(period.startStr).toBe('2025-05-26');
-      expect(period.periodNumber).toBe(5);
-      expect(period.periodsInMonth).toBe(5);
+      expect(period.periodNumber).toBe(4);
+      expect(period.periodsInMonth).toBe(4);
+      expect(period.owningMonth).toBe('2025-05');
+    });
+
+    it('a period keeps its number and month after crossing into the next month', () => {
+      const settings = defaultSettings({
+        budgetCycleFrequency: 'weekly',
+        budgetCycleStartDay: 1, // Monday
+      });
+      // The Monday-Apr-28 period runs Apr 28 - May 4. April 2025 has Mondays on
+      // 7, 14, 21, 28, so it is April's 4th period — and stays April's 4th on
+      // May 1, rather than becoming "week 1 of May".
+      const fromApril = getCurrentBudgetPeriod(settings, new Date(2025, 3, 30));
+      const fromMay = getCurrentBudgetPeriod(settings, new Date(2025, 4, 2));
+
+      expect(fromMay.startStr).toBe(fromApril.startStr);
+      expect(fromApril.periodNumber).toBe(4);
+      expect(fromMay.periodNumber).toBe(4);
+      expect(fromMay.owningMonth).toBe('2025-04');
+
+      // The next Monday opens May's period 1.
+      const nextPeriod = getCurrentBudgetPeriod(settings, new Date(2025, 4, 5));
+      expect(nextPeriod.startStr).toBe('2025-05-05');
+      expect(nextPeriod.periodNumber).toBe(1);
+      expect(nextPeriod.owningMonth).toBe('2025-05');
     });
   });
 
@@ -140,19 +165,37 @@ describe('lib/budgets/budget-schedule', () => {
       expect(period.startStr).toBe('2025-01-03');
     });
 
-    it('calculates dynamic periodsInMonth for three-paycheck months', () => {
-      const period = getCurrentBudgetPeriod(
-        defaultSettings({
-          budgetCycleFrequency: 'biweekly',
-          budgetCycleStartDay: 5, // Friday
-          budgetCycleReferenceDate: '2025-01-03T00:00:00',
-        }),
-        new Date(2025, 2, 29), // March 29, 2025
-      );
+    it('counts paydays per month — January 2025 is a three-paycheck month', () => {
+      const settings = defaultSettings({
+        budgetCycleFrequency: 'biweekly',
+        budgetCycleStartDay: 5, // Friday
+        budgetCycleReferenceDate: '2025-01-03T00:00:00',
+      });
+      // Paydays: Jan 3, 17, 31 -> three in January.
+      const third = getCurrentBudgetPeriod(settings, new Date(2025, 0, 31));
+      expect(third.startStr).toBe('2025-01-31');
+      expect(third.periodNumber).toBe(3);
+      expect(third.periodsInMonth).toBe(3);
+      expect(third.owningMonth).toBe('2025-01');
+    });
 
-      expect(period.startStr).toBe('2025-03-28');
-      expect(period.periodNumber).toBe(3);
-      expect(period.periodsInMonth).toBe(3);
+    it('a payday late in the month owns its period into the next month', () => {
+      const settings = defaultSettings({
+        budgetCycleFrequency: 'biweekly',
+        budgetCycleStartDay: 5, // Friday
+        budgetCycleReferenceDate: '2025-01-03T00:00:00',
+      });
+      // Payday Mar 28 runs Mar 28 - Apr 10. March paydays are Mar 14 and Mar 28,
+      // so it is March's 2nd — and remains so on April 5.
+      const atStart = getCurrentBudgetPeriod(settings, new Date(2025, 2, 29));
+      const inApril = getCurrentBudgetPeriod(settings, new Date(2025, 3, 5));
+
+      expect(atStart.startStr).toBe('2025-03-28');
+      expect(inApril.startStr).toBe('2025-03-28');
+      expect(atStart.periodNumber).toBe(2);
+      expect(inApril.periodNumber).toBe(2);
+      expect(inApril.owningMonth).toBe('2025-03');
+      expect(atStart.periodsInMonth).toBe(2);
     });
   });
 
@@ -381,5 +424,83 @@ describe('lib/budgets/budget-schedule', () => {
       });
       expect(result.valid).toBe(false);
     });
+  });
+});
+
+describe('bug-hunt regressions (P1-P4)', () => {
+  const biweekly = (overrides: Partial<BudgetScheduleSettings> = {}): BudgetScheduleSettings => ({
+    budgetCycleFrequency: 'biweekly',
+    budgetCycleStartDay: 1, // Monday
+    budgetCycleReferenceDate: null,
+    budgetCycleSemiMonthlyDays: null,
+    budgetPeriodRollover: false,
+    budgetPeriodManualAmount: null,
+    ...overrides,
+  });
+
+  it('P1: biweekly with NO reference date tiles the calendar in stable 14-day blocks', () => {
+    // The anchor used to be recomputed from `today`, so the window slid 7 days
+    // per week and consecutive "current periods" overlapped — the cycle reset
+    // weekly instead of biweekly.
+    const settings = biweekly();
+    const seen = new Map<string, string>();
+    for (let day = 0; day < 70; day++) {
+      const date = new Date(2026, 2, 2 + day); // Mar 2 2026 onward
+      const period = getCurrentBudgetPeriod(settings, date);
+      // Every date maps to exactly one period, and that period spans 14 days.
+      // `end` is endOfDay of the 14th day, so start->end rounds to 14 (this
+      // also absorbs the DST hour when a period crosses a transition).
+      const spanDays = Math.round(
+        (period.end.getTime() - period.start.getTime()) / 86_400_000
+      );
+      expect(spanDays).toBe(14);
+      const existing = seen.get(period.startStr);
+      if (existing) {
+        expect(existing).toBe(period.endStr); // same start always same end
+      } else {
+        seen.set(period.startStr, period.endStr);
+      }
+    }
+    // Distinct period starts must be exactly 14 days apart — no weekly slide.
+    const starts = [...seen.keys()].sort();
+    for (let i = 1; i < starts.length; i++) {
+      // Round: 14 CALENDAR days across a DST spring-forward is 14×24h − 1h.
+      const gap = Math.round(
+        (new Date(`${starts[i]}T00:00:00`).getTime() -
+          new Date(`${starts[i - 1]}T00:00:00`).getTime()) /
+          86_400_000
+      );
+      expect(gap).toBe(14);
+    }
+  });
+
+  it('P2: a configured reference date is honoured in local time, not shifted a week', () => {
+    // '2026-03-25' is a Wednesday. With startDay=Wednesday the period must
+    // START that day. UTC-parsing landed on Tue and the aligned snap then threw
+    // the grid back a FULL week to Mar 18.
+    const settings = biweekly({
+      budgetCycleStartDay: 3, // Wednesday
+      budgetCycleReferenceDate: '2026-03-25',
+    });
+    const period = getCurrentBudgetPeriod(settings, new Date(2026, 2, 25));
+    expect(period.startStr).toBe('2026-03-25');
+    expect(period.endStr).toBe('2026-04-07');
+  });
+
+  it('P4: semi-monthly day 31 never produces a period starting in the future', () => {
+    const settings: BudgetScheduleSettings = {
+      budgetCycleFrequency: 'semi-monthly',
+      budgetCycleStartDay: null,
+      budgetCycleReferenceDate: null,
+      budgetCycleSemiMonthlyDays: '[5,31]',
+      budgetPeriodRollover: false,
+      budgetPeriodManualAmount: null,
+    };
+    const today = new Date(2026, 2, 1); // Mar 1 2026 (Feb has 28 days)
+    const period = getCurrentBudgetPeriod(settings, today);
+    // setDate(Feb 1, 31) used to overflow to Mar 3 — a period starting two days
+    // after "today", with today outside its own period.
+    expect(period.start.getTime()).toBeLessThanOrEqual(today.getTime());
+    expect(period.startStr).toBe('2026-02-28');
   });
 });

@@ -1400,7 +1400,9 @@ export const budgetRolloverHistory = sqliteTable(
     categoryIdx: index('idx_rollover_history_category').on(table.categoryId),
     householdIdx: index('idx_rollover_history_household').on(table.householdId),
     monthIdx: index('idx_rollover_history_month').on(table.month),
-    categoryMonthIdx: index('idx_rollover_history_category_month').on(table.categoryId, table.month),
+    // UNIQUE (migration 0020): the structural backstop that makes a
+    // double-applied rollover impossible (bug-hunt finding R1).
+    categoryMonthIdx: uniqueIndex('idx_rollover_history_category_month').on(table.categoryId, table.month),
   })
 );
 

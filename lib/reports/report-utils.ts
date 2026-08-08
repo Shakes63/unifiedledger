@@ -279,7 +279,6 @@ export async function getUserCategories(userId: string, householdId: string) {
     .from(budgetCategories)
     .where(
       and(
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.householdId, householdId)
       )
     )

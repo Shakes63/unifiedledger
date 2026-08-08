@@ -1,7 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
+import { getCategorySpendingCents } from '@/lib/budgets/category-spending';
+import { getMonthRangeForYearMonth, parseYearMonthParam } from '@/lib/utils/local-date';
 import { 
   transactions, 
   budgetCategories, 
@@ -102,18 +103,14 @@ export async function GET(request: Request) {
     const monthParam = url.searchParams.get('month');
     const includeTrends = url.searchParams.get('trends') === 'true';
 
-    let year: number;
-    let month: number;
-
-    if (monthParam) {
-      const [yearStr, monthStr] = monthParam.split('-');
-      year = parseInt(yearStr);
-      month = parseInt(monthStr);
-    } else {
-      const now = new Date();
-      year = now.getFullYear();
-      month = now.getMonth() + 1;
+    const parsedMonth = parseYearMonthParam(monthParam);
+    if (!parsedMonth) {
+      return Response.json(
+        { error: 'Invalid month. Expected YYYY-MM' },
+        { status: 400 }
+      );
     }
+    const { year, month } = parsedMonth;
 
     // Calculate month start and end dates
     const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
@@ -124,28 +121,24 @@ export async function GET(request: Request) {
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )
       );
 
-    // Helper function to get actual spending for a category
+    // Shared split-aware oracle (bug-hunt finding M1): this route used to
+    // re-implement spending as a raw SUM grouped by categoryId — not
+    // split-aware and user-scoped — so it disagreed with /api/budgets/overview
+    // about how much was spent in the same month.
     async function getCategoryActual(categoryId: string, transactionType: 'income' | 'expense'): Promise<number> {
-      const result = await db
-        .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.userId, userId),
-            eq(transactions.householdId, householdId),
-            eq(transactions.categoryId, categoryId),
-            eq(transactions.type, transactionType),
-            gte(transactions.date, monthStart),
-            lte(transactions.date, monthEnd)
-          )
-        );
-      return new Decimal(result[0]?.totalCents ?? 0).div(100).toNumber();
+      const cents = await getCategorySpendingCents({
+        categoryId,
+        householdId,
+        startDate: monthStart,
+        endDate: monthEnd,
+        categoryType: transactionType,
+      });
+      return new Decimal(cents).div(100).toNumber();
     }
 
     // Process categories by type
@@ -228,8 +221,11 @@ export async function GET(request: Request) {
 
     for (const debt of activeDebts) {
       // Get actual payments made to this debt this month
+      // Sum the AUTHORITATIVE cents column, not the derived float mirror
+      // (bug-hunt finding M3): SUM over REAL served values like
+      // 200.01999999999998 straight to the client.
       const paymentResult = await db
-        .select({ total: sum(debtPayments.amount) })
+        .select({ total: sum(debtPayments.amountCents) })
         .from(debtPayments)
         .where(
           and(
@@ -241,8 +237,9 @@ export async function GET(request: Request) {
           )
         );
 
-      const actualPaid = paymentResult[0]?.total 
-        ? new Decimal(paymentResult[0].total.toString()).toNumber() 
+      // The sum is integer CENTS now (M3) — convert once, exactly.
+      const actualPaid = paymentResult[0]?.total
+        ? new Decimal(paymentResult[0].total.toString()).div(100).toNumber()
         : 0;
 
       const minimumPayment = debt.minimumPayment || 0;
@@ -421,7 +418,6 @@ async function calculateTrends(
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.type, 'savings')
         )
