@@ -38,6 +38,7 @@ import {
   billOccurrences,
   billPaymentEvents,
   billTemplates,
+  interestDeductions,
   userHouseholdPreferences,
 } from '@/lib/db/schema';
 import {
@@ -1676,6 +1677,37 @@ export async function resetOccurrence(
         updatedAt: now,
       })
       .where(eq(billOccurrenceAllocations.occurrenceId, occurrenceId));
+
+    // Resetting must also delete the occurrence's payment events (bug-hunt
+    // finding L3): surviving events replayed against the zeroed state — a
+    // later delete of the original transaction subtracted its old amount from
+    // payments made AFTER the reset, and an edit re-marked the occurrence
+    // paid. The events' interest tax-deduction rows go with them.
+    const staleEvents = await tx
+      .select({ id: billPaymentEvents.id })
+      .from(billPaymentEvents)
+      .where(
+        and(
+          eq(billPaymentEvents.occurrenceId, occurrenceId),
+          eq(billPaymentEvents.householdId, householdId)
+        )
+      );
+    if (staleEvents.length > 0) {
+      await tx.delete(interestDeductions).where(
+        inArray(
+          interestDeductions.billPaymentId,
+          staleEvents.map((event) => event.id)
+        )
+      );
+      await tx
+        .delete(billPaymentEvents)
+        .where(
+          and(
+            eq(billPaymentEvents.occurrenceId, occurrenceId),
+            eq(billPaymentEvents.householdId, householdId)
+          )
+        );
+    }
   });
 
   const [updated] = await db

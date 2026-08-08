@@ -10,9 +10,6 @@
  * transaction-update-bill-linking-helpers stays separate: the reversal
  * integration test imports it directly.
  */
-import { eq } from 'drizzle-orm';
-
-import { db } from '@/lib/db';
 import { transactions } from '@/lib/db/schema';
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
 import {
@@ -160,15 +157,6 @@ async function executeMatchedBillLink({
   });
 }
 
-async function clearTransactionBillLink(transactionId: string): Promise<void> {
-  await db
-    .update(transactions)
-    .set({
-      billId: null,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(transactions.id, transactionId));
-}
 
 async function matchAndExecuteGeneralUpdatedBillLink({
   transactionId,
@@ -327,6 +315,18 @@ export async function autoLinkUpdatedExpenseBill({
       return;
     }
 
+    // An already-linked transaction stays linked: the update orchestrator's
+    // adjust step has ALREADY re-scaled the payment for an amount change, so
+    // unlinking + re-matching here unwound that work — and when the new amount
+    // fell outside the bill's match tolerance the link was silently dropped,
+    // leaving the occurrence unpaid while the account balance still carried
+    // the expense (bug-hunt finding L2). Only an explicit billInstanceId
+    // (handled above) re-targets a linked transaction; the general rematch is
+    // for UNLINKED transactions only.
+    if (transaction.billId) {
+      return;
+    }
+
     const shouldRematch = shouldRematchUpdatedExpenseBill({
       amountWasProvided,
       newAmount,
@@ -338,14 +338,6 @@ export async function autoLinkUpdatedExpenseBill({
 
     if (!shouldRematch) {
       return;
-    }
-
-    if (transaction.billId) {
-      await unlinkExistingBillInstance({
-        transactionId,
-        householdId,
-      });
-      await clearTransactionBillLink(transactionId);
     }
 
     await matchAndExecuteGeneralUpdatedBillLink({
