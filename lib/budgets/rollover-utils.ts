@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { budgetCategories, budgetRolloverHistory, householdSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
@@ -114,7 +115,16 @@ export async function getHouseholdRolloverSettings(householdId: string): Promise
  */
 export async function processMonthlyRollover(
   householdId: string,
-  month: string // YYYY-MM format
+  month: string, // YYYY-MM format
+  options: {
+    /**
+     * Recompute a month that already has history rows (bug-hunt finding R3):
+     * without this, the first run for a month is permanent, so transactions
+     * backdated or imported afterward never reach rolloverBalance. Reverses
+     * the recorded rollover before recomputing so the result is idempotent.
+     */
+    force?: boolean;
+  } = {}
 ): Promise<{
   processed: number;
   skipped: number;
@@ -168,24 +178,7 @@ export async function processMonthlyRollover(
 
   for (const category of categories) {
     try {
-      // Check if rollover already processed for this month
-      const existing = await db
-        .select()
-        .from(budgetRolloverHistory)
-        .where(
-          and(
-            eq(budgetRolloverHistory.categoryId, category.id),
-            eq(budgetRolloverHistory.month, month)
-          )
-        )
-        .limit(1);
-
-      if (existing.length > 0) {
-        skipped++;
-        continue;
-      }
-
-      // Get actual spending for this category
+      // Get actual spending for this category (read-only; safe outside the tx).
       const actualSpent = await getCategorySpending(
         category.id,
         householdId,
@@ -194,52 +187,116 @@ export async function processMonthlyRollover(
         category.type
       );
 
-      // Calculate rollover
-      const { rolloverAmount, newBalance, wasCapped } = calculateRollover({
-        monthlyBudget: category.monthlyBudget || 0,
-        actualSpent,
-        previousBalance: category.rolloverBalance || 0,
-        rolloverLimit: category.rolloverLimit,
-        allowNegativeRollover,
-        categoryType: category.type,
+      // The whole read-modify-write runs in ONE transaction (bug-hunt finding
+      // R1): the balance UPDATE and the history INSERT used to be separate
+      // autocommits, so an insert failure after a committed update left no
+      // history row and the next daily run re-applied the same month, DOUBLING
+      // rolloverBalance. The unique index on (categoryId, month) added in
+      // migration 0020 is the structural backstop.
+      const outcome = await runInDatabaseTransaction(async (tx) => {
+        // Re-read inside the transaction so a concurrent run can't compute
+        // from a stale balance.
+        const [current] = await tx
+          .select()
+          .from(budgetCategories)
+          .where(eq(budgetCategories.id, category.id))
+          .limit(1);
+        if (!current) {
+          return { status: 'skipped' as const };
+        }
+
+        const [existing] = await tx
+          .select()
+          .from(budgetRolloverHistory)
+          .where(
+            and(
+              eq(budgetRolloverHistory.categoryId, category.id),
+              eq(budgetRolloverHistory.month, month)
+            )
+          )
+          .limit(1);
+
+        let previousBalance = current.rolloverBalance || 0;
+
+        if (existing) {
+          if (!options.force) {
+            return { status: 'skipped' as const };
+          }
+          // Recompute (R3): reverse the recorded carry so the recomputation
+          // starts from the same baseline the original run saw, then replace
+          // the history row.
+          previousBalance = new Decimal(previousBalance)
+            .minus(existing.rolloverAmount || 0)
+            .toNumber();
+          await tx
+            .delete(budgetRolloverHistory)
+            .where(eq(budgetRolloverHistory.id, existing.id));
+        }
+
+        const { rolloverAmount, newBalance, wasCapped } = calculateRollover({
+          monthlyBudget: current.monthlyBudget || 0,
+          actualSpent,
+          previousBalance,
+          rolloverLimit: current.rolloverLimit,
+          allowNegativeRollover,
+          categoryType: current.type,
+        });
+
+        await tx
+          .update(budgetCategories)
+          .set({ rolloverBalance: newBalance })
+          .where(eq(budgetCategories.id, category.id));
+
+        await tx.insert(budgetRolloverHistory).values({
+          id: nanoid(),
+          categoryId: category.id,
+          householdId,
+          month,
+          previousBalance,
+          monthlyBudget: current.monthlyBudget || 0,
+          actualSpent,
+          rolloverAmount,
+          newBalance,
+          rolloverLimit: current.rolloverLimit,
+          wasCapped,
+          createdAt: new Date().toISOString(),
+        });
+
+        return {
+          status: 'processed' as const,
+          previousBalance,
+          monthlyBudget: current.monthlyBudget || 0,
+          rolloverAmount,
+          newBalance,
+          wasCapped,
+        };
       });
 
-      // Update category rollover balance
-      await db
-        .update(budgetCategories)
-        .set({ rolloverBalance: newBalance })
-        .where(eq(budgetCategories.id, category.id));
-
-      // Record in history
-      await db.insert(budgetRolloverHistory).values({
-        id: nanoid(),
-        categoryId: category.id,
-        householdId,
-        month,
-        previousBalance: category.rolloverBalance || 0,
-        monthlyBudget: category.monthlyBudget || 0,
-        actualSpent,
-        rolloverAmount,
-        newBalance,
-        rolloverLimit: category.rolloverLimit,
-        wasCapped,
-        createdAt: new Date().toISOString(),
-      });
+      if (outcome.status === 'skipped') {
+        skipped++;
+        continue;
+      }
 
       details.push({
         categoryId: category.id,
         categoryName: category.name,
-        previousBalance: category.rolloverBalance || 0,
-        monthlyBudget: category.monthlyBudget || 0,
+        previousBalance: outcome.previousBalance,
+        monthlyBudget: outcome.monthlyBudget,
         actualSpent,
-        rolloverAmount,
-        newBalance,
-        wasCapped,
+        rolloverAmount: outcome.rolloverAmount,
+        newBalance: outcome.newBalance,
+        wasCapped: outcome.wasCapped,
       });
 
       processed++;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      // A UNIQUE violation means a concurrent run already recorded this month
+      // — that's a skip, not a failure.
+      if (/UNIQUE constraint failed/i.test(errorMessage)) {
+        skipped++;
+        continue;
+      }
       errors.push(`Failed to process category ${category.name}: ${errorMessage}`);
     }
   }
