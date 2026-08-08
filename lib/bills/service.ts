@@ -351,6 +351,141 @@ function monthDate(year: number, monthIndex: number, dayOfMonth: number): Date {
 }
 
 /**
+ * Catch-up window (audit finding H-BILL-3): an exact processDate === runDate
+ * match silently skipped a bill FOREVER if the cron missed a single day
+ * (deploy, outage, DST shift). Process anything whose process date has
+ * arrived, within a bounded 14-day catch-up so a first deploy doesn't sweep
+ * up ancient overdue occurrences. Future process dates still wait. Shared by
+ * runAutopay and the cron GET preview so they can never disagree (the old
+ * preview lived in a dead parallel engine).
+ */
+function isWithinAutopayWindow(
+  dueDate: string,
+  daysBeforeDue: number,
+  runDate: string,
+  runDateObj: Date
+): boolean {
+  const processDate = format(
+    subDays(parseDateOrThrow(dueDate, 'dueDate'), daysBeforeDue),
+    'yyyy-MM-dd'
+  );
+  const catchUpFloor = format(subDays(runDateObj, 14), 'yyyy-MM-dd');
+  return processDate <= runDate && processDate >= catchUpFloor;
+}
+
+export interface AutopayPreviewEntry {
+  householdId: string;
+  billId: string;
+  billName: string;
+  occurrenceId: string;
+  dueDate: string;
+  autopayAmountType: string;
+  /** Present when the occurrence is actionable. */
+  expectedAmountCents?: number;
+  /** Present when the next run will SKIP this occurrence, with the reason. */
+  skipReason?: string;
+}
+
+/**
+ * Read-only preview of what the next scheduled autopay run will do, across
+ * every household with enabled rules — the same selection policy as
+ * runAutopay (window, one-payment-per-occurrence, amount resolution) with no
+ * writes. Replaces the dead parallel engine's getAutopayDueToday, whose
+ * answers could diverge from the run that actually moved money.
+ */
+export async function getScheduledAutopayPreview(
+  runDate: string = todayYmd()
+): Promise<{ entries: AutopayPreviewEntry[] }> {
+  const runDateObj = parseDateOrThrow(runDate, 'runDate');
+
+  const rules = await db
+    .select()
+    .from(autopayRules)
+    .where(eq(autopayRules.isEnabled, true));
+  if (rules.length === 0) {
+    return { entries: [] };
+  }
+
+  const templateRows = await db
+    .select()
+    .from(billTemplates)
+    .where(
+      and(
+        inArray(billTemplates.id, rules.map((rule) => rule.templateId)),
+        eq(billTemplates.isActive, true)
+      )
+    );
+  const templateById = new Map(templateRows.map((template) => [template.id, template]));
+  const ruleByTemplateId = new Map(rules.map((rule) => [rule.templateId, rule]));
+
+  const linkedAccountIds = templateRows
+    .map((template) => template.linkedLiabilityAccountId)
+    .filter((id): id is string => Boolean(id));
+  const linkedAccountRows = linkedAccountIds.length
+    ? await db.select().from(accounts).where(inArray(accounts.id, linkedAccountIds))
+    : [];
+  const linkedAccountById = new Map(linkedAccountRows.map((account) => [account.id, account]));
+
+  const occurrences = templateRows.length
+    ? await db
+        .select()
+        .from(billOccurrences)
+        .where(
+          and(
+            inArray(billOccurrences.templateId, templateRows.map((template) => template.id)),
+            inArray(billOccurrences.status, OUTSTANDING_OCCURRENCE_STATUSES)
+          )
+        )
+    : [];
+
+  const autopayKeyFor = (occurrenceId: string) => `autopay:${occurrenceId}`;
+  const existingAutopayEvents = occurrences.length
+    ? await db
+        .select({ idempotencyKey: billPaymentEvents.idempotencyKey })
+        .from(billPaymentEvents)
+        .where(
+          inArray(
+            billPaymentEvents.idempotencyKey,
+            occurrences.map((occurrence) => autopayKeyFor(occurrence.id))
+          )
+        )
+    : [];
+  const alreadyAutopaid = new Set(existingAutopayEvents.map((event) => event.idempotencyKey));
+
+  const entries: AutopayPreviewEntry[] = [];
+  for (const occurrence of occurrences) {
+    const rule = ruleByTemplateId.get(occurrence.templateId);
+    const template = templateById.get(occurrence.templateId);
+    if (!rule || !template) continue;
+    if (!isWithinAutopayWindow(occurrence.dueDate, rule.daysBeforeDue, runDate, runDateObj)) {
+      continue;
+    }
+    if (alreadyAutopaid.has(autopayKeyFor(occurrence.id))) {
+      continue;
+    }
+
+    const linkedAccount = template.linkedLiabilityAccountId
+      ? linkedAccountById.get(template.linkedLiabilityAccountId)
+      : undefined;
+    const resolution = resolveAutopayAmountCents({ rule, occurrence, linkedAccount });
+
+    entries.push({
+      householdId: occurrence.householdId,
+      billId: template.id,
+      billName: template.name,
+      occurrenceId: occurrence.id,
+      dueDate: occurrence.dueDate,
+      autopayAmountType: rule.amountType,
+      ...(resolution.skipReason !== undefined
+        ? { skipReason: resolution.skipReason }
+        : { expectedAmountCents: resolution.amountCents }),
+    });
+  }
+
+  return { entries };
+}
+
+/**
  * Resolve how many cents an autopay rule should move for an occurrence.
  *
  * Every amountType is implemented explicitly — the old code special-cased
@@ -2093,14 +2228,7 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
         continue;
       }
 
-      // Catch-up window (audit finding H-BILL-3): an exact processDate === runDate
-      // match silently skipped a bill FOREVER if the cron missed a single day
-      // (deploy, outage, DST shift). Process anything whose process date has
-      // arrived, within a bounded 14-day catch-up so a first deploy doesn't
-      // sweep up ancient overdue occurrences. Future process dates still wait.
-      const processDate = format(subDays(parseDateOrThrow(occurrence.dueDate, 'dueDate'), rule.daysBeforeDue), 'yyyy-MM-dd');
-      const catchUpFloor = format(subDays(runDateObj, 14), 'yyyy-MM-dd');
-      if (processDate > runDate || processDate < catchUpFloor) {
+      if (!isWithinAutopayWindow(occurrence.dueDate, rule.daysBeforeDue, runDate, runDateObj)) {
         continue;
       }
 

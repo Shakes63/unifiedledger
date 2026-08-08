@@ -141,13 +141,27 @@ export async function upsertDebtStrategySettings(
   return next;
 }
 
-export async function getUnifiedDebtSources(
-  householdId: string,
-  options: { includeZeroBalances?: boolean } = {}
-): Promise<UnifiedDebtSource[]> {
-  const includeZeroBalances = options.includeZeroBalances ?? false;
+export interface DebtSourceRows {
+  creditAccounts: Array<typeof accounts.$inferSelect>;
+  /** Debt-enabled templates, EXCLUDING ones linked to a returned account. */
+  debtTemplates: Array<typeof billTemplates.$inferSelect>;
+  standaloneDebts: Array<typeof debts.$inferSelect>;
+}
 
-  const [creditAccounts, debtTemplates, standaloneDebts] = await Promise.all([
+/**
+ * THE single loader for the three debt sources. Every consumer of "what debts
+ * does this household have" must come through here — the /api/debts/unified
+ * route and debt-budget-service used to run their own copies of these
+ * queries, which is exactly how the double-counting and sign bugs (AG1/AG2)
+ * survived in some readers after being fixed in others.
+ *
+ * A template linked to a liability ACCOUNT describes the same debt the
+ * account already represents — the account is authoritative, so the template
+ * is excluded here, even when the account is later filtered (e.g. zero
+ * balance).
+ */
+export async function loadDebtSourceRows(householdId: string): Promise<DebtSourceRows> {
+  const [creditAccounts, allDebtTemplates, standaloneDebts] = await Promise.all([
     db
       .select()
       .from(accounts)
@@ -178,6 +192,26 @@ export async function getUnifiedDebtSources(
         )
       ),
   ]);
+
+  const creditAccountIds = new Set(creditAccounts.map((account) => account.id));
+  const debtTemplates = allDebtTemplates.filter(
+    (template) =>
+      !(
+        template.linkedLiabilityAccountId &&
+        creditAccountIds.has(template.linkedLiabilityAccountId)
+      )
+  );
+
+  return { creditAccounts, debtTemplates, standaloneDebts };
+}
+
+export async function getUnifiedDebtSources(
+  householdId: string,
+  options: { includeZeroBalances?: boolean } = {}
+): Promise<UnifiedDebtSource[]> {
+  const includeZeroBalances = options.includeZeroBalances ?? false;
+
+  const { creditAccounts, debtTemplates, standaloneDebts } = await loadDebtSourceRows(householdId);
 
   const unified: UnifiedDebtSource[] = [];
 
@@ -223,21 +257,8 @@ export async function getUnifiedDebtSources(
     });
   }
 
-  // A template linked to a liability ACCOUNT describes the same debt the
-  // account already contributes — including both doubled the balance, the
-  // minimums, and the whole payoff plan (bug-hunt finding AG1). The account is
-  // authoritative; skip the template even when the account row was filtered
-  // out above (e.g. zero balance).
-  const creditAccountIds = new Set(creditAccounts.map((account) => account.id));
-
+  // Linked-template dedupe (AG1) already happened in loadDebtSourceRows.
   for (const template of debtTemplates) {
-    if (
-      template.linkedLiabilityAccountId &&
-      creditAccountIds.has(template.linkedLiabilityAccountId)
-    ) {
-      continue;
-    }
-
     const balance =
       template.debtRemainingBalanceCents !== null
         ? toAmount(template.debtRemainingBalanceCents)

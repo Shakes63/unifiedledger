@@ -278,6 +278,19 @@ function sortByAvalanche(debts: DebtInput[]): DebtInput[] {
  * - Avalanche: highest interest rate first
  * - Snowball: smallest balance first
  */
+/**
+ * Payment periods per calendar month for each supported frequency (H-DBG-8).
+ * Single source of truth — the simulation, result conversion, and the
+ * recommended-payment divisor all previously carried their own copies, and
+ * the M5 bug was exactly one copy drifting from the others.
+ */
+const PERIODS_PER_MONTH: Record<PaymentFrequency, number> = {
+  monthly: 1,
+  biweekly: 26 / 12,
+  weekly: 52 / 12,
+  quarterly: 1 / 3,
+};
+
 export function getMethodBasedFocusDebtId(debts: DebtInput[], method: PayoffMethod): string {
   if (debts.length === 0) return '';
   
@@ -357,16 +370,6 @@ function simulatePayoffParallel(
     return { totalPeriods: 0, totalInterest: 0, schedules: [], payoffOrder: [] };
   }
 
-  // Periods per month for each supported frequency (audit finding H-DBG-8: only
-  // biweekly was special-cased, so weekly applied a full MONTH's payment every 7
-  // days and quarterly applied one month's payment per quarter, while both
-  // counted each period as one month — timeline and interest were meaningless).
-  const PERIODS_PER_MONTH: Record<PaymentFrequency, number> = {
-    monthly: 1,
-    biweekly: 26 / 12,
-    weekly: 52 / 12,
-    quarterly: 1 / 3,
-  };
   const periodsPerMonth = PERIODS_PER_MONTH[paymentFrequency] ?? 1;
   const paymentDivisor = periodsPerMonth;
   const totalMinimums = debts.reduce((sum, debt) => sum + (debt.minimumPayment || 0), 0);
@@ -548,120 +551,6 @@ function simulatePayoffParallel(
     totalInterest,
     schedules,
     payoffOrder: sortedPayoffOrder,
-  };
-}
-
-/**
- * Calculate payoff schedule for a single debt with optional lump sum payments
- */
-function _calculateDebtSchedule(
-  debt: DebtInput,
-  paymentAmount: number,
-  startMonth: number,
-  paymentFrequency: PaymentFrequency = 'monthly',
-  lumpSumPayments: LumpSumPayment[] = []
-): DebtPayoffSchedule {
-  let balance = new Decimal(debt.remainingBalance);
-  const monthlyBreakdown: MonthlyPayment[] = [];
-  let totalInterestPaid = new Decimal(0);
-  let monthsToPayoff = 0;
-
-  // Filter and sort lump sums for this specific debt (or all if no targetDebtId)
-  const relevantLumpSums = lumpSumPayments
-    .filter(ls => !ls.targetDebtId || ls.targetDebtId === debt.id)
-    .sort((a, b) => a.month - b.month);
-
-  // Track payment periods, scaled per frequency (H-DBG-8).
-  let paymentPeriod = 0;
-
-  const SCHEDULE_PERIODS_PER_MONTH: Record<string, number> = {
-    monthly: 1,
-    biweekly: 26 / 12,
-    weekly: 52 / 12,
-    quarterly: 1 / 3,
-  };
-  const schedulePeriodsPerMonth = SCHEDULE_PERIODS_PER_MONTH[paymentFrequency] ?? 1;
-
-  // Safety limit: max 360 months (30 years) to prevent memory issues.
-  const MAX_MONTHS = 360;
-  const MAX_PERIODS = Math.ceil(MAX_MONTHS * schedulePeriodsPerMonth);
-
-  // Each lump sum applies exactly once (H-DBG-9).
-  const appliedScheduleLumpSums = new Set<(typeof relevantLumpSums)[number]>();
-
-  while (balance.greaterThan(0) && paymentPeriod < MAX_PERIODS) {
-    paymentPeriod++;
-
-    const currentMonth = startMonth + Math.floor((paymentPeriod - 1) / schedulePeriodsPerMonth) + 1;
-
-    const interestAmount = calculateInterestForPeriod(
-      balance,
-      debt.interestRate,
-      paymentFrequency,
-      debt.loanType || 'revolving',
-      debt.compoundingFrequency || 'monthly',
-      debt.billingCycleDays || 30
-    );
-    let payment = new Decimal(paymentAmount);
-
-    // Apply each lump sum once, on the first period at-or-after its month (H-DBG-9).
-    const lumpSumThisMonth = relevantLumpSums.find(
-      (ls) => !appliedScheduleLumpSums.has(ls) && ls.month <= currentMonth
-    );
-    if (lumpSumThisMonth) {
-      appliedScheduleLumpSums.add(lumpSumThisMonth);
-      payment = payment.plus(new Decimal(lumpSumThisMonth.amount));
-    }
-
-    // If payment would overpay, adjust to exact remaining balance + interest
-    if (payment.greaterThan(balance.plus(interestAmount))) {
-      payment = balance.plus(interestAmount);
-    }
-
-    const principalAmount = payment.minus(interestAmount);
-    balance = balance.minus(principalAmount);
-
-    // Ensure balance doesn't go negative
-    if (balance.lessThan(0)) {
-      balance = new Decimal(0);
-    }
-
-    totalInterestPaid = totalInterestPaid.plus(interestAmount);
-
-    monthlyBreakdown.push({
-      debtId: debt.id,
-      debtName: debt.name,
-      paymentAmount: payment.toNumber(),
-      principalAmount: principalAmount.toNumber(),
-      interestAmount: interestAmount.toNumber(),
-      remainingBalance: balance.toNumber(),
-    });
-
-    if (balance.equals(0)) break;
-
-    // Additional safety: if principal is not reducing balance, something is wrong
-    if (principalAmount.lessThanOrEqualTo(0) && paymentPeriod > 1) {
-      console.warn(`Payment not reducing balance for debt: ${debt.name}. Payment: ${payment.toNumber()}, Interest: ${interestAmount.toNumber()}`);
-      break; // Prevent infinite loop if payment <= interest
-    }
-  }
-
-  // Convert this frequency's payment periods to calendar months (H-DBG-8).
-  monthsToPayoff = Math.ceil(paymentPeriod / schedulePeriodsPerMonth);
-
-  const payoffDate = new Date();
-  payoffDate.setMonth(payoffDate.getMonth() + startMonth + monthsToPayoff);
-
-  return {
-    debtId: debt.id,
-    debtName: debt.name,
-    originalBalance: debt.remainingBalance,
-    paymentAmount,
-    monthsToPayoff,
-    totalInterestPaid: totalInterestPaid.toNumber(),
-    payoffDate,
-    paidOff: balance.equals(0),
-    monthlyBreakdown,
   };
 }
 
@@ -888,21 +777,13 @@ export function calculatePayoffStrategy(
   // Sort payoff order by actual payoff sequence
   payoffOrder.sort((a, b) => a.order - b.order);
 
-  // Calculate total months from the simulation's periods (H-DBG-8: quarterly
-  // and weekly periods were previously counted as one month each).
-  const RESULT_PERIODS_PER_MONTH: Record<string, number> = {
-    monthly: 1,
-    biweekly: 26 / 12,
-    weekly: 52 / 12,
-    quarterly: 1 / 3,
-  };
   // Any debt still unpaid when the sim stopped never pays off at this rate —
   // totalMonths follows the -1 never-payoff convention instead of presenting
   // the stall/cap point as a debt-free date (bug-hunt finding M1).
   const hasUnpayableDebts = simulation.schedules.some((schedule) => !schedule.paidOff);
   const totalMonths = hasUnpayableDebts
     ? -1
-    : Math.ceil(simulation.totalPeriods / (RESULT_PERIODS_PER_MONTH[paymentFrequency] ?? 1));
+    : Math.ceil(simulation.totalPeriods / (PERIODS_PER_MONTH[paymentFrequency] ?? 1));
 
   const debtFreeDate = new Date();
   debtFreeDate.setMonth(debtFreeDate.getMonth() + Math.max(0, totalMonths));
@@ -919,7 +800,7 @@ export function calculatePayoffStrategy(
   // `biweekly ? 2 : 1` disagreed with the sim's 26/12 and ignored
   // weekly/quarterly entirely, so the headline recommendation didn't match
   // what the plan actually pays per period.
-  const paymentDivisor = RESULT_PERIODS_PER_MONTH[paymentFrequency] ?? 1;
+  const paymentDivisor = PERIODS_PER_MONTH[paymentFrequency] ?? 1;
   const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
   const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
   const totalAvailable = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;

@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@/lib/bills/autopay-processor', () => ({
-  getAutopayDueToday: vi.fn(),
-}));
-
 // The route enumerates households with enabled autopay rules.
 const { mockSelectDistinct } = vi.hoisted(() => ({ mockSelectDistinct: vi.fn() }));
 vi.mock('@/lib/db', () => ({
@@ -15,14 +11,14 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/bills/service', () => ({
   runAutopay: vi.fn(),
+  getScheduledAutopayPreview: vi.fn(),
 }));
 
 vi.mock('@/lib/notifications/autopay-notifications', () => ({
   getAutopayProcessingSummary: vi.fn(),
 }));
 
-import { getAutopayDueToday } from '@/lib/bills/autopay-processor';
-import { runAutopay } from '@/lib/bills/service';
+import { getScheduledAutopayPreview, runAutopay } from '@/lib/bills/service';
 import { getAutopayProcessingSummary } from '@/lib/notifications/autopay-notifications';
 
 describe('app/api/cron/autopay/route', () => {
@@ -43,7 +39,7 @@ describe('app/api/cron/autopay/route', () => {
       errors: [],
     });
     (getAutopayProcessingSummary as any).mockReturnValue('summary');
-    (getAutopayDueToday as any).mockResolvedValue({ count: 0, bills: [] });
+    (getScheduledAutopayPreview as any).mockResolvedValue({ entries: [] });
     mockSelectDistinct.mockReturnValue({
       from: () => ({
         where: () => Promise.resolve([{ householdId: 'household-1' }, { householdId: 'household-2' }]),
@@ -187,22 +183,30 @@ describe('app/api/cron/autopay/route', () => {
 
     const res = await GET(req);
     expect(res.status).toBe(401);
-    expect(getAutopayDueToday).not.toHaveBeenCalled();
+    expect(getScheduledAutopayPreview).not.toHaveBeenCalled();
   });
 
   it('GET returns preview response shape when authorized', async () => {
     process.env.CRON_SECRET = 'secret';
-    (getAutopayDueToday as any).mockResolvedValue({
-      count: 2,
-      bills: [
+    (getScheduledAutopayPreview as any).mockResolvedValue({
+      entries: [
         {
+          householdId: 'hh-1',
           billId: 'b1',
           billName: 'Bill 1',
-          instanceId: 'i1',
+          occurrenceId: 'o1',
           dueDate: '2025-01-01',
-          expectedAmount: 10,
-          autopayAccountId: 'a1',
+          expectedAmountCents: 1000,
           autopayAmountType: 'fixed',
+        },
+        {
+          householdId: 'hh-1',
+          billId: 'b2',
+          billName: 'Bill 2',
+          occurrenceId: 'o2',
+          dueDate: '2025-01-01',
+          autopayAmountType: 'minimum_payment',
+          skipReason: 'Minimum-payment autopay requires a linked liability account with a minimum payment amount',
         },
       ],
     });
@@ -218,16 +222,19 @@ describe('app/api/cron/autopay/route', () => {
 
     expect(res.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.count).toBe(2);
-    expect(Array.isArray(data.bills)).toBe(true);
-    // ensure non-sensitive mapping
+    // Only actionable entries count; skipped ones are listed with reasons.
+    expect(data.count).toBe(1);
+    expect(data.bills).toHaveLength(2);
     expect(data.bills[0]).toEqual({
+      householdId: 'hh-1',
       billId: 'b1',
       billName: 'Bill 1',
+      occurrenceId: 'o1',
       dueDate: '2025-01-01',
       expectedAmount: 10,
       autopayAmountType: 'fixed',
     });
+    expect(data.bills[1].skipReason).toMatch(/minimum/i);
   });
 });
 

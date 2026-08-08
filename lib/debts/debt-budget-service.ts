@@ -3,12 +3,11 @@ import { and, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
-  accounts,
   billPaymentEvents,
-  billTemplates,
   householdSettings,
   transactions,
 } from '@/lib/db/schema';
+import { loadDebtSourceRows } from '@/lib/debts/unified-debt-sources';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export interface UnifiedDebtItem {
@@ -88,27 +87,8 @@ export async function getUnifiedDebtBudget(params: {
     | 'biweekly'
     | 'monthly';
 
-  const creditAccounts = await db
-    .select()
-    .from(accounts)
-    .where(
-      and(
-        eq(accounts.householdId, householdId),
-        inArray(accounts.type, ['credit', 'line_of_credit']),
-        eq(accounts.isActive, true)
-      )
-    );
-
-  const debtTemplates = await db
-    .select()
-    .from(billTemplates)
-    .where(
-      and(
-        eq(billTemplates.householdId, householdId),
-        eq(billTemplates.debtEnabled, true),
-        eq(billTemplates.isActive, true)
-      )
-    );
+  // Single shared loader (includes the AG1 linked-template dedupe).
+  const { creditAccounts, debtTemplates } = await loadDebtSourceRows(householdId);
 
   const paymentMap = new Map<string, number>();
 
@@ -182,17 +162,9 @@ export async function getUnifiedDebtBudget(params: {
     });
   }
 
-  // Same-debt dedupe (AG1) and real bill minimums (AG3) — see
-  // getUnifiedDebtSources for the rationale.
-  const creditAccountIds = new Set(creditAccounts.map((account) => account.id));
-
+  // Linked-template dedupe (AG1) already applied by the loader; bill
+  // minimums come from the recurring amount (AG3).
   for (const template of debtTemplates) {
-    if (
-      template.linkedLiabilityAccountId &&
-      creditAccountIds.has(template.linkedLiabilityAccountId)
-    ) {
-      continue;
-    }
     allDebts.push({
       id: template.id,
       name: template.name,
