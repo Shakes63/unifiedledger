@@ -198,7 +198,6 @@ async function buildEnrichedTransactionResponse(
           .where(
             and(
               eq(debts.id, txData.debtId),
-              eq(debts.userId, txData.userId),
               eq(debts.householdId, txData.householdId)
             )
           )

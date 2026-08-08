@@ -21,7 +21,6 @@ export async function GET(request: Request) {
     const status = url.searchParams.get('status');
 
     const conditions = [
-      eq(debts.userId, userId),
       eq(debts.householdId, householdId)
     ];
     if (status) {

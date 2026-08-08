@@ -33,7 +33,6 @@ export async function syncDebtPayoffDate(
       .where(
         and(
           eq(debts.id, debtId),
-          eq(debts.userId, userId),
           eq(debts.householdId, householdId)
         )
       )
@@ -83,7 +82,6 @@ export async function syncDebtPayoffDate(
       .from(debts)
       .where(
         and(
-          eq(debts.userId, userId),
           eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )
@@ -155,7 +153,6 @@ export async function syncAllDebtPayoffDates(
       .from(debts)
       .where(
         and(
-          eq(debts.userId, userId),
           eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )

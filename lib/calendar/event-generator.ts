@@ -331,7 +331,6 @@ export async function generateDebtMilestoneEvents(
     .from(debts)
     .where(
       and(
-        eq(debts.userId, userId),
         eq(debts.householdId, householdId),
         eq(debts.status, 'active')
       )
@@ -468,7 +467,6 @@ export async function generatePayoffDateEvents(
     .from(debts)
     .where(
       and(
-        eq(debts.userId, userId),
         eq(debts.householdId, householdId),
         eq(debts.status, 'active')
       )
