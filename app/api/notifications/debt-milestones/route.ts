@@ -8,6 +8,7 @@
  */
 
 import { requireAuth, getAuthUser } from '@/lib/auth-helpers';
+import { isAuthorizedCronRequest } from '@/lib/api/cron-auth';
 import { db } from '@/lib/db';
 import { households } from '@/lib/db/schema';
 import { 
@@ -23,13 +24,12 @@ export const dynamic = 'force-dynamic';
  * Check debt milestones for unified household debt sources.
  */
 export async function POST(request: Request) {
-  // For cron jobs, we might not have auth context
-  // In that case, check for a cron secret header
+  // Same fail-closed cron guard as the savings-milestone route (SEC1): the old
+  // template-literal comparison matched `Bearer undefined` whenever CRON_SECRET
+  // was unset, exposing the all-households branch below to anonymous callers.
   const user = await getAuthUser();
   const userId = user?.userId;
-
-  const authHeader = request.headers.get('Authorization');
-  const isCronJob = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const isCronJob = !userId && isAuthorizedCronRequest(request);
 
   if (!userId && !isCronJob) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });

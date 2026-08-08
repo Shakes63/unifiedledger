@@ -1,16 +1,19 @@
 import { requireAuth, getAuthUser } from '@/lib/auth-helpers';
+import { isAuthorizedCronRequest } from '@/lib/api/cron-auth';
 import { db } from '@/lib/db';
 import { savingsGoals } from '@/lib/db/schema';
 import { checkAndCreateSavingsMilestoneNotifications } from '@/lib/notifications/savings-milestones';
 
 export async function POST(request: Request) {
-  // For cron jobs, we might not have auth context
-  // In that case, check for a cron secret header
+  // Either a signed-in user (single-user check) or the cron runner (all users).
+  // The cron half MUST use the shared fail-closed guard (SEC1): the old
+  // `authHeader === \`Bearer ${process.env.CRON_SECRET}\`` interpolates the
+  // string "undefined" when CRON_SECRET is unset, so an unauthenticated caller
+  // sending `Authorization: Bearer undefined` matched and drove the every-user
+  // branch below — writing notifications across every household.
   const user = await getAuthUser();
   const userId = user?.userId;
-
-  const authHeader = request.headers.get('Authorization');
-  const isCronJob = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const isCronJob = !userId && isAuthorizedCronRequest(request);
 
   if (!userId && !isCronJob) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });

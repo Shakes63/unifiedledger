@@ -4,6 +4,9 @@ import { db } from '@/lib/db';
 import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { queueSync } from '@/lib/calendar/sync-service';
+import { isSavingsGoalCategory, isSavingsGoalStatus } from '@/lib/goals/goal-enums';
+import { buildGoalCurrentFields, buildGoalTargetFields } from '@/lib/goals/goal-money';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export async function GET(
   request: Request,
@@ -109,11 +112,12 @@ export async function PUT(
     ] as const) {
       assignIfPresent(field);
     }
-    // Validate money fields if provided.
+    // Validate money fields if provided. targetAmount must be strictly positive:
+    // 0 divides by zero in the milestone percentage math (checkMilestones).
     for (const field of ['targetAmount', 'currentAmount', 'monthlyContribution'] as const) {
       if (src[field] !== undefined) {
         const value = Number(src[field]);
-        if (!Number.isFinite(value) || value < 0) {
+        if (!Number.isFinite(value) || value < 0 || (field === 'targetAmount' && value === 0)) {
           return new Response(
             JSON.stringify({ error: `Invalid ${field}` }),
             { status: 400 }
@@ -121,6 +125,28 @@ export async function PUT(
         }
         (updates as Record<string, unknown>)[field] = value;
       }
+    }
+
+    // Money columns come in cents-authoritative PAIRS (SEC5). Assigning only the
+    // float above left targetAmountCents/currentAmountCents stale, so the UI read
+    // the new figure while every calculation (progress, contributions, milestone
+    // checks) kept using the old cents value — and the next contribution wrote
+    // the float back down.
+    if (updates.targetAmount !== undefined) {
+      Object.assign(updates, buildGoalTargetFields(toMoneyCents(updates.targetAmount) ?? 0));
+    }
+    if (updates.currentAmount !== undefined) {
+      Object.assign(updates, buildGoalCurrentFields(toMoneyCents(updates.currentAmount) ?? 0));
+    }
+
+    // Enum columns are TypeScript-only in drizzle — no CHECK constraint is
+    // emitted (SEC3), so an out-of-enum status silently hid the goal from
+    // detection and the milestone sweep, both of which filter status='active'.
+    if (updates.status !== undefined && !isSavingsGoalStatus(String(updates.status))) {
+      return new Response(JSON.stringify({ error: 'Invalid status' }), { status: 400 });
+    }
+    if (updates.category !== undefined && !isSavingsGoalCategory(String(updates.category))) {
+      return new Response(JSON.stringify({ error: 'Invalid category' }), { status: 400 });
     }
 
     // If targetAmount changed, recalculate milestone amounts

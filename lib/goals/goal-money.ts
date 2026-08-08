@@ -16,6 +16,20 @@ export function getGoalCurrentCents(goal: {
   return toMoneyCents(goal.currentAmount ?? 0) ?? 0;
 }
 
+/**
+ * Paired cents + derived float for a goal's TARGET amount. The PUT route used to
+ * write only the float `targetAmount` (SEC5), leaving `targetAmountCents` stale.
+ */
+export function buildGoalTargetFields(targetAmountCents: number): {
+  targetAmountCents: number;
+  targetAmount: number;
+} {
+  return {
+    targetAmountCents,
+    targetAmount: fromMoneyCents(targetAmountCents) ?? 0,
+  };
+}
+
 /** Paired cents + derived float for a goal's current amount. */
 export function buildGoalCurrentFields(currentAmountCents: number): {
   currentAmountCents: number;

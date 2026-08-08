@@ -3,13 +3,10 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { savingsGoals, savingsMilestones, accounts } from '@/lib/db/schema';
 import { toMoneyCents } from '@/lib/utils/money-cents';
+import { isSavingsGoalCategory, isSavingsGoalStatus } from '@/lib/goals/goal-enums';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-type SavingsGoalStatus = NonNullable<typeof savingsGoals.$inferSelect['status']>;
-const isSavingsGoalStatus = (value: string): value is SavingsGoalStatus => {
-  return ['active', 'completed', 'paused', 'cancelled'].includes(value);
-};
 
 export async function GET(request: Request) {
   try {
@@ -88,6 +85,31 @@ export async function POST(request: Request) {
         JSON.stringify({ error: 'Name and target amount are required' }),
         { status: 400 }
       );
+    }
+
+    // Match PUT's money rules (SEC4). `!targetAmount` above rejects 0 and "" but
+    // happily accepted -500, which built negative milestones and made the very
+    // first contribution satisfy `newAmount >= targetAmount` — auto-completing
+    // the goal and inverting every percentage. PUT refused the identical value.
+    const targetAmountNumber = Number(targetAmount);
+    const currentAmountNumber = Number(currentAmount ?? 0);
+    if (!Number.isFinite(targetAmountNumber) || targetAmountNumber <= 0) {
+      return new Response(
+        JSON.stringify({ error: 'targetAmount must be a positive finite number' }),
+        { status: 400 }
+      );
+    }
+    if (!Number.isFinite(currentAmountNumber) || currentAmountNumber < 0) {
+      return new Response(
+        JSON.stringify({ error: 'currentAmount must be a non-negative finite number' }),
+        { status: 400 }
+      );
+    }
+    if (status !== undefined && !isSavingsGoalStatus(String(status))) {
+      return new Response(JSON.stringify({ error: 'Invalid status' }), { status: 400 });
+    }
+    if (category !== undefined && !isSavingsGoalCategory(String(category))) {
+      return new Response(JSON.stringify({ error: 'Invalid category' }), { status: 400 });
     }
 
     // Validate account belongs to household if provided
