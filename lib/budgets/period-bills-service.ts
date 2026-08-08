@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { autopayRules } from '@/lib/db/schema';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import {
-  dueDateMatchesPeriodMonth,
+  dueDateBelongsToAssignedPeriod,
   instanceBelongsToPeriod,
 } from '@/lib/budgets/bill-period-assignment';
 import type {
@@ -206,7 +206,7 @@ export async function getPeriodBillsForBudgetPeriod({
         if (!row.allocation) {
           return false;
         }
-        return dueDateMatchesPeriodMonth(row.instance.dueDate, period);
+        return dueDateBelongsToAssignedPeriod(row.instance.dueDate, period);
       }
 
       return instanceBelongsToPeriod({

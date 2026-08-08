@@ -6,7 +6,7 @@ import {
   type BudgetScheduleSettings,
 } from '@/lib/budgets/budget-schedule';
 import {
-  dueDateMatchesPeriodMonth,
+  dueDateBelongsToAssignedPeriod,
   instanceBelongsToPeriod,
 } from '@/lib/budgets/bill-period-assignment';
 
@@ -76,7 +76,7 @@ function getAssignedBudgetPeriodForBill({
     }
     seenPeriods.add(period.startStr);
 
-    if (!dueDateMatchesPeriodMonth(dueDate, period)) {
+    if (!dueDateBelongsToAssignedPeriod(dueDate, period)) {
       continue;
     }
 

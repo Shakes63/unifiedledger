@@ -16,12 +16,20 @@ import {
   parseISO,
   addMonths,
 } from 'date-fns';
+import { parseLocalDateString } from '@/lib/utils/local-date';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 export type BudgetCycleFrequency = 'weekly' | 'biweekly' | 'semi-monthly' | 'monthly';
+
+/**
+ * Fixed anchor year for biweekly cycles with no configured reference date.
+ * Any constant works — what matters is that it never depends on "now", so the
+ * 14-day grid is stable across calls, days, and deployments (finding P1).
+ */
+const BIWEEKLY_FALLBACK_ANCHOR_YEAR = 2024;
 
 export interface BudgetScheduleSettings {
   budgetCycleFrequency: BudgetCycleFrequency;
@@ -37,8 +45,21 @@ export interface BudgetPeriod {
   end: Date;
   startStr: string; // YYYY-MM-DD
   endStr: string; // YYYY-MM-DD
-  periodNumber: number; // 1-based period number within the month
-  periodsInMonth: number; // Total periods in the current month
+  periodNumber: number; // 1-based period number within the owning month
+  periodsInMonth: number; // Total periods in the owning month
+  /**
+   * YYYY-MM of the month `periodNumber` was computed against. For weekly and
+   * biweekly cycles this is the month of the QUERY date, matching the app's
+   * existing convention — so a period straddling a month boundary reports a
+   * different number depending on when it was requested (bug-hunt finding P3,
+   * deferred as a product decision). Membership checks compare against this
+   * field so numbering and membership at least agree with each other.
+   */
+  owningMonth: string;
+}
+
+function toMonthKey(date: Date): string {
+  return format(date, 'yyyy-MM');
 }
 
 export interface AvailableAmountResult {
@@ -137,6 +158,11 @@ function getWeeklyPeriod(settings: BudgetScheduleSettings, today: Date): BudgetP
   const startDayOfWeek = settings.budgetCycleStartDay ?? 0; // Default to Sunday
   const periodStart = getAlignedPeriodStart(today, startDayOfWeek);
   const periodEnd = endOfDay(addDays(periodStart, 6));
+  // NOTE (bug-hunt finding P3, DEFERRED): periods are numbered relative to the
+  // month being queried, so a period straddling a month boundary reports a
+  // different number depending on when you ask. That is the app's existing
+  // convention ("the week containing the 1st is week 1 of the new month"), and
+  // changing it is a product decision — see the memory note.
   const { periodNumber, periodsInMonth } = getPeriodPositionInMonth(periodStart, today, 7);
 
   return {
@@ -146,6 +172,7 @@ function getWeeklyPeriod(settings: BudgetScheduleSettings, today: Date): BudgetP
     endStr: format(periodEnd, 'yyyy-MM-dd'),
     periodNumber,
     periodsInMonth,
+    owningMonth: toMonthKey(today),
   };
 }
 
@@ -155,26 +182,35 @@ function getWeeklyPeriod(settings: BudgetScheduleSettings, today: Date): BudgetP
  */
 function getBiweeklyPeriod(settings: BudgetScheduleSettings, today: Date): BudgetPeriod {
   const startDayOfWeek = settings.budgetCycleStartDay ?? 5; // Default to Friday
-  
-  // Reference date is a known date when a period started
-  // If not set, use a reasonable default (a recent Friday)
+
+  // The anchor must be FIXED, never derived from `today` (bug-hunt finding P1):
+  // re-anchoring to this week's aligned start on every call made the 14-day
+  // window slide forward 7 days per week, so consecutive "current periods"
+  // overlapped and the cycle effectively reset weekly instead of biweekly.
+  // With no configured reference date we fall back to a constant epoch, which
+  // tiles the calendar deterministically forever.
   let referenceDate: Date;
   if (settings.budgetCycleReferenceDate) {
-    referenceDate = startOfDay(new Date(settings.budgetCycleReferenceDate));
+    // parseLocalDateString, not new Date(): a 'YYYY-MM-DD' string parses as UTC
+    // midnight, which west of UTC lands on the previous day — and the aligned
+    // snap below then throws the whole grid back a FULL WEEK (finding P2).
+    referenceDate = startOfDay(parseLocalDateString(settings.budgetCycleReferenceDate));
   } else {
-    // Use the latest aligned start day as a stable anchor
-    referenceDate = getAlignedPeriodStart(today, startDayOfWeek);
+    referenceDate = new Date(BIWEEKLY_FALLBACK_ANCHOR_YEAR, 0, 1);
   }
 
   referenceDate = getAlignedPeriodStart(referenceDate, startDayOfWeek);
 
-  // Calculate how many 14-day periods since the reference date
-  const daysSinceReference = differenceInDays(today, referenceDate);
+  // Calculate how many 14-day periods since the reference date. Math.floor on a
+  // negative difference still lands on the correct enclosing period for dates
+  // before the anchor.
+  const daysSinceReference = differenceInDays(startOfDay(today), referenceDate);
   const biweeklyPeriodsSinceReference = Math.floor(daysSinceReference / 14);
-  
+
   // Calculate period start
   const periodStart = startOfDay(addDays(referenceDate, biweeklyPeriodsSinceReference * 14));
   const periodEnd = endOfDay(addDays(periodStart, 13)); // 14 days total
+  // See the P3 note in getWeeklyPeriod — numbering stays query-relative.
   const { periodNumber, periodsInMonth } = getPeriodPositionInMonth(periodStart, today, 14);
 
   return {
@@ -184,6 +220,7 @@ function getBiweeklyPeriod(settings: BudgetScheduleSettings, today: Date): Budge
     endStr: format(periodEnd, 'yyyy-MM-dd'),
     periodNumber,
     periodsInMonth,
+    owningMonth: toMonthKey(today),
   };
 }
 
@@ -266,8 +303,15 @@ function getSemiMonthlyPeriod(settings: BudgetScheduleSettings, today: Date): Bu
     }
     periodNumber = 2;
   } else {
-    // Before the first day - we're in the second period of the previous month
-    periodStart = setDate(addMonths(today, -1), effectiveSecondDay);
+    // Before the first day - we're in the second period of the previous month.
+    // Clamp to the PREVIOUS month's length (finding P4): effectiveSecondDay was
+    // clamped to THIS month, and setDate overflows rather than clamping — with
+    // days [5,31] on Mar 1, setDate(Feb 1, 31) rolled forward to Mar 3, so the
+    // period started two days in the FUTURE and today fell outside its own
+    // period.
+    const previousMonth = addMonths(today, -1);
+    const previousMonthLastDay = getDate(endOfMonth(previousMonth));
+    periodStart = setDate(previousMonth, Math.min(secondDay, previousMonthLastDay));
     periodEnd = endOfDay(setDate(today, firstDay - 1));
     periodNumber = 2;
   }
@@ -279,6 +323,9 @@ function getSemiMonthlyPeriod(settings: BudgetScheduleSettings, today: Date): Bu
     endStr: format(periodEnd, 'yyyy-MM-dd'),
     periodNumber,
     periodsInMonth: 2,
+    // Semi-monthly periods are defined by day-of-month within the month they
+    // START in, so that month owns them.
+    owningMonth: toMonthKey(periodStart),
   };
 }
 
@@ -296,6 +343,7 @@ function getMonthlyPeriod(today: Date): BudgetPeriod {
     endStr: format(periodEnd, 'yyyy-MM-dd'),
     periodNumber: 1,
     periodsInMonth: 1,
+    owningMonth: toMonthKey(periodStart),
   };
 }
 
