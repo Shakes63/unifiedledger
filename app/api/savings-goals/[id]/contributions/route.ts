@@ -92,8 +92,17 @@ export async function GET(
 
     // Parse query parameters
     const url = new URL(request.url);
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100);
-    const offset = parseInt(url.searchParams.get('offset') || '0');
+    // Clamp both ends (SEC7). Math.min alone doesn't floor negatives, and SQLite
+    // treats LIMIT -1 as UNLIMITED — so ?limit=-1 returned every contribution row
+    // and defeated the 100 cap, while ?limit=abc produced NaN and a driver-level
+    // "datatype mismatch" 500.
+    const parsePositiveInt = (raw: string | null, fallback: number, max: number) => {
+      const parsed = Number.parseInt(raw ?? '', 10);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.min(Math.max(parsed, 0), max);
+    };
+    const limit = parsePositiveInt(url.searchParams.get('limit'), 50, 100);
+    const offset = parsePositiveInt(url.searchParams.get('offset'), 0, Number.MAX_SAFE_INTEGER);
     const startDate = url.searchParams.get('startDate');
     const endDate = url.searchParams.get('endDate');
 

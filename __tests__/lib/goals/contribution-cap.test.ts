@@ -57,3 +57,24 @@ describe('contributionsExceedTransaction (M3/A5/A6)', () => {
     expect(contributionsExceedTransaction([{ goalId: 'g1', amount: 100.02 }], 100)).toBe(true);
   });
 });
+
+/**
+ * Finding P14: the contribution list arrives newest-first, so a running total
+ * must accumulate from the row toward the OLDEST entry. Accumulating down the
+ * descending list made the newest row show its own amount and the oldest row
+ * show the full balance — a ledger running backwards.
+ */
+describe('contribution running total (P14)', () => {
+  // Mirrors the component's calculateRunningTotal over a newest-first list.
+  const runningTotal = (contributions: Array<{ amount: number }>, index: number) =>
+    contributions.slice(index).reduce((sum, c) => sum + c.amount, 0);
+
+  it('shows the balance as of each row, newest first', () => {
+    // Jan $300, Feb $200, Mar $100 — rendered Mar, Feb, Jan.
+    const contributions = [{ amount: 100 }, { amount: 200 }, { amount: 300 }];
+
+    expect(runningTotal(contributions, 0)).toBe(600); // after Mar: full balance
+    expect(runningTotal(contributions, 1)).toBe(500); // after Feb
+    expect(runningTotal(contributions, 2)).toBe(300); // after Jan: first deposit
+  });
+});

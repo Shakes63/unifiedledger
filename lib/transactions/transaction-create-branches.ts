@@ -72,6 +72,17 @@ async function handleTransactionGoalContributions({
         userId,
         householdId
       );
+      // Surface failures instead of discarding them (finding A9). A mistyped or
+      // foreign goalId returned {success:false} and was thrown away, so the API
+      // answered 201, the transaction carried a goal link, and the goal never
+      // moved — with no contribution row, a later edit or delete had nothing to
+      // reverse, making the divergence permanent and invisible.
+      const failed = contributionResults.filter((result) => !result.success);
+      if (failed.length > 0) {
+        console.error(
+          `Goal contributions failed for ${failed.map((f) => `${f.goalId}: ${f.error}`).join('; ')}`
+        );
+      }
       const achievedMilestones = contributionResults.flatMap((result) => result.milestonesAchieved);
       if (achievedMilestones.length > 0) {
         apiDebugLog(

@@ -450,6 +450,13 @@ export async function getTotalContributions(goalId: string): Promise<number> {
     .from(savingsGoalContributions)
     .where(eq(savingsGoalContributions.goalId, goalId));
 
-  return contributions.reduce((sum, c) => sum + c.amount, 0);
+  // Sum the authoritative CENTS column, not the float mirror (finding M10).
+  // A float reduce over twelve $208.33 rows plus $0.10 and $0.20 produced
+  // 2500.2599999999993 — the same class of drift the budgets hunt found.
+  const totalCents = contributions.reduce(
+    (sum, c) => sum + (c.amountCents ?? toMoneyCents(c.amount) ?? 0),
+    0
+  );
+  return fromMoneyCents(totalCents) ?? 0;
 }
 
