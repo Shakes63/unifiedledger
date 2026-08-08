@@ -197,9 +197,16 @@ export async function generateProjection(
           continue;
         }
 
-        // Map calendar month i to the corresponding payment-period index.
-        const periodIndex = Math.round(i * periodsPerMonth);
-        if (periodIndex < schedule.monthlyBreakdown.length) {
+        // Map calendar month i to the balance AFTER i months of payments.
+        // breakdown[0] is the balance after the FIRST payment, so month 0
+        // (now) must show the CURRENT balance — the old `round(i * ppm)`
+        // indexed one payment ahead, rendering the whole curve (and the
+        // debt-free date) a month optimistic (bug-hunt finding M6).
+        const periodIndex = Math.round(i * periodsPerMonth) - 1;
+        if (periodIndex < 0) {
+          byDebt[debt.id] = debt.remainingBalance;
+          totalDebt += debt.remainingBalance;
+        } else if (periodIndex < schedule.monthlyBreakdown.length) {
           const monthData = schedule.monthlyBreakdown[periodIndex];
           byDebt[debt.id] = monthData.remainingBalance;
           totalDebt += monthData.remainingBalance;

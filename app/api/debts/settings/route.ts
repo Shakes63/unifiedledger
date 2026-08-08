@@ -51,6 +51,19 @@ export async function PUT(request: Request) {
       }, { status: 400 });
     }
 
+    // Finite + non-negative (bug-hunt finding S2): a bare Number() persisted
+    // Infinity or negative values into the HOUSEHOLD-wide settings row,
+    // poisoning every member's payoff calculators.
+    if (extraMonthlyPayment !== undefined) {
+      const parsed = Number(extraMonthlyPayment);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return Response.json(
+          { error: 'extraMonthlyPayment must be a non-negative finite number' },
+          { status: 400 }
+        );
+      }
+    }
+
     await upsertDebtStrategySettings(userId, householdId, {
       extraMonthlyPayment:
         extraMonthlyPayment !== undefined

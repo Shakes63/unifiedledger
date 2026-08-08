@@ -139,7 +139,10 @@ export async function GET(request: Request) {
       thisMonthPayments: thisMonthTotal.toNumber(),
       debtDetails,
       paidOffDebtCount: 0, // Closed debt entities are not currently tracked in unified stats.
-      priorityDebt: debtDetails.length > 0 ? debtDetails[0] : null,
+      // Priority never points at a debt the strategy excludes (bug-hunt
+      // finding AG6): the old highest-balance-of-everything pick could name a
+      // toggled-out debt, contradicting the countdown's focus debt.
+      priorityDebt: debtDetails.find((debt) => debt.includeInPayoffStrategy) ?? null,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

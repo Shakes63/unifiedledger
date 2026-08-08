@@ -42,6 +42,12 @@ export interface UnifiedDebtSource extends DebtInput {
   sourceType: string;
   includeInPayoffStrategy: boolean;
   originalBalance: number;
+  /**
+   * ISO timestamp of when this debt source was created — lets historical
+   * judgments (e.g. the payment streak) only require minimums for debts that
+   * existed in that month (bug-hunt finding LC5).
+   */
+  createdAt: string | null;
 }
 
 export interface DebtStrategySettings {
@@ -213,6 +219,7 @@ export async function getUnifiedDebtSources(
       color: account.color || undefined,
       icon: account.icon || undefined,
       includeInPayoffStrategy: account.includeInPayoffStrategy !== false,
+      createdAt: account.createdAt ?? null,
     });
   }
 
@@ -266,6 +273,7 @@ export async function getUnifiedDebtSources(
       color: template.debtColor || undefined,
       icon: undefined,
       includeInPayoffStrategy: template.includeInPayoffStrategy !== false,
+      createdAt: template.createdAt ?? null,
     });
   }
 
@@ -294,6 +302,7 @@ export async function getUnifiedDebtSources(
       icon: debt.icon || undefined,
       // Standalone debts are always included until a dedicated toggle column exists.
       includeInPayoffStrategy: true,
+      createdAt: debt.createdAt ?? null,
     });
   }
 
