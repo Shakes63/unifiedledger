@@ -1,8 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
-import { db } from '@/lib/db';
-import { accounts, billTemplates, debts } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { loadDebtSourceRows } from '@/lib/debts/unified-debt-sources';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 
@@ -67,40 +65,11 @@ export async function GET(request: Request) {
     const typeFilter = searchParams.get('type'); // 'credit', 'line_of_credit', 'personal_loan', etc.
     const inStrategyOnly = searchParams.get('inStrategy') === 'true';
 
-    // Fetch credit accounts (credit cards + lines of credit)
-    const creditAccounts = await db
-      .select()
-      .from(accounts)
-      .where(
-        and(
-          eq(accounts.householdId, householdId),
-          inArray(accounts.type, ['credit', 'line_of_credit']),
-          eq(accounts.isActive, true)
-        )
-      );
-
-    // Fetch debt-enabled bill schedules
-    const debtTemplates = await db
-      .select()
-      .from(billTemplates)
-      .where(
-        and(
-          eq(billTemplates.householdId, householdId),
-          eq(billTemplates.debtEnabled, true),
-          eq(billTemplates.isActive, true)
-        )
-      );
-
-    // Fetch standalone debts from debts table
-    const standaloneDebts = await db
-      .select()
-      .from(debts)
-      .where(
-        and(
-          eq(debts.householdId, householdId),
-          eq(debts.status, 'active')
-        )
-      );
+    // Single shared loader for the three debt sources — includes the
+    // linked-template dedupe (AG1), so this route can never disagree with
+    // the strategy/stats readers about what exists.
+    const { creditAccounts, debtTemplates, standaloneDebts } =
+      await loadDebtSourceRows(householdId);
 
     // Normalize to unified format
     const unifiedDebts: UnifiedDebt[] = [];
@@ -148,19 +117,9 @@ export async function GET(request: Request) {
       }
     }
 
-    // Add debt bills
+    // Add debt bills (linked-template dedupe already applied by the loader)
     if (!sourceFilter || sourceFilter === 'bill') {
-      // A template linked to a liability account is the SAME debt the account
-      // already contributes (bug-hunt finding AG1) — the account row is
-      // authoritative, so skip the template to avoid double counting.
-      const creditAccountIds = new Set(creditAccounts.map((acc) => acc.id));
       for (const template of debtTemplates) {
-        if (
-          template.linkedLiabilityAccountId &&
-          creditAccountIds.has(template.linkedLiabilityAccountId)
-        ) {
-          continue;
-        }
         const remainingBalance =
           template.debtRemainingBalanceCents !== null
             ? toAmount(template.debtRemainingBalanceCents)
