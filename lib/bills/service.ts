@@ -59,6 +59,7 @@ import {
   isLiabilityAccountType,
   updateScopedAccountBalance,
 } from '@/lib/transactions/money-movement-service';
+import { createCanonicalTransferPair } from '@/lib/transactions/transfer-service';
 import { assertIntegerCents, toMoneyCents } from '@/lib/utils/money-cents';
 
 const TEMPLATE_LIMIT_DEFAULT = 50;
@@ -1392,36 +1393,80 @@ async function payOccurrenceInternal(options: PayOccurrenceInternalOptions): Pro
       );
     }
 
-    const transactionId = nanoid();
     const now = nowIso();
 
-    await insertTransactionMovement(tx, {
-      id: transactionId,
-      userId: actorUserId,
-      householdId: options.householdId,
-      accountId: account.id,
-      categoryId: template.categoryId,
-      merchantId: template.merchantId,
-      date: paymentDate,
-      amountCents,
-      description: template.name,
-      notes: options.input.notes ?? null,
-      type: transactionType,
-      isPending: false,
-      syncStatus: 'synced',
-      createdAt: now,
-      updatedAt: now,
-    });
+    // A bill linked to a liability account is a PAYMENT toward that account:
+    // the money movement is a transfer funding -> card that reduces what you
+    // owe. The old code always booked a bare expense on the funding account —
+    // the card's balance never dropped and reports counted the payment as new
+    // spending (bug-hunt finding A2).
+    let linkedLiabilityAccount: typeof account | undefined;
+    if (
+      template.billType === 'expense' &&
+      template.linkedLiabilityAccountId &&
+      template.linkedLiabilityAccountId !== account.id
+    ) {
+      const [linked] = await tx
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, template.linkedLiabilityAccountId),
+            eq(accounts.householdId, options.householdId)
+          )
+        )
+        .limit(1);
+      if (linked && isLiabilityAccountType(linked.type)) {
+        linkedLiabilityAccount = linked;
+      }
+    }
 
-    await updateScopedAccountBalance(tx, {
-      accountId: account.id,
-      userId: actorUserId,
-      householdId: options.householdId,
-      balanceCents: nextBalanceCents,
-      usageCount: (account.usageCount || 0) + 1,
-      lastUsedAt: now,
-      updatedAt: now,
-    });
+    let transactionId: string;
+    if (linkedLiabilityAccount) {
+      const pair = await createCanonicalTransferPair({
+        userId: actorUserId,
+        householdId: options.householdId,
+        fromAccountId: account.id,
+        toAccountId: linkedLiabilityAccount.id,
+        amountCents,
+        date: paymentDate,
+        description: template.name,
+        notes: options.input.notes ?? null,
+      });
+      // The transfer-in leg (the liability being credited) carries the bill
+      // link — the same convention the manual-transfer auto-link uses.
+      transactionId = pair.toTransactionId;
+    } else {
+      transactionId = nanoid();
+
+      await insertTransactionMovement(tx, {
+        id: transactionId,
+        userId: actorUserId,
+        householdId: options.householdId,
+        accountId: account.id,
+        categoryId: template.categoryId,
+        merchantId: template.merchantId,
+        date: paymentDate,
+        amountCents,
+        description: template.name,
+        notes: options.input.notes ?? null,
+        type: transactionType,
+        isPending: false,
+        syncStatus: 'synced',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await updateScopedAccountBalance(tx, {
+        accountId: account.id,
+        userId: actorUserId,
+        householdId: options.householdId,
+        balanceCents: nextBalanceCents,
+        usageCount: (account.usageCount || 0) + 1,
+        lastUsedAt: now,
+        updatedAt: now,
+      });
+    }
 
     const balanceBeforeCents = template.debtRemainingBalanceCents;
     const principalCents = balanceBeforeCents !== null ? Math.min(amountCents, balanceBeforeCents) : null;
