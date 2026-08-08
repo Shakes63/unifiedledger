@@ -448,9 +448,20 @@ export async function POST(
             throw new Error(`Target account not found: ${transferDecision.targetAccountId}`);
           }
 
-          // transfer_in = money arriving at CSV account (positive amount)
-          const isIncomingTransfer = mappedData.type === 'transfer_in' ||
-            (mappedData.type !== 'transfer_out' && amount.greaterThanOrEqualTo(0));
+          // Direction comes from the TYPE, not the sign (finding M1).
+          //
+          // The old test was `type !== 'transfer_out' && amount >= 0`, but by
+          // this point applyMappings has normalized the amount to positive and
+          // typed the row 'expense'/'income' — so it was unconditionally TRUE and
+          // every outbound transfer ran backwards. A $1,200 card payment added
+          // $1,200 to checking AND $1,200 to the card debt.
+          //
+          // 'expense' and 'transfer_out' mean money LEFT the CSV account; this is
+          // the same debit/credit split computeBalanceDeltaCents uses, so the
+          // pair and the balances can't disagree.
+          const isOutgoingTransfer =
+            mappedData.type === 'transfer_out' || mappedData.type === 'expense';
+          const isIncomingTransfer = !isOutgoingTransfer;
           const sourceAccountId = isIncomingTransfer ? transferDecision.targetAccountId : mappedData.accountId;
           const destinationAccountId = isIncomingTransfer ? mappedData.accountId : transferDecision.targetAccountId;
           const transferOutAccountId = isIncomingTransfer ? transferDecision.targetAccountId : mappedData.accountId;

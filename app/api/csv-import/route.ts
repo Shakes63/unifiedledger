@@ -11,6 +11,7 @@ import {
   applyCreditCardProcessing,
   detectPotentialTransfers,
   detectTransferByAccountNumber,
+  detectAmountColumnIsSigned,
   type ColumnMapping,
   type MappedTransaction,
   type CCTransactionType,
@@ -300,6 +301,11 @@ export async function POST(request: NextRequest) {
       .where(eq(transactions.householdId, householdId))
       .limit(500);
 
+    // Decided ONCE for the whole file (M2): a positive number means different
+    // things in a signed bank export and an unsigned expense list, and no single
+    // row can tell them apart.
+    const amountColumnIsSigned = detectAmountColumnIsSigned(parsed.rows, columnMappings);
+
     for (let i = 0; i < parsed.rows.length; i++) {
       const row = parsed.rows[i];
       const rowNumber = i + 1;
@@ -311,7 +317,8 @@ export async function POST(request: NextRequest) {
           row,
           columnMappings,
           dateFormat,
-          defaultAccountId
+          defaultAccountId,
+          { amountColumnIsSigned }
         );
 
         // Phase 12: Apply credit card processing if this is a credit card import
