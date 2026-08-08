@@ -99,8 +99,19 @@ const sqlitePath = resolveSqlitePath();
  * retries instead of erroring, and enforced foreign keys (audit finding M-DB-4).
  */
 function configureSqliteConnection(connection: Database.Database): Database.Database {
-  connection.pragma('journal_mode = WAL');
+  // busy_timeout FIRST: switching journal_mode takes an exclusive lock, and
+  // until the busy handler is installed a contended pragma fails immediately
+  // with SQLITE_BUSY instead of retrying. `next build` collects page data with
+  // several worker processes that each import this module, so they race to
+  // convert the same fresh database file and one of them died with "database is
+  // locked", failing the Docker image build.
   connection.pragma('busy_timeout = 5000');
+  // journal_mode is a persistent property of the file, so only the first opener
+  // needs the exclusive lock to change it; everyone after reads 'wal' and skips.
+  const journalMode = connection.pragma('journal_mode', { simple: true });
+  if (String(journalMode).toLowerCase() !== 'wal') {
+    connection.pragma('journal_mode = WAL');
+  }
   connection.pragma('foreign_keys = ON');
   connection.pragma('synchronous = NORMAL');
   return connection;
