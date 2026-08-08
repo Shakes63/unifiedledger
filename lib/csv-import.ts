@@ -169,11 +169,28 @@ export const autoDetectMappings = (headers: string[], isCreditCard: boolean = fa
 
   const patterns: Record<string, RegExp> = {
     date: /date|posted|transaction.*date|trans.*date|trans_date/i,
-    description: /description|memo|detail|merchant|payee|name|transaction|trans(?!_)|ref/i,
+    // Finding P7: `name|transaction|ref` matched "Account Name", "Transaction
+    // ID" and "Reference", so on a Mint/Wells Fargo export the ACCOUNT NAME
+    // became every transaction's description and the real Description column was
+    // demoted to notes. Since the description also seeds the merchant, every row
+    // collapsed onto one merchant and duplicate detection flagged nearly all of
+    // them. Bare `name`/`ref` are gone; `transaction` must look like a
+    // description rather than an id.
+    description: /description|memo|detail|merchant|payee|narrative|particulars|transaction\s*(?:description|detail|memo)/i,
     withdrawal: /withdrawal|withdraw|debit|paid.*out|spent|expense/i,
     deposit: /deposit|credit|received|income/i,
-    amount: /^amount$|^value$|^total$|^balance$/i, // More specific to avoid matching withdrawal/deposit
-    category: /category|type|class|cat/i,
+    // Finding P8: `^balance$` mapped a RUNNING BALANCE column to the amount, so
+    // every transaction's amount became the account balance at that point. First
+    // match wins, so a file listing Balance before Amount imported nonsense.
+    amount: /^amount$|^value$|^total$/i,
+    // Finding P9: `type` here sent a bank's Type column into categoryId as a raw
+    // string. Category is a named user concept; a Type column is not one.
+    category: /category|class|^cat$/i,
+    // A bank's Type/DR-CR column IS the authoritative direction signal, and is
+    // now honoured as one (see applyMappings and hasAuthoritativeDirection).
+    // Deliberately narrow so "Transaction Type" still reaches
+    // cc_transaction_type below, which is the better match for card statements.
+    type: /^type$|^dr\/cr$|^debit\/credit$|^debit or credit$/i,
     merchant: /merchant|vendor|payee|store|retailer|supplier/i,
     notes: /note|comment|memo|description|reference/i,
     // Phase 12: Credit card specific patterns
@@ -331,13 +348,58 @@ export const parseAmount = (amountStr: string): Decimal => {
 };
 
 /**
+ * Does this file's `amount` column carry signs?
+ *
+ * A single row cannot answer this (owner decision, 2026-08-08): `45.00` means
+ * "expense" in an unsigned expense list and "income" in a signed bank export.
+ * So the whole column is scanned once per file — if ANY value is negative the
+ * file follows the bank convention (negative = debit, positive = credit);
+ * otherwise it is an expense list and every row stays an expense.
+ *
+ * Only meaningful for single-amount-column files; withdrawal/deposit pairs and
+ * an explicitly mapped type column carry their own semantics.
+ */
+export function detectAmountColumnIsSigned(
+  rows: Array<Record<string, string>>,
+  mappings: ColumnMapping[]
+): boolean {
+  const amountMapping = mappings.find((m) => m.appField === 'amount');
+  if (!amountMapping) return false;
+
+  for (const row of rows) {
+    const raw = row[amountMapping.csvColumn];
+    if (!raw || raw.trim() === '') continue;
+    try {
+      if (parseAmount(raw).isNegative()) return true;
+    } catch {
+      // Unparseable cells are validated per-row later; they say nothing about
+      // the file's sign convention.
+      continue;
+    }
+  }
+  return false;
+}
+
+/**
  * Apply column mappings to transform CSV row to transaction
  */
+export interface ApplyMappingsOptions {
+  /**
+   * Whether the file's single `amount` column carries signs. Computed ONCE per
+   * file by detectAmountColumnIsSigned, because a single row cannot tell you:
+   * `45.00` means "expense" in an unsigned expense list and "income" in a
+   * signed bank export. Defaults to false (the conservative expense-list
+   * reading) so a caller that forgets it can't silently invert a paycheck.
+   */
+  amountColumnIsSigned?: boolean;
+}
+
 export const applyMappings = (
   row: Record<string, string>,
   mappings: ColumnMapping[],
   dateFormat: string,
-  defaultAccountId?: string
+  defaultAccountId?: string,
+  options: ApplyMappingsOptions = {}
 ): MappedTransaction => {
   const transaction: Partial<MappedTransaction> & {
     accountId?: string;
@@ -348,6 +410,7 @@ export const applyMappings = (
 
   let hasWithdrawal = false;
   let hasDeposit = false;
+  let rawTypeValue: string | undefined;
 
   mappings.forEach((mapping) => {
     let value = row[mapping.csvColumn];
@@ -430,30 +493,11 @@ export const applyMappings = (
           break;
 
         case 'type':
-          // Only use explicit type field if withdrawal/deposit not used
-          if (!hasWithdrawal && !hasDeposit) {
-            const typeValue = value.toLowerCase();
-            if (
-              typeValue.includes('income') ||
-              typeValue.includes('deposit') ||
-              typeValue.includes('credit')
-            ) {
-              transaction.type = 'income';
-            } else if (
-              typeValue.includes('transfer') ||
-              typeValue.includes('trf')
-            ) {
-              // Determine transfer direction based on amount sign
-              // Positive/deposit = transfer_in (money arriving)
-              // Negative/withdrawal = transfer_out (money leaving)
-              const amountValue = transaction.amount instanceof Decimal
-                ? transaction.amount.toNumber()
-                : (transaction.amount as number);
-              transaction.type = amountValue >= 0 ? 'transfer_in' : 'transfer_out';
-            } else {
-              transaction.type = 'expense';
-            }
-          }
+          // Record the raw value only. Deciding here read transaction.amount
+          // before the amount column had necessarily been parsed, so a transfer's
+          // DIRECTION depended on the order of the columns in the file (P22).
+          // The decision now happens in one place after the loop.
+          rawTypeValue = value;
           break;
 
         case 'account':
@@ -507,30 +551,59 @@ export const applyMappings = (
     }
   });
 
-  // Sign-based type inference for single-amount-column bank exports (audit
-  // finding H-IMP-3): with only an `amount` column mapped — no type /
-  // withdrawal / deposit column — the near-universal bank convention is
-  // negative = debit, positive = credit. Previously every row was typed
-  // 'expense' with the raw sign stored, so a payroll deposit became a positive
-  // "expense" and a grocery debit a NEGATIVE expense that REDUCED expense
-  // totals. Files with an explicit type signal keep their mapped semantics, and
-  // credit-card post-processing still overrides for CC imports.
-  const hasExplicitTypeSignal = mappings.some(
-    (m) => m.appField === 'type' || m.appField === 'withdrawal' || m.appField === 'deposit'
-  );
-  if (!hasExplicitTypeSignal && transaction.amount !== undefined) {
-    const amountDecimal =
-      transaction.amount instanceof Decimal
+  // ---------------------------------------------------------------------------
+  // Sign and type resolution — ONE place, after every column has been read.
+  //
+  // Bug-hunt findings M2/M3/P1/P22. The previous version had three defects that
+  // each moved money the wrong way, because confirm applies
+  // computeBalanceDeltaCents faithfully to whatever it is given:
+  //
+  //  - Normalization was SKIPPED whenever a type/withdrawal/deposit column was
+  //    mapped, so a negative amount reached the ledger as negative cents and the
+  //    delta inverted: a $45 purchase RAISED the balance by $45.
+  //  - Positive rows in a signed file kept the default 'expense', so a $2,000
+  //    paycheck LOWERED the balance by $2,000.
+  //  - Transfer direction was read from transaction.amount inside the `type`
+  //    case, which may run before the amount column is parsed.
+  //
+  // The magnitude stored is now ALWAYS positive; direction lives entirely in the
+  // transaction type, which is the invariant computeBalanceDeltaCents expects.
+  // ---------------------------------------------------------------------------
+  const rawAmount =
+    transaction.amount === undefined
+      ? undefined
+      : transaction.amount instanceof Decimal
         ? transaction.amount
         : new Decimal(transaction.amount as unknown as number);
-    if (amountDecimal.isNegative()) {
+  const rawAmountIsNegative = rawAmount?.isNegative() ?? false;
+
+  if (rawTypeValue !== undefined && !hasWithdrawal && !hasDeposit) {
+    // An explicitly mapped type column wins for the CATEGORY of movement.
+    const typeValue = rawTypeValue.toLowerCase();
+    if (
+      typeValue.includes('income') ||
+      typeValue.includes('deposit') ||
+      typeValue.includes('credit')
+    ) {
+      transaction.type = 'income';
+    } else if (typeValue.includes('transfer') || typeValue.includes('trf')) {
+      // Direction from the amount's ORIGINAL sign, now that it is known.
+      transaction.type = rawAmountIsNegative ? 'transfer_out' : 'transfer_in';
+    } else {
       transaction.type = 'expense';
-      transaction.amount = amountDecimal.abs();
     }
-    // Positive rows deliberately keep the default 'expense': many exports list
-    // unsigned expenses, so flipping all positives to income would misclassify
-    // those files. Signed bank files get their debits fixed here; users can map
-    // a type column (or review staging) for the income rows.
+  } else if (!hasWithdrawal && !hasDeposit && rawAmount !== undefined) {
+    // No explicit signal: fall back to the file-level sign convention (owner
+    // decision). A signed file follows the near-universal bank convention;
+    // an unsigned file is an expense list and everything stays an expense.
+    if (options.amountColumnIsSigned) {
+      transaction.type = rawAmountIsNegative ? 'expense' : 'income';
+    }
+  }
+
+  // Magnitude is always positive, on every path.
+  if (rawAmount !== undefined) {
+    transaction.amount = rawAmount.abs();
   }
 
   // Ensure required fields
@@ -890,13 +963,21 @@ function calculateSimpleSimilarity(str1: string, str2: string): number {
  * Patterns for detecting credit card transaction types from description
  */
 export const CC_TYPE_DETECTION_PATTERNS: Record<CCTransactionType, RegExp> = {
-  payment: /payment|thank\s*you|autopay|automatic\s*payment|credit\s*card\s*payment|online\s*payment/i,
-  refund: /refund|return|credit|reversal|adjustment|chargeback|merchant\s*credit/i,
+  // Findings P3/M7: these were bare substrings, so ordinary MERCHANT NAMES were
+  // read as transaction types — "NAVY FEDERAL CREDIT UNION" and "CREDIT KARMA"
+  // became refunds (income), "BONUS BURGER GRILL" and "REWARD SHOE STORE" became
+  // rewards (income), "IPARK PAYMENT NYC" became a payment. On a liability that
+  // is a 2x error per row. A merchant descriptor contains the issuer's own
+  // wording for these events, so the patterns are anchored to that wording
+  // rather than to a word that happens to appear in a business name.
+  payment: /\bthank\s*you\b|\bautopay\b|\bautomatic\s*payment\b|\bonline\s*payment\b|\bcredit\s*card\s*payment\b|\bpayment\s*(?:received|posted|thank)\b|^\s*payment\b|\bpayment\s*-\s*thank\b/i,
+  refund: /\brefund(?:ed)?\b(?!s?\s*(?:llc|inc|co\b))|\breturn(?:ed)?\b(?!s?\s*(?:llc|inc|co\b))|\bmerchant\s*credit\b|\breversal\b|\bchargeback\b|\bcredit\s*adjustment\b/i,
   interest: /interest\s*charge|finance\s*charge|interest\s*payment|purchase\s*interest|periodic\s*interest/i,
   fee: /annual\s*fee|late\s*fee|foreign\s*transaction|fee:|returned\s*payment\s*fee|over\s*limit\s*fee|cash\s*advance\s*fee/i,
-  cash_advance: /cash\s*advance|atm\s*withdraw|cash\s*disbursement|casino/i,
+  // 'casino' removed: a casino PURCHASE is a purchase, not a cash advance.
+  cash_advance: /cash\s*advance|atm\s*withdraw|cash\s*disbursement/i,
   balance_transfer: /balance\s*transfer|bt\s*-|promo\s*transfer|promotional\s*transfer/i,
-  reward: /reward|cashback|statement\s*credit|bonus|points\s*redemption|rewards\s*credit/i,
+  reward: /\brewards?\s*(?:credit|redemption|earned|applied)\b|\bcashback\b|\bcash\s*back\b|\bstatement\s*credit\b|\bpoints\s*redemption\b/i,
   purchase: /.*/, // Catch-all
 };
 
@@ -951,10 +1032,23 @@ export function detectCCTransactionType(
 /**
  * Apply credit card specific processing to a mapped transaction
  */
+export interface CreditCardProcessingOptions {
+  /**
+   * True when the row's direction came from an authoritative column — a
+   * Debit/Credit pair or an explicitly mapped type column — rather than being
+   * guessed. Finding P2: this function used to re-derive the type from the
+   * DESCRIPTION alone and clobber that signal, so a Capital One refund sitting
+   * in the Credit column was booked as a charge. The file's own column is a
+   * better witness than a regex over a merchant name.
+   */
+  hasAuthoritativeDirection?: boolean;
+}
+
 export function applyCreditCardProcessing(
   transaction: MappedTransaction,
   amountSignConvention: 'standard' | 'credit_card',
-  customPatterns?: Partial<Record<CCTransactionType, string>>
+  customPatterns?: Partial<Record<CCTransactionType, string>>,
+  options: CreditCardProcessingOptions = {}
 ): MappedTransaction {
   const amount = transaction.amount instanceof Decimal
     ? transaction.amount.toNumber()
@@ -969,42 +1063,58 @@ export function applyCreditCardProcessing(
     );
   }
   
-  // Set transaction type based on credit card transaction type
-  switch (transaction.ccTransactionType) {
-    case 'payment':
-      // Payments to credit cards are transfer_in to the card
-      transaction.type = 'transfer_in';
-      break;
-    case 'refund':
-      transaction.type = 'income';
-      transaction.isRefund = true;
-      break;
-    case 'balance_transfer':
-      transaction.type = 'transfer_in';
-      transaction.isBalanceTransfer = true;
-      break;
-    case 'reward':
-      transaction.type = 'income';
-      break;
-    default:
-      // Purchases, fees, interest, cash advances are expenses
-      transaction.type = 'expense';
-      break;
-  }
-  
-  // Handle amount sign convention
-  if (amountSignConvention === 'credit_card') {
-    // Credit card convention: positive = charge (expense), negative = credit/payment
-    // Ensure amount is positive for expenses, handle the type appropriately
-    if (amount < 0 && ['purchase', 'fee', 'interest', 'cash_advance'].includes(transaction.ccTransactionType || '')) {
-      // Negative amount but should be expense - this is actually a credit/refund
-      transaction.type = 'income';
-      transaction.amount = new Decimal(Math.abs(amount));
-    } else if (amount > 0 && ['payment', 'refund', 'reward'].includes(transaction.ccTransactionType || '')) {
-      // Positive amount but should be credit - this is a payment in wrong sign
-      transaction.amount = new Decimal(Math.abs(amount));
+  // Set transaction type based on credit card transaction type.
+  // The label (ccTransactionType) is always recorded; the DIRECTION is only
+  // overridden when the file gave us nothing authoritative to go on (P2).
+  if (options.hasAuthoritativeDirection) {
+    if (transaction.ccTransactionType === 'refund') transaction.isRefund = true;
+    if (transaction.ccTransactionType === 'balance_transfer') transaction.isBalanceTransfer = true;
+  } else {
+    switch (transaction.ccTransactionType) {
+      case 'payment':
+        // Payments to credit cards are transfer_in to the card
+        transaction.type = 'transfer_in';
+        break;
+      case 'refund':
+        transaction.type = 'income';
+        transaction.isRefund = true;
+        break;
+      case 'balance_transfer':
+        // Finding M6: this was transfer_in, which on a liability is a CREDIT —
+        // so moving $3,000 of debt ONTO the card reduced what you owed by
+        // $3,000. New debt arriving on this card behaves like a purchase.
+        transaction.type = 'expense';
+        transaction.isBalanceTransfer = true;
+        break;
+      case 'reward':
+        transaction.type = 'income';
+        break;
+      default:
+        // Purchases, fees, interest, cash advances are expenses
+        transaction.type = 'expense';
+        break;
     }
   }
   
+  // Handle amount sign convention
+  if (amountSignConvention === 'credit_card' && !options.hasAuthoritativeDirection) {
+    // Credit card convention: positive = charge (expense), negative = credit/payment.
+    // A negative amount on a row we classified as a charge is really a credit.
+    if (amount < 0 && ['purchase', 'fee', 'interest', 'cash_advance'].includes(transaction.ccTransactionType || '')) {
+      transaction.type = 'income';
+    }
+  }
+
+  // Magnitude is ALWAYS positive (finding M4). The old code only normalized two
+  // specific sign/type combinations, so a NEGATIVE payment or refund — the
+  // Amex/Citi convention — kept its sign, and paying $500 off the card ADDED
+  // $500 to the debt. Direction belongs to the type, never to the sign.
+  if (transaction.amount !== undefined) {
+    const magnitude = transaction.amount instanceof Decimal
+      ? transaction.amount
+      : new Decimal(transaction.amount as unknown as number);
+    transaction.amount = magnitude.abs();
+  }
+
   return transaction;
 }

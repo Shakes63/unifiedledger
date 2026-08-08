@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { csvSafeQuoted } from '@/lib/utils/csv-safe';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
@@ -74,12 +75,16 @@ export async function GET(request: Request) {
         return [
           t.date,
           t.type,
-          `"${t.description?.replace(/"/g, '""') || ''}"`,
-          `"${row.account?.name?.replace(/"/g, '""') || ''}"`,
-          `"${row.category?.name?.replace(/"/g, '""') || ''}"`,
-          `"${row.merchant?.name?.replace(/"/g, '""') || ''}"`,
+          // csvSafeQuoted, not bare quote-doubling (SEC1): spreadsheets strip
+          // CSV quoting before evaluating a cell, so a description beginning
+          // with = + - or @ still executes on open. These strings come from the
+          // BANK's statement, not from the person exporting the file.
+          csvSafeQuoted(t.description),
+          csvSafeQuoted(row.account?.name),
+          csvSafeQuoted(row.category?.name),
+          csvSafeQuoted(row.merchant?.name),
           t.amount,
-          `"${t.notes?.replace(/"/g, '""') || ''}"`,
+          csvSafeQuoted(t.notes),
         ].join(',');
       }),
     ];

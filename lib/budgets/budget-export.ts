@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { csvSafeValue } from '@/lib/utils/csv-safe';
 import { budgetCategories, transactions } from '@/lib/db/schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import Papa from 'papaparse';
@@ -267,9 +268,11 @@ export function generateBudgetCSV(
       'Daily_Avg',
       'Projected_Month_End',
     ],
+    // Category names are user/import-authored, so neutralize formula triggers
+    // before Papa quotes them (SEC1) — quoting alone does not stop evaluation.
     data: rows.map((row) => [
       row.Month,
-      row.Category,
+      csvSafeValue(row.Category),
       row.Type,
       row.Budgeted,
       row.Actual,

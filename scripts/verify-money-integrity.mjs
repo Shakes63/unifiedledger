@@ -135,6 +135,9 @@ const EXPECTED_SQLITE_FKS = {
   savings_goal_contributions: ['savings_goals', 'transactions'],
   savings_milestones: ['savings_goals'],
   bill_payment_events: ['bill_occurrences'],
+  // Added in 0022; the import tables previously had no foreign keys at all.
+  import_staging: ['import_history'],
+  import_history: ['import_templates'],
   transfers: ['transactions', 'transactions'],
 };
 

@@ -1754,6 +1754,13 @@ export const importStaging = sqliteTable(
   },
   (table) => ({
     importHistoryIdIdx: index('idx_import_staging_history').on(table.importHistoryId),
+    // One staging row per (import, row number) — migration 0022. This is the
+    // backstop for the concurrent double-import (finding A3); the atomic row
+    // claim in the confirm route is the primary guard.
+    historyRowUnique: uniqueIndex('idx_import_staging_history_row').on(
+      table.importHistoryId,
+      table.rowNumber
+    ),
     ccTransactionTypeIdx: index('idx_import_staging_cc_type').on(table.ccTransactionType),
     transferIdx: index('idx_import_staging_transfer').on(table.potentialTransferId),
   })

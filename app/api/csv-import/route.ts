@@ -4,13 +4,14 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { importHistory, importStaging, transactions, accounts, merchants } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import {
   applyMappings,
   validateMappedTransaction,
   applyCreditCardProcessing,
   detectPotentialTransfers,
   detectTransferByAccountNumber,
+  detectAmountColumnIsSigned,
   type ColumnMapping,
   type MappedTransaction,
   type CCTransactionType,
@@ -79,6 +80,18 @@ interface StagingRecord {
   };
 }
 
+/**
+ * Resource limits (findings SEC2/A14). The endpoint had NO file-size cap, no
+ * row cap and no maxDuration, while holding the base64 body, the decoded text,
+ * the split line array and the rejoined string simultaneously — roughly 4-5x
+ * the payload resident. previewOnly (the default) writes nothing to the DB, so
+ * an authenticated caller could repeat it for free.
+ */
+const MAX_IMPORT_BYTES = 15 * 1024 * 1024; // 15 MB of decoded CSV
+const MAX_IMPORT_ROWS = 20_000;
+/** How many existing transactions duplicate/transfer detection scans. */
+const DUPLICATE_SCAN_LIMIT = 2_000;
+
 export const dynamic = 'force-dynamic';
 
 function centsToAmount(cents: number | null | undefined): number {
@@ -118,10 +131,24 @@ export async function POST(request: NextRequest) {
       return new Response('Missing required fields', { status: 400 });
     }
 
-    // Convert base64 to text (server-side compatible)
-    console.log('Converting base64 to text, base64 length:', fileBase64.length);
+    // Bound the payload BEFORE decoding it (SEC2).
+    if (fileBase64.length > MAX_IMPORT_BYTES * 1.4) {
+      return Response.json(
+        { error: `File is too large. The limit is ${MAX_IMPORT_BYTES / (1024 * 1024)} MB.` },
+        { status: 413 }
+      );
+    }
+
     const text = Buffer.from(fileBase64, 'base64').toString('utf-8');
-    console.log('Text decoded, length:', text.length, 'First 100 chars:', text.substring(0, 100));
+    if (text.length > MAX_IMPORT_BYTES) {
+      return Response.json(
+        { error: `File is too large. The limit is ${MAX_IMPORT_BYTES / (1024 * 1024)} MB.` },
+        { status: 413 }
+      );
+    }
+    // Never log statement CONTENT (SEC11): this printed the first 100 characters
+    // of the user's bank statement into the application log.
+    console.log('CSV decoded, characters:', text.length);
 
     // Parse CSV directly from text (server-side compatible)
     const lines = text.split('\n').filter((line) => line.trim());
@@ -169,6 +196,15 @@ export async function POST(request: NextRequest) {
       return new Response(
         JSON.stringify({ error: 'No rows found in CSV file' }),
         { status: 400 }
+      );
+    }
+
+    if (rows.length > MAX_IMPORT_ROWS) {
+      return Response.json(
+        {
+          error: `File has too many rows (${rows.length}). The limit is ${MAX_IMPORT_ROWS}. Split the file and import it in parts.`,
+        },
+        { status: 413 }
       );
     }
     const parsed = {
@@ -285,7 +321,14 @@ export async function POST(request: NextRequest) {
       .where(eq(merchants.householdId, householdId));
 
     // Phase 12: Fetch existing transactions for transfer detection
-    // Filter by householdId to check against all household transactions
+    // Loaded ONCE for the whole file (findings SEC3/A14/P10). An identical query
+    // also sat INSIDE the per-row loop below, so a 1,000-row CSV issued 1,000
+    // 500-row SELECTs and re-ran Levenshtein over all of them — O(N x 500) in a
+    // single blocking request on one synchronous SQLite connection.
+    //
+    // Ordered by date DESC: the cap used to take an arbitrary 500 rows in rowid
+    // order, i.e. the OLDEST, so any household past 500 transactions had
+    // duplicate detection that structurally could not match a recent import.
     const existingTransactionsForTransfer = await db
       .select({
         id: transactions.id,
@@ -295,10 +338,20 @@ export async function POST(request: NextRequest) {
         type: transactions.type,
         accountId: transactions.accountId,
         transferId: transactions.transferId,
+        merchantId: transactions.merchantId,
       })
       .from(transactions)
       .where(eq(transactions.householdId, householdId))
-      .limit(500);
+      .orderBy(desc(transactions.date))
+      .limit(DUPLICATE_SCAN_LIMIT);
+
+    // Decided ONCE for the whole file (M2): a positive number means different
+    // things in a signed bank export and an unsigned expense list, and no single
+    // row can tell them apart.
+    const amountColumnIsSigned = detectAmountColumnIsSigned(parsed.rows, columnMappings);
+    const hasAuthoritativeDirectionColumn = columnMappings.some(
+      (m) => m.appField === 'withdrawal' || m.appField === 'deposit' || m.appField === 'type'
+    );
 
     for (let i = 0; i < parsed.rows.length; i++) {
       const row = parsed.rows[i];
@@ -311,12 +364,21 @@ export async function POST(request: NextRequest) {
           row,
           columnMappings,
           dateFormat,
-          defaultAccountId
+          defaultAccountId,
+          { amountColumnIsSigned }
         );
 
-        // Phase 12: Apply credit card processing if this is a credit card import
+        // Phase 12: Apply credit card processing if this is a credit card import.
+        // hasAuthoritativeDirection (P2): when the file itself states the
+        // direction — a Debit/Credit column pair or a mapped type column — that
+        // beats guessing from the merchant description, which used to clobber it.
         if (sourceType === 'credit_card') {
-          mappedData = applyCreditCardProcessing(mappedData, amountSignConvention);
+          mappedData = applyCreditCardProcessing(
+            mappedData,
+            amountSignConvention,
+            undefined,
+            { hasAuthoritativeDirection: hasAuthoritativeDirectionColumn }
+          );
         }
 
         // Validate
@@ -413,19 +475,7 @@ export async function POST(request: NextRequest) {
             // Not a transfer by account number - check for duplicates
 
             // Get existing transactions for duplicate checking with account info
-            const rawExistingTransactions = await db
-              .select({
-                id: transactions.id,
-                description: transactions.description,
-                amountCents: transactions.amountCents,
-                date: transactions.date,
-                type: transactions.type,
-                accountId: transactions.accountId,
-                merchantId: transactions.merchantId,
-              })
-              .from(transactions)
-              .where(eq(transactions.householdId, householdId))
-              .limit(500);
+            const rawExistingTransactions = existingTransactionsForTransfer;
 
             // Build merchant name map
             const merchantNameMap = new Map(householdMerchants.map(m => [m.id, m.name]));

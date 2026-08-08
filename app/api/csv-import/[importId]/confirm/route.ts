@@ -9,8 +9,9 @@ import {
   ruleExecutionLog,
   accounts,
   merchants,
+  budgetCategories,
 } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ne, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import Decimal from 'decimal.js';
@@ -209,9 +210,31 @@ export async function POST(
       );
     }
 
+    /**
+     * Atomically claim a staging row (finding A3).
+     *
+     * The `status !== 'imported'` filter above operates on a snapshot read
+     * OUTSIDE any transaction, and the flip to 'imported' used to happen at the
+     * END of each row's work — so two concurrent confirms both saw 'approved'
+     * and both imported the whole file, inserting every transaction twice and
+     * applying every balance delta twice. Claiming inside the row's own
+     * transaction, conditional on the row not already being claimed, turns
+     * check-then-act into a single atomic step. runInDatabaseTransaction
+     * serializes on BEGIN IMMEDIATE, so the loser sees 'imported' and skips.
+     */
+    const claimStagingRow = async (tx: typeof db, stagingRowId: string): Promise<boolean> => {
+      const claimed = await tx
+        .update(importStaging)
+        .set({ status: 'imported' })
+        .where(and(eq(importStaging.id, stagingRowId), ne(importStaging.status, 'imported')))
+        .returning({ id: importStaging.id });
+      return claimed.length > 0;
+    };
+
     // Import records
     let importedCount = 0;
     let errorCount = 0;
+    let alreadyImportedCount = 0;
     const errors: string[] = [];
 
     for (const stagingRecord of recordsToImport) {
@@ -290,8 +313,27 @@ export async function POST(
             console.warn('Rule action execution errors during import confirm:', executionResult.errors);
           }
         } else if (mappedData.category) {
-          // Use provided category if available
-          categoryId = mappedData.category;
+          // Resolve the CSV's category TEXT to a real category id (findings
+          // P9/M16/SEC8). This assigned the raw cell value straight into
+          // transactions.categoryId — "Groceries", or worse "DEBIT" once
+          // auto-detect mapped a bank's Type column here — and categoryId has no
+          // foreign key, so the row silently fell out of every budget and
+          // category rollup. An unmatched name now leaves the transaction
+          // uncategorized rather than carrying a dangling id.
+          const categoryName = String(mappedData.category).trim();
+          if (categoryName) {
+            const [matched] = await db
+              .select({ id: budgetCategories.id })
+              .from(budgetCategories)
+              .where(
+                and(
+                  eq(budgetCategories.householdId, householdId),
+                  sql`lower(${budgetCategories.name}) = lower(${categoryName})`
+                )
+              )
+              .limit(1);
+            categoryId = matched?.id ?? null;
+          }
         }
 
         const amount = new Decimal(
@@ -346,7 +388,8 @@ export async function POST(
 
           const csvAccount = await loadScopedImportAccount(mappedData.accountId, userId, householdId);
 
-          await runInDatabaseTransaction(async (tx) => {
+          const claimedRow = await runInDatabaseTransaction(async (tx) => {
+            if (!(await claimStagingRow(tx, stagingRecord.id))) return false;
             await insertTransactionMovement(tx, {
               id: newTxId,
               userId,
@@ -418,11 +461,12 @@ export async function POST(
               householdId,
             });
 
-            await tx
-              .update(importStaging)
-              .set({ status: 'imported' })
-              .where(eq(importStaging.id, stagingRecord.id));
+            return true;
           });
+          if (!claimedRow) {
+            alreadyImportedCount += 1;
+            continue;
+          }
 
           console.log(`Linked import row ${stagingRecord.rowNumber} (${newTxId}) to existing transaction ${transferDecision.existingTransactionId}`);
         } else if (importType === 'transfer' && transferDecision?.targetAccountId) {
@@ -448,9 +492,20 @@ export async function POST(
             throw new Error(`Target account not found: ${transferDecision.targetAccountId}`);
           }
 
-          // transfer_in = money arriving at CSV account (positive amount)
-          const isIncomingTransfer = mappedData.type === 'transfer_in' ||
-            (mappedData.type !== 'transfer_out' && amount.greaterThanOrEqualTo(0));
+          // Direction comes from the TYPE, not the sign (finding M1).
+          //
+          // The old test was `type !== 'transfer_out' && amount >= 0`, but by
+          // this point applyMappings has normalized the amount to positive and
+          // typed the row 'expense'/'income' — so it was unconditionally TRUE and
+          // every outbound transfer ran backwards. A $1,200 card payment added
+          // $1,200 to checking AND $1,200 to the card debt.
+          //
+          // 'expense' and 'transfer_out' mean money LEFT the CSV account; this is
+          // the same debit/credit split computeBalanceDeltaCents uses, so the
+          // pair and the balances can't disagree.
+          const isOutgoingTransfer =
+            mappedData.type === 'transfer_out' || mappedData.type === 'expense';
+          const isIncomingTransfer = !isOutgoingTransfer;
           const sourceAccountId = isIncomingTransfer ? transferDecision.targetAccountId : mappedData.accountId;
           const destinationAccountId = isIncomingTransfer ? mappedData.accountId : transferDecision.targetAccountId;
           const transferOutAccountId = isIncomingTransfer ? transferDecision.targetAccountId : mappedData.accountId;
@@ -459,7 +514,8 @@ export async function POST(
           const outAccount = await loadScopedImportAccount(transferOutAccountId, userId, householdId);
           const inAccount = await loadScopedImportAccount(transferInAccountId, userId, householdId);
 
-          await runInDatabaseTransaction(async (tx) => {
+          const claimedRow = await runInDatabaseTransaction(async (tx) => {
+            if (!(await claimStagingRow(tx, stagingRecord.id))) return false;
             await insertTransactionMovement(tx, {
               id: transferOutId,
               userId,
@@ -549,11 +605,12 @@ export async function POST(
               householdId,
             });
 
-            await tx
-              .update(importStaging)
-              .set({ status: 'imported' })
-              .where(eq(importStaging.id, stagingRecord.id));
+            return true;
           });
+          if (!claimedRow) {
+            alreadyImportedCount += 1;
+            continue;
+          }
 
           console.log(`Created transfer pair for row ${stagingRecord.rowNumber}: ${transferOutId} -> ${transferInId}`);
         } else {
@@ -573,7 +630,8 @@ export async function POST(
           const rowAccount = await loadScopedImportAccount(mappedData.accountId, userId, householdId);
           const rowAmountCents = amountToCents(amount);
 
-          await runInDatabaseTransaction(async (tx) => {
+          const claimedRow = await runInDatabaseTransaction(async (tx) => {
+            if (!(await claimStagingRow(tx, stagingRecord.id))) return false;
             await insertTransactionMovement(tx, {
               id: txId,
               userId,
@@ -605,11 +663,12 @@ export async function POST(
               householdId,
             });
 
-            await tx
-              .update(importStaging)
-              .set({ status: 'imported' })
-              .where(eq(importStaging.id, stagingRecord.id));
+            return true;
           });
+          if (!claimedRow) {
+            alreadyImportedCount += 1;
+            continue;
+          }
 
           // Log rule execution if a rule was applied
           if (appliedRuleId) {
@@ -644,30 +703,54 @@ export async function POST(
       }
     }
 
-    // Update import history
+    // Update import history.
     const now = new Date().toISOString();
     const skippedCount = stagingRecords.length - recordsToImport.length;
     const duplicateCount = recordsToImport.filter(
       (r) => r.duplicateOf
     ).length;
 
+    // Counts ACCUMULATE across partial confirms (findings A10/M12). These were
+    // assignments, so confirming rows 1-100 and then 101-150 left the permanent
+    // record claiming 50 of 150 rows imported when all 150 landed — and any
+    // rollback built on those counters would under-reverse.
+    const priorRowsImported = importData.rowsImported ?? 0;
+    const priorRowsDuplicates = importData.rowsDuplicates ?? 0;
+
+    // Status tells the truth (findings A1/A12). 'completed' was written
+    // unconditionally — even when every single row failed — 'failed' was never
+    // used at all, and errorMessage was never written, so the only record of a
+    // failure was an HTTP response body the client discarded while showing a
+    // green "Import completed successfully" toast.
+    const finalStatus: 'completed' | 'failed' =
+      importedCount === 0 && errorCount > 0 ? 'failed' : 'completed';
+    const errorMessage =
+      errors.length > 0
+        ? `${errorCount} row(s) failed: ${errors.slice(0, 20).join('; ')}${
+            errors.length > 20 ? ` (+${errors.length - 20} more)` : ''
+          }`
+        : null;
+
     await db
       .update(importHistory)
       .set({
-        status: 'completed',
-        rowsImported: importedCount,
+        status: finalStatus,
+        rowsImported: priorRowsImported + importedCount,
         rowsSkipped: skippedCount,
-        rowsDuplicates: duplicateCount,
+        rowsDuplicates: priorRowsDuplicates + duplicateCount,
+        errorMessage,
         completedAt: now,
       })
       .where(eq(importHistory.id, importId));
 
     return Response.json({
-      success: true,
+      success: errorCount === 0,
+      status: finalStatus,
       importId,
       imported: importedCount,
       failed: errorCount,
       skipped: skippedCount,
+      alreadyImported: alreadyImportedCount,
       duplicates: duplicateCount,
       errors: errors.length > 0 ? errors : undefined,
     });

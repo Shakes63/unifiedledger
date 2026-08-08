@@ -6,7 +6,8 @@
  */
 
 import { db } from "@/lib/db";
-import { eq, lt, sql } from "drizzle-orm";
+import { eq, lt, sql, and, ne, inArray } from "drizzle-orm";
+import { runInDatabaseTransaction } from "@/lib/db/transaction-runner";
 import {
   savedSearchFilters,
   householdActivityLog,
@@ -158,25 +159,44 @@ export async function cleanOldImportHistory(): Promise<CleanupStats> {
       cutoffDate.getDate() - RETENTION_POLICIES.IMPORT_HISTORY
     );
 
-    // First delete associated import staging records
-    const stagingResult = await db
-      .delete(importStaging)
-      .where(
-        lt(
-          sql`${importStaging.createdAt}`,
-          cutoffDate.toISOString()
-        )
-      );
+    // One unit (finding A18): these were separate autocommits, so a failure on
+    // the second left staging deleted and history behind — shells with no rows.
+    const { stagingResult, historyResult } = await runInDatabaseTransaction(async (tx) => {
+      // Never delete an import that TRANSACTIONS still point at (finding A9).
+      // transactions.import_history_id has no foreign key, so deleting the
+      // history row left every transaction imported more than the retention
+      // window ago carrying a dangling reference that the UI still renders
+      // provenance from — and which nothing would ever detect or repair.
+      // An import still in flight is likewise left alone.
+      const deletableHistory = await tx
+        .select({ id: importHistory.id })
+        .from(importHistory)
+        .where(
+          and(
+            lt(sql`${importHistory.startedAt}`, cutoffDate.toISOString()),
+            ne(importHistory.status, 'processing'),
+            sql`NOT EXISTS (
+              SELECT 1 FROM transactions t
+              WHERE t.import_history_id = ${importHistory.id}
+            )`
+          )
+        );
 
-    // Then delete the import history records
-    const historyResult = await db
-      .delete(importHistory)
-      .where(
-        lt(
-          sql`${importHistory.startedAt}`,
-          cutoffDate.toISOString()
-        )
-      );
+      const deletableIds = deletableHistory.map((row) => row.id);
+      if (deletableIds.length === 0) {
+        return { stagingResult: { changes: 0 }, historyResult: { changes: 0 } };
+      }
+
+      const stagingResult = await tx
+        .delete(importStaging)
+        .where(inArray(importStaging.importHistoryId, deletableIds));
+
+      const historyResult = await tx
+        .delete(importHistory)
+        .where(inArray(importHistory.id, deletableIds));
+
+      return { stagingResult, historyResult };
+    });
 
     const duration = performance.now() - startTime;
     const totalDeleted = (stagingResult.changes || 0) + (historyResult.changes || 0);
