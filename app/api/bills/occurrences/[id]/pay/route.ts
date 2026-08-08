@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import type { PayOccurrenceRequest } from '@/lib/bills/contracts';
 import { payOccurrence } from '@/lib/bills/service';
+import { queueSync } from '@/lib/calendar/sync-service';
 import { toBillsV2Error } from '@/lib/bills/route-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,9 @@ export async function POST(
     const { id } = await context.params;
 
     const result = await payOccurrence(userId, householdId, id, body);
+    // A paid occurrence changes its external event (bug-hunt finding SY1 —
+    // bill changes never reached the calendar before).
+    queueSync(userId, householdId, 'bill_instance', id, 'update');
     return Response.json({ data: result });
   } catch (error) {
     return toBillsV2Error(error, 'occurrences [id] pay POST');

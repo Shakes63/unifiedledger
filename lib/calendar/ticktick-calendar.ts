@@ -375,6 +375,19 @@ export async function createTickTickProject(
  * Convert reminder minutes to TickTick reminder format
  * TickTick uses trigger strings like "TRIGGER:-P0DT1H0M0S" (1 hour before)
  */
+/**
+ * TickTick's Open API expects "yyyy-MM-dd'T'HH:mm:ssZ". A bare 'YYYY-MM-DD'
+ * from our all-day financial events is anchored to UTC midnight (and the task
+ * body declares timeZone 'UTC'), so the calendar date is preserved in every
+ * viewer timezone instead of shifting a day earlier (bug-hunt finding SY4).
+ */
+function toTickTickDueDate(date: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return `${date}T00:00:00+0000`;
+  }
+  return date;
+}
+
 function toTickTickReminder(minutes: number | null | undefined): string[] {
   if (minutes === null || minutes === undefined) {
     return [];
@@ -407,11 +420,15 @@ export async function createTickTickTask(
     projectId,
     title: event.title,
     content,
-    dueDate: event.date,
+    // A bare 'YYYY-MM-DD' is parsed as UTC midnight; paired with a LOCAL
+    // timeZone it renders on the previous day west of UTC (bug-hunt finding
+    // SY4). Anchor an all-day date to UTC midnight and declare UTC so the
+    // calendar date is preserved.
+    dueDate: toTickTickDueDate(event.date),
     isAllDay: event.allDay,
     reminders: toTickTickReminder(event.reminderMinutes),
     priority: 0, // Default priority
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timeZone: 'UTC',
   };
 
   const response = await fetch(`${TICKTICK_API_URL}/task`, {
@@ -452,10 +469,10 @@ export async function updateTickTickTask(
     projectId,
     title: event.title,
     content,
-    dueDate: event.date,
+    dueDate: toTickTickDueDate(event.date), // SY4 — see createTickTickTask
     isAllDay: event.allDay,
     reminders: toTickTickReminder(event.reminderMinutes),
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timeZone: 'UTC',
   };
 
   const response = await fetch(`${TICKTICK_API_URL}/task/${taskId}`, {

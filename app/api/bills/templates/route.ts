@@ -10,6 +10,7 @@ import type {
   AutopayAmountType,
 } from '@/lib/bills/contracts';
 import { assertHouseholdAccounts, createBillTemplate, listBillTemplates } from '@/lib/bills/service';
+import { queueFullSync } from '@/lib/calendar/sync-service';
 import { toBillsV2Error } from '@/lib/bills/route-helpers';
 import { db } from '@/lib/db';
 import { autopayRules } from '@/lib/db/schema';
@@ -120,6 +121,9 @@ export async function POST(request: NextRequest) {
     const created = await createBillTemplate(userId, householdId, templateInput);
     await upsertAutopayRule(created.id, householdId, autopay);
 
+    // A new template materializes many occurrences — resync the calendar
+    // (bug-hunt finding SY1).
+    queueFullSync(userId, householdId);
     return Response.json({ data: created }, { status: 201 });
   } catch (error) {
     return toBillsV2Error(error, 'templates POST');

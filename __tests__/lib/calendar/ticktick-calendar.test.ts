@@ -184,7 +184,10 @@ describe('lib/calendar/ticktick-calendar', () => {
     expect(body.projectId).toBe('proj-1');
     expect(body.title).toBe('Pay Bill');
     expect(body.isAllDay).toBe(true);
-    expect(body.dueDate).toBe('2025-01-01');
+    // All-day date anchored to UTC midnight so it doesn't shift a day earlier
+    // in western viewer timezones (bug-hunt finding SY4).
+    expect(body.dueDate).toBe('2025-01-01T00:00:00+0000');
+    expect(body.timeZone).toBe('UTC');
     expect(body.reminders).toEqual(['TRIGGER:-P0DT1H30M0S']);
     expect(body.content).toContain('Open in Unified Ledger: http://app.local/x');
   });

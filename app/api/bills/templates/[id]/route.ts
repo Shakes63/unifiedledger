@@ -8,6 +8,7 @@ import type {
   UpdateBillTemplateRequest,
 } from '@/lib/bills/contracts';
 import { assertHouseholdAccounts, deleteBillTemplate, updateBillTemplate } from '@/lib/bills/service';
+import { queueFullSync } from '@/lib/calendar/sync-service';
 import { toBillsV2Error } from '@/lib/bills/route-helpers';
 import { db } from '@/lib/db';
 import {
@@ -187,6 +188,7 @@ export async function PUT(
       await upsertAutopayRule(id, householdId, autopay);
     }
 
+    queueFullSync(userId, householdId);
     return Response.json({ data: updated });
   } catch (error) {
     return toBillsV2Error(error, 'templates [id] PUT');
@@ -203,6 +205,7 @@ export async function DELETE(
     const { id } = await context.params;
 
     await deleteBillTemplate(id, householdId);
+    queueFullSync(userId, householdId);
     return Response.json({ success: true });
   } catch (error) {
     return toBillsV2Error(error, 'templates [id] DELETE');
