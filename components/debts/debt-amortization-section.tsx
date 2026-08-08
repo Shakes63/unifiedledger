@@ -74,6 +74,7 @@ export function DebtAmortizationSection({
           method: data.method,
           paymentFrequency: data.paymentFrequency,
           totalMonths: debtSchedule.monthsToPayoff,
+          hasUnpayableDebts: debtSchedule.paidOff === false,
           totalInterestPaid: debtSchedule.totalInterestPaid,
           debtFreeDate: new Date(debtSchedule.payoffDate),
           payoffOrder: data.payoffOrder.filter((o: { debtId: string }) => o.debtId === debt.id),

@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         .where(eq(accounts.id, id));
 
       // Return updated account in unified format
-      const balanceCents = Math.abs(account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0);
+      const balanceCents = Math.max(0, account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0);
       const creditLimitCents = account.creditLimitCents ?? toMoneyCents(account.creditLimit) ?? 0;
       const balance = toAmount(balanceCents);
       const creditLimit = toAmount(creditLimitCents);

@@ -3,7 +3,8 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billPaymentEvents, debtPayments } from '@/lib/db/schema';
 import { getMonthRangeForDate } from '@/lib/utils/local-date';
-import { eq, and, gte, inArray, lte } from 'drizzle-orm';
+import { eq, and, gte, inArray, lt } from 'drizzle-orm';
+import { addDays, format } from 'date-fns';
 import { calculatePayoffStrategy, type DebtInput, type PayoffMethod, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
 import {
@@ -85,6 +86,13 @@ export async function GET(request: Request) {
       if (!rangeStart || monthStart < rangeStart) rangeStart = monthStart;
       if (!rangeEnd || monthEnd > rangeEnd) rangeEnd = monthEnd;
     }
+    // Exclusive upper bound (bug-hunt finding LC4): payment dates may be
+    // stored as full ISO timestamps, and lexicographically
+    // '2026-08-31T14:00:00Z' > '2026-08-31', so lte(rangeEnd) silently dropped
+    // payments made on the window's last day.
+    const rangeEndExclusive = rangeEnd
+      ? format(addDays(new Date(`${rangeEnd}T00:00:00`), 1), 'yyyy-MM-dd')
+      : '';
 
     const billDebtIds = unifiedDebts
       .filter((debt) => debt.source === 'bill')
@@ -98,7 +106,7 @@ export async function GET(request: Request) {
           and(
             eq(debtPayments.householdId, householdId),
             gte(debtPayments.paymentDate, rangeStart || ''),
-            lte(debtPayments.paymentDate, rangeEnd || '')
+            lt(debtPayments.paymentDate, rangeEndExclusive)
           )
         ),
       billDebtIds.length > 0
@@ -113,7 +121,7 @@ export async function GET(request: Request) {
                 eq(billPaymentEvents.householdId, householdId),
                 inArray(billPaymentEvents.templateId, billDebtIds),
                 gte(billPaymentEvents.paymentDate, rangeStart || ''),
-                lte(billPaymentEvents.paymentDate, rangeEnd || '')
+                lt(billPaymentEvents.paymentDate, rangeEndExclusive)
               )
             )
         : Promise.resolve([]),
@@ -127,15 +135,17 @@ export async function GET(request: Request) {
       );
     };
 
+    // Slice the stored date string instead of new Date() (bug-hunt finding
+    // LC4): 'YYYY-MM-DD' parses as UTC midnight, so west of UTC a payment on
+    // the 1st was bucketed into the PREVIOUS month.
     for (const payment of standalonePayments) {
-      const date = new Date(payment.paymentDate);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      addPayment(key, payment.amount || 0);
+      addPayment(payment.paymentDate.slice(0, 7), payment.amount || 0);
     }
     for (const payment of debtBillPayments) {
-      const date = new Date(payment.paymentDate);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      addPayment(key, new Decimal(payment.amountCents || 0).div(100).toNumber());
+      addPayment(
+        payment.paymentDate.slice(0, 7),
+        new Decimal(payment.amountCents || 0).div(100).toNumber()
+      );
     }
     const monthlyData: MonthlyAdherenceData[] = monthRecords.map((record) => {
       const actualPayment = actualByMonth.get(record.key) || 0;

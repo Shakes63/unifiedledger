@@ -23,7 +23,13 @@ export async function GET(request: Request) {
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Use unified debt sources so chart includes account/bill/debt origins.
-    const userDebts = await getUnifiedDebtSources(householdId);
+    // The chart visualizes the payoff STRATEGY, so it respects the
+    // per-debt strategy toggle like /payoff-strategy and /countdown do — the
+    // old unfiltered list projected debts the strategy excluded, showing a
+    // contradictory debt-free date (bug-hunt finding AG4).
+    const userDebts = (await getUnifiedDebtSources(householdId)).filter(
+      (debt) => debt.includeInPayoffStrategy
+    );
 
     if (userDebts.length === 0) {
       return new Response(
@@ -64,8 +70,10 @@ export async function GET(request: Request) {
             .from(transactions)
             .where(
               and(
+                // Household-scoped like every other debt reader (bug-hunt
+                // finding AG5): user-scoping made each member see a different
+                // history, missing the other members' payments entirely.
                 eq(transactions.householdId, householdId),
-                eq(transactions.userId, userId),
                 eq(transactions.type, 'transfer_in'),
                 inArray(transactions.accountId, accountIds)
               )
@@ -98,7 +106,7 @@ export async function GET(request: Request) {
             .from(debtPayments)
             .where(
               and(
-                eq(debtPayments.userId, userId),
+                // Household-scoped (AG5) — see the transactions query above.
                 eq(debtPayments.householdId, householdId),
                 inArray(debtPayments.debtId, debtIds)
               )

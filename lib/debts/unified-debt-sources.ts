@@ -42,6 +42,12 @@ export interface UnifiedDebtSource extends DebtInput {
   sourceType: string;
   includeInPayoffStrategy: boolean;
   originalBalance: number;
+  /**
+   * ISO timestamp of when this debt source was created — lets historical
+   * judgments (e.g. the payment streak) only require minimums for debts that
+   * existed in that month (bug-hunt finding LC5).
+   */
+  createdAt: string | null;
 }
 
 export interface DebtStrategySettings {
@@ -176,7 +182,7 @@ export async function getUnifiedDebtSources(
   const unified: UnifiedDebtSource[] = [];
 
   for (const account of creditAccounts) {
-    const balanceCents = Math.abs(
+    const balanceCents = Math.max(0,
       account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0
     );
     const balance = toAmount(balanceCents);
@@ -213,10 +219,25 @@ export async function getUnifiedDebtSources(
       color: account.color || undefined,
       icon: account.icon || undefined,
       includeInPayoffStrategy: account.includeInPayoffStrategy !== false,
+      createdAt: account.createdAt ?? null,
     });
   }
 
+  // A template linked to a liability ACCOUNT describes the same debt the
+  // account already contributes — including both doubled the balance, the
+  // minimums, and the whole payoff plan (bug-hunt finding AG1). The account is
+  // authoritative; skip the template even when the account row was filtered
+  // out above (e.g. zero balance).
+  const creditAccountIds = new Set(creditAccounts.map((account) => account.id));
+
   for (const template of debtTemplates) {
+    if (
+      template.linkedLiabilityAccountId &&
+      creditAccountIds.has(template.linkedLiabilityAccountId)
+    ) {
+      continue;
+    }
+
     const balance =
       template.debtRemainingBalanceCents !== null
         ? toAmount(template.debtRemainingBalanceCents)
@@ -233,7 +254,10 @@ export async function getUnifiedDebtSources(
         template.debtOriginalBalanceCents !== null
           ? toAmount(template.debtOriginalBalanceCents)
           : balance,
-      minimumPayment: 0,
+      // The bill's recurring amount IS the payment made toward this debt —
+      // emitting 0 made the simulator pay it NOTHING while other debts were
+      // focused, so its balance grew with interest (bug-hunt finding AG3).
+      minimumPayment: toAmount(template.defaultAmountCents ?? 0),
       additionalMonthlyPayment: 0,
       interestRate:
         template.debtInterestAprBps !== null
@@ -241,13 +265,15 @@ export async function getUnifiedDebtSources(
           : 0,
       type: 'other',
       loanType: 'installment',
-      compoundingFrequency:
-        (template.debtInterestType as 'daily' | 'monthly' | 'quarterly' | 'annually' | null) ||
-        'monthly',
+      // debtInterestType is 'fixed' | 'variable' | 'none' — NOT a compounding
+      // frequency; the old cast fed 'fixed' into the interest math. Mirror the
+      // account rule: variable rates compound daily, otherwise monthly.
+      compoundingFrequency: template.debtInterestType === 'variable' ? 'daily' : 'monthly',
       billingCycleDays: 30,
       color: template.debtColor || undefined,
       icon: undefined,
       includeInPayoffStrategy: template.includeInPayoffStrategy !== false,
+      createdAt: template.createdAt ?? null,
     });
   }
 
@@ -276,6 +302,7 @@ export async function getUnifiedDebtSources(
       icon: debt.icon || undefined,
       // Standalone debts are always included until a dedicated toggle column exists.
       includeInPayoffStrategy: true,
+      createdAt: debt.createdAt ?? null,
     });
   }
 

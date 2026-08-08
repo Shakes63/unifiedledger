@@ -83,6 +83,28 @@ export async function POST(request: Request) {
       );
     }
 
+    // Same finite-money validation the PUT got in M-SEC-11 (bug-hunt finding
+    // S3): the POST previously inserted interestRate/minimumPayment/
+    // originalAmount raw, so Infinity or negative values poisoned every
+    // downstream payoff calculation.
+    for (const [field, value] of Object.entries({
+      originalAmount,
+      remainingBalance,
+      minimumPayment,
+      additionalMonthlyPayment,
+      interestRate,
+    })) {
+      if (value !== undefined && value !== null) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+          return new Response(
+            JSON.stringify({ error: `Invalid ${field}: must be a non-negative finite number` }),
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Validate account belongs to household if provided
     if (accountId) {
       const account = await db

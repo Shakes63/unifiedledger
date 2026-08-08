@@ -74,26 +74,49 @@ export async function syncDebtPayoffDate(
       ? (settings[0].paymentFrequency as PaymentFrequency || 'monthly')
       : 'monthly';
 
-    // Create debt input for calculator
-    const debtInput: DebtInput = {
-      id: debt.id,
-      name: debt.name,
-      remainingBalance: debt.remainingBalance,
-      minimumPayment: debt.minimumPayment || 0,
-      additionalMonthlyPayment: debt.additionalMonthlyPayment || 0,
-      interestRate: debt.interestRate || 0,
-      type: debt.type || 'other',
-      loanType: debt.loanType as 'revolving' | 'installment' | undefined,
-      compoundingFrequency: debt.compoundingFrequency as 'daily' | 'monthly' | 'quarterly' | 'annually' | undefined,
-      billingCycleDays: debt.billingCycleDays || undefined,
-    };
+    // Simulate against ALL of the user's active debts, not this one alone
+    // (bug-hunt finding M2): the extra budget is shared — a solo simulation
+    // gave EVERY debt the full extra payment from month 1 simultaneously, so
+    // the persisted dates disagreed with the actual strategy plan.
+    const activeDebts = await db
+      .select()
+      .from(debts)
+      .where(
+        and(
+          eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
+          eq(debts.status, 'active')
+        )
+      );
 
-    // Calculate payoff strategy for this single debt
-    const strategy = calculatePayoffStrategy([debtInput], extraPayment, preferredMethod, paymentFrequency);
+    const debtInputs: DebtInput[] = activeDebts.map((row) => ({
+      id: row.id,
+      name: row.name,
+      remainingBalance: row.remainingBalance,
+      minimumPayment: row.minimumPayment || 0,
+      additionalMonthlyPayment: row.additionalMonthlyPayment || 0,
+      interestRate: row.interestRate || 0,
+      type: row.type || 'other',
+      loanType: row.loanType as 'revolving' | 'installment' | undefined,
+      compoundingFrequency: row.compoundingFrequency as 'daily' | 'monthly' | 'quarterly' | 'annually' | undefined,
+      billingCycleDays: row.billingCycleDays || undefined,
+    }));
+
+    const strategy = calculatePayoffStrategy(debtInputs, extraPayment, preferredMethod, paymentFrequency);
     const schedule = strategy.schedules.find(s => s.debtId === debtId);
 
     if (!schedule) {
       return { success: false, payoffDate: null };
+    }
+
+    // A debt that never pays off at the current payments has no honest target
+    // date to persist (M1) — clear it rather than storing the simulation cap.
+    if (!schedule.paidOff) {
+      await db
+        .update(debts)
+        .set({ targetPayoffDate: null, updatedAt: new Date().toISOString() })
+        .where(eq(debts.id, debtId));
+      return { success: true, payoffDate: null };
     }
 
     const payoffDate = format(schedule.payoffDate, 'yyyy-MM-dd');

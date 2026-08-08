@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import {
   accounts,
   billMilestones,
@@ -312,68 +313,90 @@ export async function POST(request: Request) {
       }
 
       const paymentId = nanoid();
-      // Split principal/interest like the transaction-linked path (L-DBG-15):
-      // recording the whole amount as principal made principal-based charts
-      // (e.g. the reduction chart) undercount the interest portion. Only the
-      // principal reduces the balance, in integer cents (H-DBG-10).
       const paymentCents = toMoneyCents(amount) ?? 0;
-      const breakdown = calculatePaymentBreakdown(
-        amount,
-        debt.remainingBalance,
-        debt.interestRate || 0,
-        debt.interestType || 'none',
-        debt.loanType || 'revolving',
-        debt.compoundingFrequency || 'monthly',
-        debt.billingCycleDays || 30
-      );
-      const principalCents = toMoneyCents(breakdown.principalAmount) ?? 0;
-      const interestCents = toMoneyCents(breakdown.interestAmount) ?? 0;
-      const currentDebtCents = getDebtRemainingCents(debt);
-      const newCents = Math.max(0, currentDebtCents - principalCents);
-      await db.insert(debtPayments).values({
-        id: paymentId,
-        debtId: sourceId,
-        userId,
-        householdId,
-        ...buildDebtPaymentAmountFields({
-          amountCents: paymentCents,
-          principalCents,
-          interestCents,
-        }),
-        paymentDate,
-        transactionId,
-        notes,
-        createdAt: now,
-      });
-
-      await db
-        .update(debts)
-        .set({
-          ...buildDebtBalanceFields(newCents),
-          updatedAt: now,
-          status: newCents === 0 ? 'paid_off' : debt.status,
-        })
-        .where(eq(debts.id, sourceId));
-
-      const milestones = await db
-        .select()
-        .from(debtPayoffMilestones)
-        .where(
-          and(
-            eq(debtPayoffMilestones.debtId, sourceId),
-            eq(debtPayoffMilestones.householdId, householdId)
+      // One transaction around read -> insert -> balance write -> milestones
+      // (bug-hunt finding LC2): two concurrent payments both computed the new
+      // balance from the same stale read and one update was lost; a crash
+      // between the payment insert and the balance update left a payment row
+      // that never reduced the balance.
+      await runInDatabaseTransaction(async (tx) => {
+        const [currentDebt] = await tx
+          .select()
+          .from(debts)
+          .where(
+            and(
+              eq(debts.id, sourceId),
+              eq(debts.userId, userId),
+              eq(debts.householdId, householdId)
+            )
           )
-        );
-
-      const newBalance = fromMoneyCents(newCents) ?? 0;
-      for (const milestone of milestones) {
-        if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
-          await db
-            .update(debtPayoffMilestones)
-            .set({ achievedAt: now })
-            .where(eq(debtPayoffMilestones.id, milestone.id));
+          .limit(1);
+        if (!currentDebt) {
+          throw new Error('Debt not found');
         }
-      }
+
+        // Split principal/interest like the transaction-linked path
+        // (L-DBG-15). Only the principal reduces the balance, in integer
+        // cents (H-DBG-10).
+        const breakdown = calculatePaymentBreakdown(
+          amount,
+          currentDebt.remainingBalance,
+          currentDebt.interestRate || 0,
+          currentDebt.interestType || 'none',
+          currentDebt.loanType || 'revolving',
+          currentDebt.compoundingFrequency || 'monthly',
+          currentDebt.billingCycleDays || 30
+        );
+        const principalCents = toMoneyCents(breakdown.principalAmount) ?? 0;
+        const interestCents = toMoneyCents(breakdown.interestAmount) ?? 0;
+        const currentDebtCents = getDebtRemainingCents(currentDebt);
+        const newCents = Math.max(0, currentDebtCents - principalCents);
+
+        await tx.insert(debtPayments).values({
+          id: paymentId,
+          debtId: sourceId,
+          userId,
+          householdId,
+          ...buildDebtPaymentAmountFields({
+            amountCents: paymentCents,
+            principalCents,
+            interestCents,
+          }),
+          paymentDate,
+          transactionId,
+          notes,
+          createdAt: now,
+        });
+
+        await tx
+          .update(debts)
+          .set({
+            ...buildDebtBalanceFields(newCents),
+            updatedAt: now,
+            status: newCents === 0 ? 'paid_off' : currentDebt.status,
+          })
+          .where(eq(debts.id, sourceId));
+
+        const milestones = await tx
+          .select()
+          .from(debtPayoffMilestones)
+          .where(
+            and(
+              eq(debtPayoffMilestones.debtId, sourceId),
+              eq(debtPayoffMilestones.householdId, householdId)
+            )
+          );
+
+        const newBalance = fromMoneyCents(newCents) ?? 0;
+        for (const milestone of milestones) {
+          if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
+            await tx
+              .update(debtPayoffMilestones)
+              .set({ achievedAt: now })
+              .where(eq(debtPayoffMilestones.id, milestone.id));
+          }
+        }
+      });
 
       return Response.json({
         id: paymentId,
@@ -539,57 +562,80 @@ export async function POST(request: Request) {
     }
 
     const amountCents = toMoneyCents(amount) ?? 0;
-    // Under the positive-owed convention a payment reduces what you owe. Do NOT
-    // Math.abs the current balance: that flipped the sign of a negative balance
-    // and corrupted it (C-MATH-1). Clamp at zero so a payment can't drive the
-    // owed amount below zero here.
-    const currentBalanceCents =
-      account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0;
-    const newBalanceCents = Math.max(0, currentBalanceCents - amountCents);
-
-    await db
-      .update(accounts)
-      .set({
-        currentBalanceCents: newBalanceCents,
-        currentBalance: newBalanceCents / 100,
-        updatedAt: now,
-      })
-      .where(eq(accounts.id, sourceId));
-
     const transactionInsertId = nanoid();
-    await db.insert(transactions).values({
-      id: transactionInsertId,
-      userId,
-      householdId,
-      accountId: sourceId,
-      date: paymentDate.slice(0, 10),
-      amount,
-      amountCents,
-      description: 'Debt payment',
-      notes: notes || null,
-      type: 'transfer_in',
-      createdAt: now,
-      updatedAt: now,
-    });
 
-    const milestones = await db
-      .select()
-      .from(billMilestones)
-      .where(
-        and(
-          eq(billMilestones.accountId, sourceId),
-          eq(billMilestones.householdId, householdId)
+    // One transaction around read -> balance write -> transaction insert ->
+    // milestones (bug-hunt finding LC2): the account balance read-modify-write
+    // raced concurrent payments and a crash mid-sequence left the balance and
+    // the ledger disagreeing.
+    await runInDatabaseTransaction(async (tx) => {
+      const [currentAccount] = await tx
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, sourceId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId),
+            eq(accounts.isActive, true)
+          )
         )
-      );
-
-    for (const milestone of milestones) {
-      if (!milestone.achievedAt && newBalanceCents / 100 <= milestone.milestoneBalance) {
-        await db
-          .update(billMilestones)
-          .set({ achievedAt: now })
-          .where(eq(billMilestones.id, milestone.id));
+        .limit(1);
+      if (!currentAccount) {
+        throw new Error('Debt account not found');
       }
-    }
+
+      // Under the positive-owed convention a payment reduces what you owe. Do
+      // NOT Math.abs the current balance: that flipped the sign of a negative
+      // balance and corrupted it (C-MATH-1). Clamp at zero so a payment can't
+      // drive the owed amount below zero here.
+      const currentBalanceCents =
+        currentAccount.currentBalanceCents ?? toMoneyCents(currentAccount.currentBalance) ?? 0;
+      const newBalanceCents = Math.max(0, currentBalanceCents - amountCents);
+
+      await tx
+        .update(accounts)
+        .set({
+          currentBalanceCents: newBalanceCents,
+          currentBalance: newBalanceCents / 100,
+          updatedAt: now,
+        })
+        .where(eq(accounts.id, sourceId));
+
+      await tx.insert(transactions).values({
+        id: transactionInsertId,
+        userId,
+        householdId,
+        accountId: sourceId,
+        date: paymentDate.slice(0, 10),
+        amount,
+        amountCents,
+        description: 'Debt payment',
+        notes: notes || null,
+        type: 'transfer_in',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const milestones = await tx
+        .select()
+        .from(billMilestones)
+        .where(
+          and(
+            eq(billMilestones.accountId, sourceId),
+            eq(billMilestones.householdId, householdId)
+          )
+        );
+
+      for (const milestone of milestones) {
+        if (!milestone.achievedAt && newBalanceCents / 100 <= milestone.milestoneBalance) {
+          await tx
+            .update(billMilestones)
+            .set({ achievedAt: now })
+            .where(eq(billMilestones.id, milestone.id));
+        }
+      }
+    });
 
     return Response.json({
       id: transactionInsertId,

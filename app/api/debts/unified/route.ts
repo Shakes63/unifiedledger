@@ -16,7 +16,7 @@ function getBalanceCents(account: {
   currentBalance: number | null;
   currentBalanceCents: number | null;
 }): number {
-  return Math.abs(account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0);
+  return Math.max(0, account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0);
 }
 
 function getCreditLimitCents(account: {
@@ -150,7 +150,17 @@ export async function GET(request: Request) {
 
     // Add debt bills
     if (!sourceFilter || sourceFilter === 'bill') {
+      // A template linked to a liability account is the SAME debt the account
+      // already contributes (bug-hunt finding AG1) — the account row is
+      // authoritative, so skip the template to avoid double counting.
+      const creditAccountIds = new Set(creditAccounts.map((acc) => acc.id));
       for (const template of debtTemplates) {
+        if (
+          template.linkedLiabilityAccountId &&
+          creditAccountIds.has(template.linkedLiabilityAccountId)
+        ) {
+          continue;
+        }
         const remainingBalance =
           template.debtRemainingBalanceCents !== null
             ? toAmount(template.debtRemainingBalanceCents)

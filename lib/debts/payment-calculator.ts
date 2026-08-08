@@ -84,7 +84,10 @@ export function calculatePaymentBreakdown(
     return {
       totalPayment: paymentAmount,
       interestAmount: 0,
-      principalAmount: paymentAmount,
+      // Principal never exceeds what is actually owed (bug-hunt finding LC1):
+      // the unclamped figure was stored on the payment row, and reversing that
+      // payment later restored MORE debt than ever existed.
+      principalAmount: Math.min(paymentAmount, remainingBalance),
     };
   }
 
@@ -104,11 +107,20 @@ export function calculatePaymentBreakdown(
     );
   }
 
-  // Round to 2 decimal places for currency
-  const interestAmount = monthlyInterest.toDecimalPlaces(2).toNumber();
+  // Round to 2 decimal places for currency. Interest RECORDED cannot exceed
+  // the money actually paid (bug-hunt finding LC3): a $50 payment during a
+  // $200-interest month used to store $200 of interest, overstating every
+  // interest report and tax deduction downstream.
+  const interestAmount = Decimal.min(monthlyInterest.toDecimalPlaces(2), new Decimal(paymentAmount))
+    .toNumber();
 
-  // Principal is whatever's left after interest
-  const principalAmount = Math.max(0, paymentAmount - interestAmount);
+  // Principal is whatever's left after interest, and never more than what is
+  // actually owed (LC1): the unclamped figure was stored on the payment row,
+  // and reversing that payment later restored MORE debt than ever existed.
+  const principalAmount = Math.min(
+    Math.max(0, paymentAmount - interestAmount),
+    remainingBalance
+  );
 
   return {
     totalPayment: paymentAmount,

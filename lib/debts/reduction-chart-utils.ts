@@ -174,8 +174,10 @@ export async function generateProjection(
     // Extract month-by-month projections from the monthly breakdowns
     const projections: Array<{ month: string; monthDate: Date; totalDebt: number; byDebt: Record<string, number> }> = [];
 
-    // Build projection month by month
-    const maxMonths = Math.min(months, strategy.totalMonths + 1);
+    // Build projection month by month. totalMonths is -1 when some debt never
+    // pays off (M1) — project over the requested horizon in that case.
+    const maxMonths =
+      strategy.totalMonths >= 0 ? Math.min(months, strategy.totalMonths + 1) : months;
 
     for (let i = 0; i < maxMonths; i++) {
       const monthDate = addMonths(fromDate, i);
@@ -195,15 +197,30 @@ export async function generateProjection(
           continue;
         }
 
-        // Map calendar month i to the corresponding payment-period index.
-        const periodIndex = Math.round(i * periodsPerMonth);
-        if (periodIndex < schedule.monthlyBreakdown.length) {
+        // Map calendar month i to the balance AFTER i months of payments.
+        // breakdown[0] is the balance after the FIRST payment, so month 0
+        // (now) must show the CURRENT balance — the old `round(i * ppm)`
+        // indexed one payment ahead, rendering the whole curve (and the
+        // debt-free date) a month optimistic (bug-hunt finding M6).
+        const periodIndex = Math.round(i * periodsPerMonth) - 1;
+        if (periodIndex < 0) {
+          byDebt[debt.id] = debt.remainingBalance;
+          totalDebt += debt.remainingBalance;
+        } else if (periodIndex < schedule.monthlyBreakdown.length) {
           const monthData = schedule.monthlyBreakdown[periodIndex];
           byDebt[debt.id] = monthData.remainingBalance;
           totalDebt += monthData.remainingBalance;
-        } else {
+        } else if (schedule.paidOff) {
           // Past the end of this debt's schedule, it's paid off
           byDebt[debt.id] = 0;
+        } else {
+          // The sim stopped early because this debt never pays off (M1) —
+          // past its breakdown, carry the last known balance instead of
+          // fabricating a payoff.
+          const last = schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1];
+          const carried = last ? last.remainingBalance : debt.remainingBalance;
+          byDebt[debt.id] = carried;
+          totalDebt += carried;
         }
       }
 

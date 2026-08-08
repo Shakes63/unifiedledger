@@ -93,12 +93,14 @@ export async function GET(request: Request) {
       });
     }
 
-    // 3. Group payments by month
+    // 3. Group payments by month. Slice the stored date string instead of
+    // round-tripping through new Date() (bug-hunt finding LC4): 'YYYY-MM-DD'
+    // parses as UTC midnight, so west of UTC a payment on the 1st was counted
+    // in the PREVIOUS month, breaking streaks for on-time payers.
     const paymentsByMonth = new Map<string, number>();
 
     for (const payment of allPayments) {
-      const date = new Date(payment.paymentDate);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthKey = payment.paymentDate.slice(0, 7);
 
       const currentTotal = paymentsByMonth.get(monthKey) || 0;
       paymentsByMonth.set(
@@ -106,6 +108,17 @@ export async function GET(request: Request) {
         new Decimal(currentTotal).plus(payment.amount || 0).toNumber()
       );
     }
+
+    // Judge each month against the minimums of debts that EXISTED then
+    // (bug-hunt finding LC5): comparing history to the CURRENT total minimum
+    // meant taking on a new loan retroactively erased the whole streak.
+    const minimumRequiredForMonth = (monthKey: string): number =>
+      unifiedDebts.reduce((sum, debt) => {
+        const createdMonth = debt.createdAt ? debt.createdAt.slice(0, 7) : '';
+        return createdMonth <= monthKey
+          ? new Decimal(sum).plus(debt.minimumPayment || 0).toNumber()
+          : sum;
+      }, 0);
 
     // 4. Build monthly history (qualifying vs non-qualifying)
     const now = new Date();
@@ -126,7 +139,7 @@ export async function GET(request: Request) {
     while (currentMonth <= todayMonth) {
       const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
       const totalPaid = paymentsByMonth.get(monthKey) || 0;
-      const qualifies = totalPaid >= totalMinimumPayment;
+      const qualifies = totalPaid >= minimumRequiredForMonth(monthKey);
 
       monthlyHistory.push({
         month: monthKey,

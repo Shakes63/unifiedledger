@@ -69,11 +69,13 @@ describe('lib/debts/payment-calculator', () => {
     });
 
     describe('edge cases', () => {
-      it('payment < interest results in zero principal', () => {
-        // Interest: 5000 * 24/100/12 = 100, payment = 50
+      it('payment < interest results in zero principal and interest capped at the payment', () => {
+        // Interest accrued: 5000 * 24/100/12 = 100, payment = 50. The RECORDED
+        // interest is capped at what was actually paid (bug-hunt finding LC3) —
+        // the old $100 figure overstated interest reports by money never paid.
         const result = calculatePaymentBreakdown(50, 5000, 24, 'fixed', 'installment');
-        expect(result.interestAmount).toBe(100);
-        expect(result.principalAmount).toBe(0); // Max(0, 50 - 100) = 0
+        expect(result.interestAmount).toBe(50);
+        expect(result.principalAmount).toBe(0);
       });
 
       it('exact payoff (balance + interest = payment)', () => {
@@ -90,11 +92,36 @@ describe('lib/debts/payment-calculator', () => {
         expect(result.principalAmount).toBeCloseTo(833.33, 1);
       });
 
-      it('zero balance means no interest', () => {
+      it('zero balance means no interest and no principal', () => {
+        // Paying a zero-balance debt records NO principal (bug-hunt finding
+        // LC1): the old $200 principal was later "restored" by a reversal,
+        // creating debt out of thin air.
         const result = calculatePaymentBreakdown(200, 0, 18, 'fixed', 'revolving');
         expect(result.interestAmount).toBe(0);
-        expect(result.principalAmount).toBe(200);
+        expect(result.principalAmount).toBe(0);
       });
     });
+  });
+});
+
+describe('bug-hunt regressions (LC1/LC3)', () => {
+  it('LC3: recorded interest never exceeds the money actually paid', () => {
+    // $10,000 revolving at 24% APR -> ~$200 monthly interest; a $50 payment
+    // used to record $200 of interest and $0 principal (paid $50, booked $200).
+    const breakdown = calculatePaymentBreakdown(50, 10000, 24, 'fixed', 'revolving', 'monthly');
+    expect(breakdown.interestAmount).toBeLessThanOrEqual(50);
+    expect(breakdown.interestAmount + breakdown.principalAmount).toBeLessThanOrEqual(50);
+  });
+
+  it('LC1: recorded principal never exceeds the remaining balance', () => {
+    // $500 payment on a $300 balance: the unclamped $500 principal was stored
+    // on the payment row, and reversing it later restored MORE debt than ever
+    // existed ($300 debt reborn at $500).
+    const zeroRate = calculatePaymentBreakdown(500, 300, 0, 'none');
+    expect(zeroRate.principalAmount).toBe(300);
+
+    const withRate = calculatePaymentBreakdown(500, 300, 12, 'fixed', 'installment');
+    expect(withRate.principalAmount).toBeLessThanOrEqual(300);
+    expect(withRate.interestAmount).toBeGreaterThan(0);
   });
 });

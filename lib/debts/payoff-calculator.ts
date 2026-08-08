@@ -32,9 +32,12 @@ export interface DebtPayoffSchedule {
   debtName: string;
   originalBalance: number;
   paymentAmount: number;
+  /** -1 when the debt never pays off at the simulated payments (M1). */
   monthsToPayoff: number;
   totalInterestPaid: number;
+  /** Meaningless when paidOff is false — check the flag before displaying. */
   payoffDate: Date;
+  paidOff: boolean;
   monthlyBreakdown: MonthlyPayment[];
 }
 
@@ -89,7 +92,15 @@ export interface RolldownPayment {
 export interface PayoffStrategyResult {
   method: PayoffMethod;
   paymentFrequency: PaymentFrequency;
+  /** -1 when any included debt does not pay off within the 30-year horizon. */
   totalMonths: number;
+  /**
+   * True when at least one debt does not pay off within the 30-year
+   * simulation horizon — either payments don't cover its interest (negative
+   * amortization, detected by the stall guard) or the amortization simply
+   * exceeds 30 years (M1).
+   */
+  hasUnpayableDebts: boolean;
   totalInterestPaid: number;
   debtFreeDate: Date;
   payoffOrder: PayoffOrder[];
@@ -378,6 +389,13 @@ function simulatePayoffParallel(
   let excessPayment = new Decimal(0);
   const payoffOrderWithPeriods: { debtId: string; order: number; period: number }[] = [];
   let payoffCounter = 0;
+  // Negative-amortization detection (bug-hunt finding M1): when payments don't
+  // cover interest, the total balance stops decreasing and only compounds.
+  // Without this, the sim burned all 360 months and then REPORTED the debt as
+  // paid off in 30 years with megadollar interest. A short streak tolerates
+  // rounding wobble across fractional periods.
+  let previousTotalBalance: Decimal | null = null;
+  let stallStreak = 0;
   // Each lump sum must be applied exactly once (audit finding H-DBG-9: the
   // biweekly month mapping assigned two consecutive periods the same
   // currentMonth and the `.find(month === currentMonth)` matched in BOTH,
@@ -431,9 +449,11 @@ function simulatePayoffParallel(
 
       const maxPayment = debtState.balance.plus(interestAmount);
       if (payment.greaterThan(maxPayment)) {
-        if (isFocusDebt) {
-          excessPayment = excessPayment.plus(payment.minus(maxPayment));
-        }
+        // ALL payoff-month surplus rolls into the shared budget for the next
+        // period (bug-hunt finding M3): the old code kept only the FOCUS
+        // debt's surplus, so when a non-focus debt's final payment overshot,
+        // that money simply vanished from the plan.
+        excessPayment = excessPayment.plus(payment.minus(maxPayment));
         payment = maxPayment;
       }
 
@@ -463,6 +483,26 @@ function simulatePayoffParallel(
         });
       }
     }
+
+    // Stall check (M1): if the combined balance of unpaid debts hasn't
+    // decreased for several consecutive periods, payments no longer cover
+    // interest and the plan can NEVER finish — stop simulating.
+    const remaining = simDebts.filter((debt) => debt.paidOffAtPeriod === null);
+    if (remaining.length > 0) {
+      const totalBalance = remaining.reduce(
+        (sum, debt) => sum.plus(debt.balance),
+        new Decimal(0)
+      );
+      if (previousTotalBalance !== null && totalBalance.greaterThanOrEqualTo(previousTotalBalance)) {
+        stallStreak += 1;
+        if (stallStreak >= 3) {
+          break;
+        }
+      } else {
+        stallStreak = 0;
+      }
+      previousTotalBalance = totalBalance;
+    }
   }
 
   const totalInterest = simDebts.reduce(
@@ -472,13 +512,19 @@ function simulatePayoffParallel(
 
   const schedules: DebtPayoffSchedule[] = simDebts.map((debtState) => {
     const payoffInfo = payoffOrderWithPeriods.find((entry) => entry.debtId === debtState.debt.id);
-    const periodsToPayoff = payoffInfo ? payoffInfo.period : period;
-    // Convert this frequency's periods to calendar months (H-DBG-8: quarterly
-    // periods were previously counted as one month each, weekly likewise).
-    const monthsToPayoff = Math.ceil(periodsToPayoff / periodsPerMonth);
+    const paidOff = payoffInfo !== undefined;
+    // A debt still unpaid when the simulation stopped (stall or 30-year cap)
+    // NEVER pays off at this rate — report months as -1 (the same convention
+    // calculateMinimumOnlyPayoff already uses) instead of pretending the cap
+    // is a payoff date (bug-hunt finding M1).
+    const monthsToPayoff = paidOff
+      ? // Convert this frequency's periods to calendar months (H-DBG-8:
+        // quarterly periods were previously counted as one month each).
+        Math.ceil(payoffInfo.period / periodsPerMonth)
+      : -1;
 
     const payoffDate = new Date();
-    payoffDate.setMonth(payoffDate.getMonth() + monthsToPayoff);
+    payoffDate.setMonth(payoffDate.getMonth() + Math.max(0, monthsToPayoff));
 
     return {
       debtId: debtState.debt.id,
@@ -488,6 +534,7 @@ function simulatePayoffParallel(
       monthsToPayoff,
       totalInterestPaid: debtState.totalInterestPaid.toNumber(),
       payoffDate,
+      paidOff,
       monthlyBreakdown: debtState.monthlyBreakdown,
     };
   });
@@ -613,6 +660,7 @@ function _calculateDebtSchedule(
     monthsToPayoff,
     totalInterestPaid: totalInterestPaid.toNumber(),
     payoffDate,
+    paidOff: balance.equals(0),
     monthlyBreakdown,
   };
 }
@@ -786,6 +834,7 @@ export function calculatePayoffStrategy(
       method,
       paymentFrequency,
       totalMonths: 0,
+      hasUnpayableDebts: false,
       totalInterestPaid: 0,
       debtFreeDate: now,
       payoffOrder: [],
@@ -847,12 +896,16 @@ export function calculatePayoffStrategy(
     weekly: 52 / 12,
     quarterly: 1 / 3,
   };
-  const totalMonths = Math.ceil(
-    simulation.totalPeriods / (RESULT_PERIODS_PER_MONTH[paymentFrequency] ?? 1)
-  );
+  // Any debt still unpaid when the sim stopped never pays off at this rate —
+  // totalMonths follows the -1 never-payoff convention instead of presenting
+  // the stall/cap point as a debt-free date (bug-hunt finding M1).
+  const hasUnpayableDebts = simulation.schedules.some((schedule) => !schedule.paidOff);
+  const totalMonths = hasUnpayableDebts
+    ? -1
+    : Math.ceil(simulation.totalPeriods / (RESULT_PERIODS_PER_MONTH[paymentFrequency] ?? 1));
 
   const debtFreeDate = new Date();
-  debtFreeDate.setMonth(debtFreeDate.getMonth() + totalMonths);
+  debtFreeDate.setMonth(debtFreeDate.getMonth() + Math.max(0, totalMonths));
 
   // Determine focus debt based on method (not simulation payoff order)
   // This ensures avalanche always shows highest interest debt as focus,
@@ -861,8 +914,12 @@ export function calculatePayoffStrategy(
   const focusDebt = debts.find(d => d.id === focusDebtId) || sortedDebts[0];
   const focusSchedule = simulation.schedules.find(s => s.debtId === focusDebtId) || simulation.schedules[0];
 
-  // Calculate recommended payment for focus debt
-  const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
+  // Calculate recommended payment for focus debt. The divisor must match the
+  // simulation's periods-per-month (bug-hunt finding M5): the old
+  // `biweekly ? 2 : 1` disagreed with the sim's 26/12 and ignored
+  // weekly/quarterly entirely, so the headline recommendation didn't match
+  // what the plan actually pays per period.
+  const paymentDivisor = RESULT_PERIODS_PER_MONTH[paymentFrequency] ?? 1;
   const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
   const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
   const totalAvailable = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
@@ -886,6 +943,7 @@ export function calculatePayoffStrategy(
     method,
     paymentFrequency,
     totalMonths,
+    hasUnpayableDebts,
     totalInterestPaid: simulation.totalInterest,
     debtFreeDate,
     payoffOrder,
