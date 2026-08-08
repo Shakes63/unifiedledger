@@ -11,8 +11,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { autopayRules } from '@/lib/db/schema';
-import { getAutopayDueToday } from '@/lib/bills/autopay-processor';
-import { runAutopay } from '@/lib/bills/service';
+import { getScheduledAutopayPreview, runAutopay } from '@/lib/bills/service';
 import { getAutopayProcessingSummary } from '@/lib/notifications/autopay-notifications';
 import { requireCronAuth } from '@/lib/api/cron-auth';
 
@@ -123,21 +122,30 @@ export async function GET(request: Request) {
   }
 
   try {
-    const preview = await getAutopayDueToday();
+    // Read-only preview on the SAME selection policy the POST uses — the old
+    // preview lived in a dead parallel engine and could disagree with the run
+    // that actually moved money.
+    const preview = await getScheduledAutopayPreview();
+    const actionable = preview.entries.filter((entry) => entry.skipReason === undefined);
 
     return Response.json({
       success: true,
-      message: preview.count > 0 
-        ? `${preview.count} autopay bill${preview.count !== 1 ? 's' : ''} due today`
-        : 'No autopay bills due today',
+      message:
+        actionable.length > 0
+          ? `${actionable.length} autopay bill${actionable.length !== 1 ? 's' : ''} due for processing`
+          : 'No autopay bills due today',
       timestamp: new Date().toISOString(),
-      count: preview.count,
-      bills: preview.bills.map((t) => ({
-        billId: t.billId,
-        billName: t.billName,
-        dueDate: t.dueDate,
-        expectedAmount: t.expectedAmount,
-        autopayAmountType: t.autopayAmountType,
+      count: actionable.length,
+      bills: preview.entries.map((entry) => ({
+        householdId: entry.householdId,
+        billId: entry.billId,
+        billName: entry.billName,
+        occurrenceId: entry.occurrenceId,
+        dueDate: entry.dueDate,
+        expectedAmount:
+          entry.expectedAmountCents !== undefined ? entry.expectedAmountCents / 100 : null,
+        autopayAmountType: entry.autopayAmountType,
+        skipReason: entry.skipReason,
       })),
     });
   } catch (error) {
