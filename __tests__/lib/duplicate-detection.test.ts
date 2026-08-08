@@ -39,11 +39,35 @@ describe('lib/duplicate-detection', () => {
       expect(matches[0].id).toBe('1');
     });
 
-    it('detects amount within 5% threshold', () => {
-      // 52.30 * 0.05 = 2.615, so 54.91 should be within threshold
+    it('does NOT treat a near-miss amount as a duplicate by default', () => {
+      // OWNER DECISION (finding P26): duplicates require an EXACT amount. The
+      // old 5% default meant $52.30 and $54.91 were "the same" transaction, and
+      // flagged rows are deselected by default — so a legitimate second purchase
+      // was silently dropped unless the user noticed.
       const matches = detectDuplicateTransactions(
         'Walmart Grocery',
         54.91,
+        '2025-01-15',
+        baseTransactions,
+      );
+      expect(matches.length).toBe(0);
+    });
+
+    it('still honours an explicit amount tolerance when a caller asks for one', () => {
+      const matches = detectDuplicateTransactions(
+        'Walmart Grocery',
+        54.91,
+        '2025-01-15',
+        baseTransactions,
+        { amountThreshold: 0.05, dateRangeInDays: 7 },
+      );
+      expect(matches.length).toBe(1);
+    });
+
+    it('matches an identical amount exactly', () => {
+      const matches = detectDuplicateTransactions(
+        'Walmart Grocery',
+        52.30,
         '2025-01-15',
         baseTransactions,
       );

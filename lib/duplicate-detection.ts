@@ -66,12 +66,21 @@ export function detectDuplicateTransactions(
 ): TransactionMatch[] {
   const {
     descriptionThreshold = 0.7,
-    amountThreshold = 0.05,
-    dateRangeInDays = 7,
+    // OWNER DECISION (finding P26): duplicates require an EXACT amount and an
+    // EXACT date. A 5% tolerance over a +/-1 day window treated $40.00 and
+    // $41.50 on consecutive days as the same transaction, and flagged rows are
+    // deselected by default — so two legitimate fill-ups were silently dropped
+    // unless the user noticed. Financial records are exact values.
+    amountThreshold = 0,
+    dateRangeInDays = 0,
     minAmount = 0.01,
   } = options;
 
-  if (!newDescription || newAmount < minAmount) {
+  // Compare MAGNITUDES (finding P11): the guard was `newAmount < minAmount`, so
+  // any negative amount returned no matches at all and re-importing a statement
+  // produced zero duplicate warnings. The percentage form below also divided by
+  // a signed max, which for two negatives yields a ratio that always passes.
+  if (!newDescription || Math.abs(newAmount) < minAmount) {
     return [];
   }
 
@@ -88,12 +97,16 @@ export function detectDuplicateTransactions(
       continue;
     }
 
-    // Check amount similarity (within threshold percentage)
+    // Check amount similarity. With the default amountThreshold of 0 this is an
+    // exact-cents comparison; a caller may still opt into a tolerance.
     const amountDiff = new Decimal(newAmount).minus(tx.amount).abs();
-    const amountPercentDiff = amountDiff.dividedBy(Math.max(newAmount, tx.amount)).toNumber();
-
-    if (amountPercentDiff > amountThreshold) {
-      continue;
+    if (amountThreshold === 0) {
+      if (!amountDiff.isZero()) continue;
+    } else {
+      const denominator = Math.max(Math.abs(newAmount), Math.abs(tx.amount));
+      const amountPercentDiff =
+        denominator === 0 ? 0 : amountDiff.dividedBy(denominator).toNumber();
+      if (amountPercentDiff > amountThreshold) continue;
     }
 
     // Check description similarity using Levenshtein distance
@@ -245,12 +258,14 @@ export function detectDuplicatesEnhanced(
 ): EnhancedTransactionMatch[] {
   const {
     descriptionThreshold = 0.7,
-    amountThreshold = 0.05,
-    dateRangeInDays = 1, // Stricter for merchant matching: same day or day before/after
+    // Exact cents, exact date (owner decision, finding P26).
+    amountThreshold = 0,
+    dateRangeInDays = 0,
     minAmount = 0.01,
   } = options;
 
-  if (!newDescription || newAmount < minAmount) {
+  // Magnitude, so negative amounts are still checked (finding P11).
+  if (!newDescription || Math.abs(newAmount) < minAmount) {
     return [];
   }
 
@@ -264,14 +279,16 @@ export function detectDuplicatesEnhanced(
     (tx) => tx.accountId === newAccountId
   );
 
-  // First, run standard Levenshtein detection (with original 7-day range)
-  // Only check against transactions in the SAME account
+  // Only check against transactions in the SAME account.
+  // dateRangeInDays is the CALLER'S value (finding P26): it was hard-coded to 7
+  // here, so the option this function advertises was silently ignored and every
+  // caller got a week-wide window regardless of what it asked for.
   const levenshteinMatches = detectDuplicateTransactions(
     newDescription,
     newAmount,
     newDate,
     sameAccountTransactions,
-    { descriptionThreshold, amountThreshold, dateRangeInDays: 7, minAmount }
+    { descriptionThreshold, amountThreshold, dateRangeInDays, minAmount }
   );
 
   for (const match of levenshteinMatches) {
