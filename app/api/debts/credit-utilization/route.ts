@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     const cardData = creditAccounts.map((acc) => ({
       id: acc.id,
       name: acc.name || 'Unknown Account',
-      balance: toAmount(Math.abs(acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0)),
+      balance: toAmount(Math.max(0, acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0)),
       limit: toAmount(acc.creditLimitCents ?? toMoneyCents(acc.creditLimit) ?? 0),
       color: acc.color || undefined,
       type: acc.type, // Include type for UI differentiation

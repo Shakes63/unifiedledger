@@ -54,7 +54,7 @@ function getAccountBalanceAmount(account: {
   currentBalanceCents: number | null;
 }): number {
   return centsToAmount(
-    Math.abs(account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0)
+    Math.max(0, account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0)
   );
 }
 
@@ -182,7 +182,17 @@ export async function getUnifiedDebtBudget(params: {
     });
   }
 
+  // Same-debt dedupe (AG1) and real bill minimums (AG3) — see
+  // getUnifiedDebtSources for the rationale.
+  const creditAccountIds = new Set(creditAccounts.map((account) => account.id));
+
   for (const template of debtTemplates) {
+    if (
+      template.linkedLiabilityAccountId &&
+      creditAccountIds.has(template.linkedLiabilityAccountId)
+    ) {
+      continue;
+    }
     allDebts.push({
       id: template.id,
       name: template.name,
@@ -192,8 +202,8 @@ export async function getUnifiedDebtBudget(params: {
         template.debtRemainingBalanceCents !== null
           ? centsToAmount(template.debtRemainingBalanceCents)
           : 0,
-      minimumPayment: 0,
-      recommendedPayment: 0,
+      minimumPayment: centsToAmount(template.defaultAmountCents ?? 0),
+      recommendedPayment: centsToAmount(template.defaultAmountCents ?? 0),
       budgetedPayment: null,
       actualPaid: paymentMap.get(template.id) ?? 0,
       isFocusDebt: false,
