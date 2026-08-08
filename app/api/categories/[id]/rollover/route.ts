@@ -113,9 +113,12 @@ export async function PUT(
 
     // Validate rollover limit
     if (body.rolloverLimit !== undefined && body.rolloverLimit !== null) {
-      if (typeof body.rolloverLimit !== 'number' || body.rolloverLimit < 0) {
+      // Number.isFinite (SEC2): Infinity/NaN are typeof 'number', so a bare
+      // negativity check let them through into a real column — an infinite
+      // limit disables the cap entirely and NaN stores as NULL.
+      if (!Number.isFinite(body.rolloverLimit) || body.rolloverLimit < 0) {
         return Response.json(
-          { error: 'Rollover limit must be a positive number or null' },
+          { error: 'Rollover limit must be a non-negative finite number or null' },
           { status: 400 }
         );
       }
@@ -123,9 +126,9 @@ export async function PUT(
 
     // Validate rollover balance
     if (body.rolloverBalance !== undefined) {
-      if (typeof body.rolloverBalance !== 'number') {
+      if (!Number.isFinite(body.rolloverBalance)) {
         return Response.json(
-          { error: 'Rollover balance must be a number' },
+          { error: 'Rollover balance must be a finite number' },
           { status: 400 }
         );
       }

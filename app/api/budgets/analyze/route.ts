@@ -96,7 +96,6 @@ async function calculateBudgetAdherence(
     .from(budgetCategories)
     .where(
       and(
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.householdId, householdId),
         eq(budgetCategories.isActive, true)
       )
@@ -290,7 +289,6 @@ export async function GET(request: Request) {
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )

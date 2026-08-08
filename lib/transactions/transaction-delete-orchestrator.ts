@@ -66,7 +66,6 @@ async function logTransactionDeletionAudit({
             .where(
               and(
                 eq(budgetCategories.id, transaction.categoryId),
-                eq(budgetCategories.userId, userId),
                 eq(budgetCategories.householdId, householdId)
               )
             )

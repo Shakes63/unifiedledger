@@ -207,7 +207,6 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(budgetCategories.id, action.value),
-                eq(budgetCategories.userId, userId),
                 eq(budgetCategories.householdId, householdId)
               )
             )
@@ -375,7 +374,6 @@ export async function PUT(request: Request) {
             .where(
               and(
                 eq(budgetCategories.id, action.value),
-                eq(budgetCategories.userId, userId),
                 eq(budgetCategories.householdId, householdId)
               )
             )

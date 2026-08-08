@@ -45,6 +45,29 @@ export function getMonthRangeForYearMonth(
   return { startDate, endDate };
 }
 
+/**
+ * Parse a `?month=YYYY-MM` query parameter, falling back to the current local
+ * month when it is absent. Returns null for anything malformed (bug-hunt
+ * finding SEC5): routes used to `parseInt` the halves unchecked, so `?month=foo`
+ * produced NaN year/month, getMonthRangeForYearMonth built a "NaN-NaN-NaN"
+ * range, and every date comparison silently matched nothing — a confident 200
+ * reporting $0 spent for the month.
+ */
+export function parseYearMonthParam(
+  monthParam: string | null,
+  now: Date = new Date()
+): { year: number; month: number } | null {
+  if (!monthParam) {
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  }
+  if (!/^\d{4}-\d{2}$/.test(monthParam)) return null;
+  const [yearStr, monthStr] = monthParam.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  if (month < 1 || month > 12) return null;
+  return { year, month };
+}
+
 export function getYearRangeForDate(date: Date): { startDate: string; endDate: string } {
   const year = date.getFullYear();
   const startDate = toLocalDateString(new Date(year, 0, 1));

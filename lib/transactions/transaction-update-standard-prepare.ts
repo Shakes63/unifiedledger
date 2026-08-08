@@ -58,7 +58,6 @@ export async function prepareStandardTransactionUpdate({
         .where(
           and(
             eq(budgetCategories.id, effectiveCategoryId),
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.householdId, householdId)
           )
         )

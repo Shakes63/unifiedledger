@@ -28,7 +28,6 @@ export async function checkAndCreateBudgetWarnings() {
         .from(budgetCategories)
         .where(
           and(
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.isActive, true),
             ne(budgetCategories.monthlyBudget, 0)
           )

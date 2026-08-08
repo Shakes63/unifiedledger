@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     const frequentCategories = await db
       .select()
       .from(budgetCategories)
-      .where(and(eq(budgetCategories.userId, userId), eq(budgetCategories.householdId, householdId)))
+      .where(and(eq(budgetCategories.householdId, householdId)))
       .orderBy(desc(budgetCategories.usageCount))
       .limit(limit);
 

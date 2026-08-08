@@ -31,7 +31,6 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(budgetCategories.id, categoryId),
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId)
         )
       )

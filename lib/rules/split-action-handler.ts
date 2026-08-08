@@ -90,7 +90,6 @@ export async function handleSplitCreation(
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
           inArray(budgetCategories.id, categoryIds)
         )

@@ -64,7 +64,9 @@ async function validateUpdatedAccountReference({
 }
 
 async function validateUpdatedCategoryReference({
-  userId,
+  // Categories are household-shared; userId stays for call-site
+  // compatibility (household membership is the boundary).
+  userId: _userId,
   householdId,
   newCategoryId,
 }: {
@@ -82,7 +84,6 @@ async function validateUpdatedCategoryReference({
     .where(
       and(
         eq(budgetCategories.id, newCategoryId),
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.householdId, householdId)
       )
     )

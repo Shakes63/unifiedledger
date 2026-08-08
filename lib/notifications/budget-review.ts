@@ -135,7 +135,6 @@ async function getBudgetOverviewForMonth(
     .from(budgetCategories)
     .where(
       and(
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.isActive, true)
       )
     );

@@ -39,7 +39,6 @@ export async function getOrCreateFeeCategory(
     .from(budgetCategories)
     .where(
       and(
-        eq(budgetCategories.userId, userId),
         eq(budgetCategories.householdId, householdId),
         eq(budgetCategories.name, categoryName)
       )

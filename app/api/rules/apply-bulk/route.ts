@@ -194,7 +194,6 @@ export async function POST(request: Request) {
               .where(
                 and(
                   eq(budgetCategories.id, txn.categoryId),
-                  eq(budgetCategories.userId, userId),
                   eq(budgetCategories.householdId, householdId)
                 )
               )

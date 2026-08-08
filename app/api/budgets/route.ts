@@ -36,7 +36,6 @@ export async function GET(request: Request) {
       .from(budgetCategories)
       .where(
         and(
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )
@@ -109,9 +108,13 @@ export async function POST(request: Request) {
         );
       }
 
-      if (budget.monthlyBudget < 0) {
+      // Number.isFinite, not just `< 0` (bug-hunt finding SEC2): Infinity and
+      // NaN are both typeof 'number' and pass a bare negativity check —
+      // SQLite then stores Inf as a real infinity and NaN as NULL, silently
+      // wiping the budget while the route reports success.
+      if (!Number.isFinite(budget.monthlyBudget) || budget.monthlyBudget < 0) {
         return Response.json(
-          { error: 'monthlyBudget cannot be negative' },
+          { error: 'monthlyBudget must be a non-negative finite number' },
           { status: 400 }
         );
       }
@@ -139,7 +142,6 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(budgetCategories.id, budget.categoryId),
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.householdId, householdId),
             eq(budgetCategories.isActive, true)
           )

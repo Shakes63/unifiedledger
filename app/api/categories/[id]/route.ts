@@ -55,7 +55,6 @@ export async function PUT(
       .where(
         and(
           eq(budgetCategories.id, id),
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId)
         )
       )
@@ -97,7 +96,6 @@ export async function PUT(
         .from(budgetCategories)
         .where(
           and(
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.householdId, householdId),
             eq(budgetCategories.name, name)
           )
@@ -141,7 +139,6 @@ export async function PUT(
         .where(
           and(
             eq(budgetCategories.id, parentId),
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.householdId, householdId),
             eq(budgetCategories.isBudgetGroup, true)
           )
@@ -170,7 +167,6 @@ export async function PUT(
         .where(
           and(
             eq(budgetCategories.id, current.parentId),
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.householdId, householdId),
             eq(budgetCategories.isBudgetGroup, true)
           )
@@ -250,7 +246,6 @@ export async function DELETE(
       .where(
         and(
           eq(budgetCategories.id, id),
-          eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId)
         )
       )
@@ -271,7 +266,6 @@ export async function DELETE(
         .where(
           and(
             eq(budgetCategories.parentId, id),
-            eq(budgetCategories.userId, userId),
             eq(budgetCategories.householdId, householdId)
           )
         );

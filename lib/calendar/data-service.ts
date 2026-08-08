@@ -974,7 +974,7 @@ export async function getDayCalendarDetails(params: {
           .select()
           .from(budgetCategories)
           .where(
-            and(eq(budgetCategories.householdId, householdId), eq(budgetCategories.userId, userId), inArray(budgetCategories.id, categoryIds))
+            and(eq(budgetCategories.householdId, householdId), inArray(budgetCategories.id, categoryIds))
           )
       : Promise.resolve([]),
     merchantIds.length > 0
