@@ -1,9 +1,13 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import { savingsGoals, savingsMilestones, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { queueSync } from '@/lib/calendar/sync-service';
+import { isSavingsGoalCategory, isSavingsGoalStatus } from '@/lib/goals/goal-enums';
+import { buildGoalCurrentFields, buildGoalTargetFields } from '@/lib/goals/goal-money';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export async function GET(
   request: Request,
@@ -20,7 +24,6 @@ export async function GET(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       )
@@ -71,7 +74,6 @@ export async function PUT(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       )
@@ -109,11 +111,12 @@ export async function PUT(
     ] as const) {
       assignIfPresent(field);
     }
-    // Validate money fields if provided.
+    // Validate money fields if provided. targetAmount must be strictly positive:
+    // 0 divides by zero in the milestone percentage math (checkMilestones).
     for (const field of ['targetAmount', 'currentAmount', 'monthlyContribution'] as const) {
       if (src[field] !== undefined) {
         const value = Number(src[field]);
-        if (!Number.isFinite(value) || value < 0) {
+        if (!Number.isFinite(value) || value < 0 || (field === 'targetAmount' && value === 0)) {
           return new Response(
             JSON.stringify({ error: `Invalid ${field}` }),
             { status: 400 }
@@ -121,6 +124,28 @@ export async function PUT(
         }
         (updates as Record<string, unknown>)[field] = value;
       }
+    }
+
+    // Money columns come in cents-authoritative PAIRS (SEC5). Assigning only the
+    // float above left targetAmountCents/currentAmountCents stale, so the UI read
+    // the new figure while every calculation (progress, contributions, milestone
+    // checks) kept using the old cents value — and the next contribution wrote
+    // the float back down.
+    if (updates.targetAmount !== undefined) {
+      Object.assign(updates, buildGoalTargetFields(toMoneyCents(updates.targetAmount) ?? 0));
+    }
+    if (updates.currentAmount !== undefined) {
+      Object.assign(updates, buildGoalCurrentFields(toMoneyCents(updates.currentAmount) ?? 0));
+    }
+
+    // Enum columns are TypeScript-only in drizzle — no CHECK constraint is
+    // emitted (SEC3), so an out-of-enum status silently hid the goal from
+    // detection and the milestone sweep, both of which filter status='active'.
+    if (updates.status !== undefined && !isSavingsGoalStatus(String(updates.status))) {
+      return new Response(JSON.stringify({ error: 'Invalid status' }), { status: 400 });
+    }
+    if (updates.category !== undefined && !isSavingsGoalCategory(String(updates.category))) {
+      return new Response(JSON.stringify({ error: 'Invalid category' }), { status: 400 });
     }
 
     // If targetAmount changed, recalculate milestone amounts
@@ -163,7 +188,6 @@ export async function PUT(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       );
@@ -206,7 +230,6 @@ export async function DELETE(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       )
@@ -216,18 +239,39 @@ export async function DELETE(
       return new Response(JSON.stringify({ error: 'Goal not found' }), { status: 404 });
     }
 
-    // Delete milestones first (filtered by household)
-    await db
-      .delete(savingsMilestones)
-      .where(
-        and(
-          eq(savingsMilestones.goalId, id),
-          eq(savingsMilestones.householdId, householdId)
-        )
-      );
+    // One unit (A8): these were three separate autocommits, so a failure partway
+    // through left a live goal with its milestone ladder already gone.
+    await runInDatabaseTransaction(async (tx) => {
+      await tx
+        .delete(savingsMilestones)
+        .where(
+          and(
+            eq(savingsMilestones.goalId, id),
+            eq(savingsMilestones.householdId, householdId)
+          )
+        );
 
-    // Delete goal
-    await db.delete(savingsGoals).where(eq(savingsGoals.id, id));
+      // Clear the goal link on transactions that pointed here. transactions is a
+      // parent table and carries no FK for this column, so without an explicit
+      // clear the reference dangles forever and the ledger keeps advertising a
+      // goal that no longer exists.
+      await tx
+        .update(transactions)
+        .set({ savingsGoalId: null })
+        .where(
+          and(
+            eq(transactions.savingsGoalId, id),
+            eq(transactions.householdId, householdId)
+          )
+        );
+
+      // Contribution rows are deliberately NOT deleted. They record money that
+      // actually moved, and the savings-rate report sums them — cascading them
+      // away rewrote past months' savings to zero (product decision: keep
+      // history, unlink the goal). Migration 0021 turns the FK into SET NULL, so
+      // this delete clears their goal_id rather than removing them.
+      await tx.delete(savingsGoals).where(eq(savingsGoals.id, id));
+    });
 
     // Queue calendar sync for goal deletion (non-blocking)
     queueSync(userId, householdId, 'goal_target', id, 'delete');

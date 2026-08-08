@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { parseLocalDateString } from '@/lib/utils/local-date';
 import { toast } from 'sonner';
 import {
   Edit2, Trash2, Lightbulb, History, Plus, CheckCircle2, PauseCircle, Flame,
@@ -74,8 +75,16 @@ export function GoalTracker({
 
   const progressPercent = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
   const remaining = Math.max(goal.targetAmount - goal.currentAmount, 0);
+  // Compare local CALENDAR DAYS, not raw milliseconds (finding P17). The old
+  // form measured from "now", so at 7pm on the due date the card already read
+  // "1d overdue" in red — and it parsed the date-only string as UTC midnight,
+  // disagreeing with the recommendation engine on the same card.
   const daysLeft = goal.targetDate
-    ? Math.ceil((new Date(goal.targetDate).getTime() - Date.now()) / 86_400_000)
+    ? Math.round(
+        (parseLocalDateString(goal.targetDate).setHours(0, 0, 0, 0) -
+          new Date().setHours(0, 0, 0, 0)) /
+          86_400_000
+      )
     : null;
 
   const recommendation = useMemo(() => {

@@ -115,9 +115,14 @@ export function GoalContributionsList({
   };
 
   // Calculate running total for display
+  // The list arrives NEWEST-first, so the running total at a row is that row
+  // plus everything OLDER than it — i.e. the tail of the array, not the head
+  // (finding P14). Accumulating down the descending list made the newest row
+  // show its own amount and the oldest row show the full balance, exactly
+  // backwards for a ledger.
   const calculateRunningTotal = (index: number): number => {
     return contributions
-      .slice(0, index + 1)
+      .slice(index)
       .reduce((sum, c) => sum + c.amount, 0);
   };
 

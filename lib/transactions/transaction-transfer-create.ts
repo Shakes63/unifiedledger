@@ -12,6 +12,7 @@ import { findCreditPaymentBillInstance, processBillPayment } from '@/lib/bills/b
 import { accounts } from '@/lib/db/schema';
 import {
   handleGoalContribution,
+  contributionsExceedTransaction,
   handleMultipleContributions,
 } from '@/lib/goals/contribution-handler';
 import { trackTransferPairUsage } from '@/lib/analytics/usage-analytics-service';
@@ -116,12 +117,32 @@ async function executeTransferGoalContributionUpdates({
 
   try {
     if (goalContributions && goalContributions.length > 0) {
+      // Same cap as the non-transfer branch (M3/P5): this path had none, so a
+      // $10 transfer could credit a goal $10,000.
+      if (contributionsExceedTransaction(goalContributions, amount.toNumber())) {
+        console.error(
+          `Goal contributions exceed transfer amount (${amount.toString()}); skipping`
+        );
+        return;
+      }
+
       const contributionResults = await handleMultipleContributions(
         goalContributions,
         transferInId,
         userId,
         householdId
       );
+      // Surface failures instead of discarding them (finding A9). A mistyped or
+      // foreign goalId returned {success:false} and was thrown away, so the API
+      // answered 201, the transaction carried a goal link, and the goal never
+      // moved — with no contribution row, a later edit or delete had nothing to
+      // reverse, making the divergence permanent and invisible.
+      const failed = contributionResults.filter((result) => !result.success);
+      if (failed.length > 0) {
+        console.error(
+          `Goal contributions failed for ${failed.map((f) => `${f.goalId}: ${f.error}`).join('; ')}`
+        );
+      }
       const achievedMilestones = contributionResults.flatMap((result) => result.milestonesAchieved);
       if (achievedMilestones.length > 0) {
         apiDebugLog(

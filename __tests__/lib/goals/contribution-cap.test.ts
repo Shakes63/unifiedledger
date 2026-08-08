@@ -1,0 +1,80 @@
+/**
+ * Bug-hunt findings M3/A5 (transfer branch had no cap) and A6 (the cap that did
+ * exist was bypassable with a negative offsetting entry).
+ *
+ * The cap exists because `goalContributions` is an unvalidated request-body
+ * field: without it a $10 transfer could credit a goal $10,000, fire every
+ * milestone, and feed fabricated savings into the savings-rate report.
+ */
+import { describe, expect, it } from 'vitest';
+import { contributionsExceedTransaction } from '@/lib/goals/contribution-handler';
+
+describe('contributionsExceedTransaction (M3/A5/A6)', () => {
+  it('allows contributions within the transaction amount', () => {
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: 100 }], 100)).toBe(false);
+    expect(
+      contributionsExceedTransaction(
+        [
+          { goalId: 'g1', amount: 60 },
+          { goalId: 'g2', amount: 40 },
+        ],
+        100
+      )
+    ).toBe(false);
+  });
+
+  it('rejects contributions exceeding the transaction amount', () => {
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: 10000 }], 10)).toBe(true);
+  });
+
+  it('uses the absolute amount, so expenses (negative) still cap', () => {
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: 10000 }], -10)).toBe(true);
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: 10 }], -10)).toBe(false);
+  });
+
+  it('A6: a negative entry cannot offset an oversized positive one', () => {
+    // Sums to 5, which is under a $10 transaction — the old sum-only guard
+    // passed this, then credited g1 the full $10,000 while silently dropping g2.
+    expect(
+      contributionsExceedTransaction(
+        [
+          { goalId: 'g1', amount: 10000 },
+          { goalId: 'g2', amount: -9995 },
+        ],
+        10
+      )
+    ).toBe(true);
+  });
+
+  it('A6: rejects zero and non-finite entries outright', () => {
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: 0 }], 100)).toBe(true);
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: NaN }], 100)).toBe(true);
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: Infinity }], 100)).toBe(true);
+  });
+
+  it('tolerates a half-cent of float representation error', () => {
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: 100.001 }], 100)).toBe(false);
+    expect(contributionsExceedTransaction([{ goalId: 'g1', amount: 100.02 }], 100)).toBe(true);
+  });
+});
+
+/**
+ * Finding P14: the contribution list arrives newest-first, so a running total
+ * must accumulate from the row toward the OLDEST entry. Accumulating down the
+ * descending list made the newest row show its own amount and the oldest row
+ * show the full balance — a ledger running backwards.
+ */
+describe('contribution running total (P14)', () => {
+  // Mirrors the component's calculateRunningTotal over a newest-first list.
+  const runningTotal = (contributions: Array<{ amount: number }>, index: number) =>
+    contributions.slice(index).reduce((sum, c) => sum + c.amount, 0);
+
+  it('shows the balance as of each row, newest first', () => {
+    // Jan $300, Feb $200, Mar $100 — rendered Mar, Feb, Jan.
+    const contributions = [{ amount: 100 }, { amount: 200 }, { amount: 300 }];
+
+    expect(runningTotal(contributions, 0)).toBe(600); // after Mar: full balance
+    expect(runningTotal(contributions, 1)).toBe(500); // after Feb
+    expect(runningTotal(contributions, 2)).toBe(300); // after Jan: first deposit
+  });
+});

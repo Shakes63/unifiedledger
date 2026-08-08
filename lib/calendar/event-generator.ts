@@ -250,7 +250,6 @@ export async function generateSavingsMilestoneEvents(
     .from(savingsGoals)
     .where(
       and(
-        eq(savingsGoals.userId, userId),
         eq(savingsGoals.householdId, householdId),
         eq(savingsGoals.status, 'active')
       )
@@ -413,7 +412,6 @@ export async function generateGoalTargetEvents(
     .from(savingsGoals)
     .where(
       and(
-        eq(savingsGoals.userId, userId),
         eq(savingsGoals.householdId, householdId),
         eq(savingsGoals.status, 'active')
       )

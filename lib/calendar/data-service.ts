@@ -386,7 +386,6 @@ export async function getMonthCalendarSummary(params: {
         .from(savingsGoals)
         .where(
           and(
-            eq(savingsGoals.userId, userId),
             eq(savingsGoals.householdId, householdId),
             isNotNull(savingsGoals.targetDate),
             gte(savingsGoals.targetDate, startDate),
@@ -872,7 +871,7 @@ export async function getDayCalendarDetails(params: {
     db
       .select()
       .from(savingsGoals)
-      .where(and(eq(savingsGoals.userId, userId), eq(savingsGoals.householdId, householdId), eq(savingsGoals.targetDate, dateKey))),
+      .where(and(eq(savingsGoals.householdId, householdId), eq(savingsGoals.targetDate, dateKey))),
     db
       .select()
       .from(debts)

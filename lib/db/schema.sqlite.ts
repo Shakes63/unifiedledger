@@ -2156,6 +2156,13 @@ export const savingsMilestones = sqliteTable(
     householdIdIdx: index('idx_savings_milestones_household').on(table.householdId),
     userHouseholdIdx: index('idx_savings_milestones_user_household').on(table.userId, table.householdId),
     goalIdIdx: index('idx_savings_milestones_goal').on(table.goalId),
+    // One row per (goal, percentage): checkMilestones does a check-then-insert
+    // that could race two concurrent contributions into duplicate milestones
+    // and duplicate notifications (A12).
+    goalPercentageIdx: uniqueIndex('idx_savings_milestones_goal_percentage').on(
+      table.goalId,
+      table.percentage
+    ),
   })
 );
 
@@ -2176,8 +2183,12 @@ export const savingsGoalContributions = sqliteTable(
   'savings_goal_contributions',
   {
     id: text('id').primaryKey(),
-    transactionId: text('transaction_id').notNull(),
-    goalId: text('goal_id').notNull(),
+    // Both links are nullable and SET NULL on delete (migration 0021): a
+    // contribution row records money that actually moved, so it outlives both
+    // the goal it pointed at and the transaction that funded it. transactionId
+    // is also null for manual "+$X" contributions, which have no transaction.
+    transactionId: text('transaction_id'),
+    goalId: text('goal_id'),
     userId: text('user_id').notNull(),
     householdId: text('household_id').notNull(),
     amount: real('amount').notNull(),

@@ -9,7 +9,7 @@
  * transfer-branch / branch-execution / branch-run) during the post-audit
  * cleanup; behavior is unchanged.
  */
-import { handleGoalContribution, handleMultipleContributions } from '@/lib/goals/contribution-handler';
+import { contributionsExceedTransaction, handleGoalContribution, handleMultipleContributions } from '@/lib/goals/contribution-handler';
 import { apiDebugLog } from '@/lib/api/route-helpers';
 import { autoClassifyTransaction } from '@/lib/tax/auto-classify';
 import { handleAccountChange } from '@/lib/rules/account-action-handler';
@@ -57,16 +57,11 @@ async function handleTransactionGoalContributions({
 
   try {
     if (goalContributions && goalContributions.length > 0) {
-      // Contributions cannot exceed the funding transaction (M-DBG-12: a $10
-      // transaction with a $10,000 goalContributions payload previously credited
-      // the goal $10,000 and fired milestones).
-      const totalRequested = goalContributions.reduce(
-        (sum, contribution) => sum + (Number(contribution.amount) || 0),
-        0
-      );
-      if (totalRequested > Math.abs(amount) + 0.005) {
+      // Contributions cannot exceed the funding transaction (M-DBG-12), via the
+      // shared oracle so this branch and the transfer branch stay in step.
+      if (contributionsExceedTransaction(goalContributions, amount)) {
         console.error(
-          `Goal contributions (${totalRequested}) exceed transaction amount (${amount}); skipping`
+          `Goal contributions exceed transaction amount (${amount}); skipping`
         );
         return;
       }
@@ -77,6 +72,17 @@ async function handleTransactionGoalContributions({
         userId,
         householdId
       );
+      // Surface failures instead of discarding them (finding A9). A mistyped or
+      // foreign goalId returned {success:false} and was thrown away, so the API
+      // answered 201, the transaction carried a goal link, and the goal never
+      // moved — with no contribution row, a later edit or delete had nothing to
+      // reverse, making the divergence permanent and invisible.
+      const failed = contributionResults.filter((result) => !result.success);
+      if (failed.length > 0) {
+        console.error(
+          `Goal contributions failed for ${failed.map((f) => `${f.goalId}: ${f.error}`).join('; ')}`
+        );
+      }
       const achievedMilestones = contributionResults.flatMap((result) => result.milestonesAchieved);
       if (achievedMilestones.length > 0) {
         apiDebugLog(

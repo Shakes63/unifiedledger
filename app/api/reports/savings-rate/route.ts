@@ -70,7 +70,9 @@ export async function GET(request: Request) {
       .from(transactions)
       .where(
         and(
-          eq(transactions.userId, userId),
+          // Household-scoped, not per-user (M8): with income recorded on one
+          // partner's account and the savings transfer on the other's, BOTH
+          // partners were shown a 0% savings rate.
           eq(transactions.householdId, householdId),
           eq(transactions.type, 'income'),
           gte(transactions.date, startDateStr),
@@ -88,35 +90,42 @@ export async function GET(request: Request) {
 
     // Get savings contributions by period (3 sources)
     // Source 1: Direct goal contributions from savingsGoalContributions table
+    // Bucket by the FUNDING TRANSACTION'S date, not the row's insert timestamp
+    // (findings M9/A11/P15). createdAt is a UTC wall-clock stamp, so an evening
+    // contribution on the last day of a month landed in the NEXT month while the
+    // income that funded it stayed in the current one; backdating a transaction
+    // put its savings in the month it was typed rather than the month it
+    // happened; and editing an amount deletes and reinserts the row, silently
+    // relocating historical savings into today. Manual contributions have no
+    // transaction, so they keep their own date.
+    const contributionPeriodExpr = sql<string>`COALESCE(${transactions.date}, date(${savingsGoalContributions.createdAt}))`;
     const directContributions = await db
       .select({
         period: period === 'yearly'
-          ? sql<string>`strftime('%Y', ${savingsGoalContributions.createdAt})`
+          ? sql<string>`strftime('%Y', ${contributionPeriodExpr})`
           : period === 'quarterly'
-            ? sql<string>`strftime('%Y', ${savingsGoalContributions.createdAt}) || '-Q' || ((cast(strftime('%m', ${savingsGoalContributions.createdAt}) as integer) + 2) / 3)`
-            : sql<string>`strftime('%Y-%m', ${savingsGoalContributions.createdAt})`,
+            ? sql<string>`strftime('%Y', ${contributionPeriodExpr}) || '-Q' || ((cast(strftime('%m', ${contributionPeriodExpr}) as integer) + 2) / 3)`
+            : sql<string>`strftime('%Y-%m', ${contributionPeriodExpr})`,
         // Sum integer cents (M-RPT-11: the float column was summed here while
         // transfers summed cents — inconsistent precision). COALESCE covers rows
         // written before the cents backfill.
         totalCents: sql<number>`SUM(COALESCE(${savingsGoalContributions.amountCents}, CAST(ROUND(${savingsGoalContributions.amount} * 100) AS INTEGER)))`,
       })
       .from(savingsGoalContributions)
+      .leftJoin(transactions, eq(transactions.id, savingsGoalContributions.transactionId))
       .where(
         and(
-          eq(savingsGoalContributions.userId, userId),
           eq(savingsGoalContributions.householdId, householdId),
-          // Compare the DATE part so a contribution made on the end date (whose
-          // createdAt is a full timestamp) is included (M-RPT-11).
-          gte(sql`date(${savingsGoalContributions.createdAt})`, startDateStr),
-          lte(sql`date(${savingsGoalContributions.createdAt})`, endDateStr)
+          gte(contributionPeriodExpr, startDateStr),
+          lte(contributionPeriodExpr, endDateStr)
         )
       )
       .groupBy(
         period === 'yearly'
-          ? sql`strftime('%Y', ${savingsGoalContributions.createdAt})`
+          ? sql`strftime('%Y', ${contributionPeriodExpr})`
           : period === 'quarterly'
-            ? sql`strftime('%Y', ${savingsGoalContributions.createdAt}) || '-Q' || ((cast(strftime('%m', ${savingsGoalContributions.createdAt}) as integer) + 2) / 3)`
-            : sql`strftime('%Y-%m', ${savingsGoalContributions.createdAt})`
+            ? sql`strftime('%Y', ${contributionPeriodExpr}) || '-Q' || ((cast(strftime('%m', ${contributionPeriodExpr}) as integer) + 2) / 3)`
+            : sql`strftime('%Y-%m', ${contributionPeriodExpr})`
       )
       .orderBy(sql`1`);
 
@@ -154,7 +163,6 @@ export async function GET(request: Request) {
         .from(transactions)
         .where(
           and(
-            eq(transactions.userId, userId),
             eq(transactions.householdId, householdId),
             eq(transactions.type, 'transfer_in'),
             sql`${transactions.accountId} IN (${sql.join(savingsIds, sql`, `)})`,
@@ -163,7 +171,18 @@ export async function GET(request: Request) {
             // Exclude transfers that ALSO recorded a goal contribution, so the two
             // sources can be summed without double-counting (M-RPT-11 replaces the
             // Decimal.max that under-counted when both existed in a period).
-            sql`NOT EXISTS (SELECT 1 FROM ${savingsGoalContributions} sgc WHERE sgc.transaction_id = ${transactions.id})`
+            sql`NOT EXISTS (SELECT 1 FROM ${savingsGoalContributions} sgc WHERE sgc.transaction_id = ${transactions.id})`,
+            // Moving money BETWEEN savings accounts is not new savings (M7).
+            // Only the destination was checked, so shifting $10,000 from one
+            // savings account to a higher-yield one reported a 200% savings rate
+            // (clamped to 100%) for a month in which nothing was actually saved.
+            sql`NOT EXISTS (
+              SELECT 1 FROM ${transactions} src
+              WHERE src.transfer_id = ${transactions.transferId}
+                AND src.transfer_id IS NOT NULL
+                AND src.type = 'transfer_out'
+                AND src.account_id IN (${sql.join(savingsIds, sql`, `)})
+            )`
           )
         )
         .groupBy(
@@ -229,8 +248,12 @@ export async function GET(request: Request) {
     // Calculate summary
     const totalIncome = data.reduce((sum, d) => sum + d.totalIncome, 0);
     const totalSaved = data.reduce((sum, d) => sum + d.totalSavingsContributions, 0);
-    const averageRate = data.length > 0
-      ? data.reduce((sum, d) => sum + d.savingsRate, 0) / data.length
+    // Average only over periods that HAD income (M8): a period with savings but
+    // no recorded income scores 0% by definition, and folding those zeros into
+    // the mean halved the reported average (10% where the true figure was 20%).
+    const periodsWithIncome = data.filter((d) => d.totalIncome > 0);
+    const averageRate = periodsWithIncome.length > 0
+      ? periodsWithIncome.reduce((sum, d) => sum + d.savingsRate, 0) / periodsWithIncome.length
       : 0;
 
     // Calculate trend (compare last period to first period)

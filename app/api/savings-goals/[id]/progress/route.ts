@@ -1,10 +1,12 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
+import { savingsGoals, savingsMilestones, savingsGoalContributions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { buildGoalCurrentFields, getGoalCurrentCents } from '@/lib/goals/goal-money';
-import { toMoneyCents } from '@/lib/utils/money-cents';
+import { fromMoneyCents, toMoneyCents } from '@/lib/utils/money-cents';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import { nanoid } from 'nanoid';
 
 export async function PUT(
   request: Request,
@@ -17,23 +19,6 @@ export async function PUT(
     const { id } = await params;
     const { currentAmount, increment } = body;
 
-    // Verify user owns this goal and it belongs to household
-    const goal = await db
-      .select()
-      .from(savingsGoals)
-      .where(
-        and(
-          eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
-          eq(savingsGoals.householdId, householdId)
-        )
-      )
-      .then((res) => res[0]);
-
-    if (!goal) {
-      return new Response(JSON.stringify({ error: 'Goal not found' }), { status: 404 });
-    }
-
     // Validate the inputs are finite numbers (M-DBG-11): previously a string or
     // NaN was written straight into the goal amount.
     if (currentAmount !== undefined && !Number.isFinite(Number(currentAmount))) {
@@ -43,47 +28,109 @@ export async function PUT(
       return new Response(JSON.stringify({ error: 'Invalid increment' }), { status: 400 });
     }
 
-    // Compute in integer cents (RC-4), clamped at zero.
-    const newCents =
-      currentAmount !== undefined
-        ? Math.max(0, toMoneyCents(Number(currentAmount)) ?? 0)
-        : Math.max(0, getGoalCurrentCents(goal) + (toMoneyCents(Number(increment) || 0) ?? 0));
     const now = new Date().toISOString();
 
-    // Update goal amount (cents authoritative, float derived)
-    const goalFields = buildGoalCurrentFields(newCents);
-    const newAmount = goalFields.currentAmount;
-    await db
-      .update(savingsGoals)
-      .set({ ...goalFields, updatedAt: now })
-      .where(eq(savingsGoals.id, id));
-
-    // Check and mark milestones as achieved (filtered by household)
-    const milestones = await db
-      .select()
-      .from(savingsMilestones)
-      .where(
-        and(
-          eq(savingsMilestones.goalId, id),
-          eq(savingsMilestones.householdId, householdId)
+    // Goal read, amount write, contribution row, milestones and the status flip
+    // are ONE unit (A2). They used to be five separate autocommits reading a goal
+    // fetched before any of them, so two concurrent "+$X" taps both read the same
+    // balance and the second overwrote the first.
+    const txResult = await runInDatabaseTransaction(async (tx) => {
+      const goal = await tx
+        .select()
+        .from(savingsGoals)
+        .where(
+          and(
+            eq(savingsGoals.id, id),
+            eq(savingsGoals.householdId, householdId)
+          )
         )
-      );
+        .then((res) => res[0]);
 
-    for (const milestone of milestones) {
-      if (!milestone.achievedAt && newAmount >= milestone.milestoneAmount) {
-        await db
-          .update(savingsMilestones)
-          .set({ achievedAt: now })
-          .where(eq(savingsMilestones.id, milestone.id));
+      if (!goal) {
+        return { error: 'Goal not found', status: 404 as const };
       }
-    }
 
-    // Update goal status if complete
-    if (newAmount >= goal.targetAmount && goal.status === 'active') {
-      await db
+      // A cancelled goal is closed to new money (product decision).
+      if (goal.status === 'cancelled' && increment !== undefined) {
+        return { error: 'Goal is cancelled and cannot receive contributions', status: 409 as const };
+      }
+
+      // Compute in integer cents (RC-4), clamped at zero.
+      const previousCents = getGoalCurrentCents(goal);
+      const newCents =
+        currentAmount !== undefined
+          ? Math.max(0, toMoneyCents(Number(currentAmount)) ?? 0)
+          : Math.max(0, previousCents + (toMoneyCents(Number(increment) || 0) ?? 0));
+
+      // Update goal amount (cents authoritative, float derived)
+      const goalFields = buildGoalCurrentFields(newCents);
+      const newAmount = goalFields.currentAmount;
+      await tx
         .update(savingsGoals)
-        .set({ status: 'completed', updatedAt: now })
+        .set({ ...goalFields, updatedAt: now })
         .where(eq(savingsGoals.id, id));
+
+      // Record the contribution (A2/P8). This route moved the goal total with no
+      // audit row at all: the history panel stayed empty, the savings-rate report
+      // (which sums contribution rows) reported $0 saved, and the increment was
+      // unreversible because reversal is driven entirely by contribution rows.
+      // transactionId is null — a manual contribution has no transaction behind
+      // it, which is why migration 0021 made that column nullable.
+      const deltaCents = newCents - previousCents;
+      if (deltaCents > 0) {
+        await tx.insert(savingsGoalContributions).values({
+          id: nanoid(),
+          transactionId: null,
+          goalId: id,
+          userId,
+          householdId,
+          amount: fromMoneyCents(deltaCents) ?? 0,
+          amountCents: deltaCents,
+          createdAt: now,
+        });
+      }
+
+      // Check and mark milestones as achieved (filtered by household)
+      const milestones = await tx
+        .select()
+        .from(savingsMilestones)
+        .where(
+          and(
+            eq(savingsMilestones.goalId, id),
+            eq(savingsMilestones.householdId, householdId)
+          )
+        );
+
+      for (const milestone of milestones) {
+        if (!milestone.achievedAt && newAmount >= milestone.milestoneAmount) {
+          await tx
+            .update(savingsMilestones)
+            .set({ achievedAt: now })
+            .where(eq(savingsMilestones.id, milestone.id));
+        }
+      }
+
+      // Status follows the balance in BOTH directions (A14/P3): this only ever
+      // set 'completed', so a goal whose target was later raised — or whose
+      // contribution was reversed — stayed "Done" forever, hidden from every
+      // active-goal list with no way back short of a hand-written API call.
+      if (newAmount >= goal.targetAmount && goal.status === 'active') {
+        await tx
+          .update(savingsGoals)
+          .set({ status: 'completed', updatedAt: now })
+          .where(eq(savingsGoals.id, id));
+      } else if (newAmount < goal.targetAmount && goal.status === 'completed') {
+        await tx
+          .update(savingsGoals)
+          .set({ status: 'active', updatedAt: now })
+          .where(eq(savingsGoals.id, id));
+      }
+
+      return { error: null };
+    });
+
+    if (txResult.error) {
+      return new Response(JSON.stringify({ error: txResult.error }), { status: txResult.status });
     }
 
     const updatedGoal = await db
