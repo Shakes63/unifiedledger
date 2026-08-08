@@ -1,3 +1,4 @@
+import { parseLocalDateString } from '@/lib/utils/local-date';
 import Decimal from 'decimal.js';
 
 /**
@@ -69,7 +70,12 @@ export function calculateRecommendedMonthlySavings(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const target_date = new Date(targetDate);
+  // parseLocalDateString, NOT new Date(str) (findings M12/P2): a date-only
+  // string parses as UTC midnight, so west of UTC it lands on the PREVIOUS day
+  // and setHours then pins it there. A goal due tomorrow reported "Target date
+  // has passed" in America/Chicago, and every longer horizon lost a day, which
+  // inflated the recommended monthly amount.
+  const target_date = parseLocalDateString(targetDate);
   target_date.setHours(0, 0, 0, 0);
   
   // Check if target date is in the past
