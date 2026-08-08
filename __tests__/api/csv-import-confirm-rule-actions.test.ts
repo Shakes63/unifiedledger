@@ -165,7 +165,13 @@ describe('POST /api/csv-import/[importId]/confirm applies full rule actions', ()
     vi.mocked(db.update).mockImplementation((_table: unknown) => {
       return {
         set: () => ({
-          where: async () => undefined,
+          // The staging-row claim (finding A3) awaits `.returning()` to learn
+          // whether it won the row, while other updates just await `.where()`.
+          // Return a thenable that also carries `.returning()` so both shapes work.
+          where: () =>
+            Object.assign(Promise.resolve(undefined), {
+              returning: async () => [{ id: 'staging-1' }],
+            }),
         }),
       };
     });
