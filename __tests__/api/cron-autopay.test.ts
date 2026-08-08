@@ -5,6 +5,14 @@ vi.mock('@/lib/bills/autopay-processor', () => ({
   getAutopayDueToday: vi.fn(),
 }));
 
+// The route enumerates households with enabled autopay rules.
+const { mockSelectDistinct } = vi.hoisted(() => ({ mockSelectDistinct: vi.fn() }));
+vi.mock('@/lib/db', () => ({
+  db: {
+    selectDistinct: mockSelectDistinct,
+  },
+}));
+
 vi.mock('@/lib/bills/service', () => ({
   runAutopay: vi.fn(),
 }));
@@ -36,6 +44,11 @@ describe('app/api/cron/autopay/route', () => {
     });
     (getAutopayProcessingSummary as any).mockReturnValue('summary');
     (getAutopayDueToday as any).mockResolvedValue({ count: 0, bills: [] });
+    mockSelectDistinct.mockReturnValue({
+      from: () => ({
+        where: () => Promise.resolve([{ householdId: 'household-1' }, { householdId: 'household-2' }]),
+      }),
+    });
   });
 
   afterEach(() => {
@@ -74,17 +87,16 @@ describe('app/api/cron/autopay/route', () => {
     expect(runAutopay).not.toHaveBeenCalled();
   });
 
-  it('POST returns 200 and expected response shape when CRON_SECRET matches', async () => {
+  it('POST with ONLY the Bearer secret runs autopay for every household with enabled rules (A1)', async () => {
+    // Regression: the shipped cron scheduler sends only the Authorization
+    // header. The old route hard-required x-household-id/x-user-id and 400'd
+    // on every scheduled trigger, so autopay never ran on a stock deployment.
     process.env.CRON_SECRET = 'secret';
 
     const { POST } = await import('@/app/api/cron/autopay/route');
     const req = new Request('http://localhost/api/cron/autopay', {
       method: 'POST',
-      headers: {
-        authorization: 'Bearer secret',
-        'x-household-id': 'household-1',
-        'x-user-id': 'user-1',
-      },
+      headers: { authorization: 'Bearer secret' },
     });
 
     const res = await POST(req);
@@ -94,36 +106,79 @@ describe('app/api/cron/autopay/route', () => {
     expect(data.success).toBe(true);
     expect(data.message).toBe('Autopay processing completed');
     expect(data.summary).toBe('summary');
+    expect(runAutopay).toHaveBeenCalledTimes(2);
+    expect(runAutopay).toHaveBeenCalledWith({
+      userId: null,
+      householdId: 'household-1',
+      runType: 'scheduled',
+      dryRun: false,
+    });
+    expect(runAutopay).toHaveBeenCalledWith({
+      userId: null,
+      householdId: 'household-2',
+      runType: 'scheduled',
+      dryRun: false,
+    });
     expect(data.stats).toEqual({
-      processed: 1,
-      successful: 1,
+      households: 2,
+      processed: 2,
+      successful: 2,
       failed: 0,
       skipped: 0,
-      totalAmount: 12.34,
+      totalAmount: 24.68,
     });
   });
 
-  it('POST returns 500 when processor throws', async () => {
+  it('POST with x-household-id scopes the run to that household', async () => {
     process.env.CRON_SECRET = 'secret';
-    (runAutopay as any).mockRejectedValue(new Error('boom'));
 
     const { POST } = await import('@/app/api/cron/autopay/route');
     const req = new Request('http://localhost/api/cron/autopay', {
       method: 'POST',
       headers: {
         authorization: 'Bearer secret',
-        'x-household-id': 'household-1',
-        'x-user-id': 'user-1',
+        'x-household-id': 'household-2',
       },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(runAutopay).toHaveBeenCalledTimes(1);
+    expect(runAutopay).toHaveBeenCalledWith(
+      expect.objectContaining({ householdId: 'household-2' })
+    );
+  });
+
+  it('POST isolates one household failure instead of failing the whole cron', async () => {
+    process.env.CRON_SECRET = 'secret';
+    (runAutopay as any)
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce({
+        processedCount: 1,
+        successCount: 1,
+        failedCount: 0,
+        skippedCount: 0,
+        totalAmountCents: 1234,
+        errors: [],
+      });
+
+    const { POST } = await import('@/app/api/cron/autopay/route');
+    const req = new Request('http://localhost/api/cron/autopay', {
+      method: 'POST',
+      headers: { authorization: 'Bearer secret' },
     });
 
     const res = await POST(req);
     const data = await res.json();
 
-    expect(res.status).toBe(500);
-    expect(data.success).toBe(false);
-    expect(data.error).toBe('Failed to process autopay bills');
-    expect(data.message).toBe('boom');
+    expect(res.status).toBe(200);
+    expect(data.stats.failed).toBe(1);
+    expect(data.stats.successful).toBe(1);
+    expect(data.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'AUTOPAY_RUN_FAILED', message: 'boom' }),
+      ])
+    );
   });
 
   it('GET requires cron auth and fails closed when secret is unset (C-SEC-2)', async () => {

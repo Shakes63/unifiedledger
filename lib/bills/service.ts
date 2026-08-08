@@ -126,7 +126,12 @@ export interface ListOccurrencesOptions {
 }
 
 export interface RunAutopayOptions {
-  userId: string;
+  /**
+   * The acting user for MANUAL runs. Scheduled cron runs pass null — autopay
+   * acts as the owner of each rule's pay-from account, so no single caller
+   * identity exists (a cron endpoint serves every household).
+   */
+  userId: string | null;
   householdId: string;
   runDate?: string;
   runType?: 'scheduled' | 'manual' | 'dry_run';
@@ -1184,7 +1189,8 @@ export async function listOccurrences(options: ListOccurrencesOptions) {
 }
 
 interface PayOccurrenceInternalOptions {
-  userId: string;
+  /** Null only for autopay, which acts as the pay-from account's owner. */
+  userId: string | null;
   householdId: string;
   occurrenceId: string;
   input: PayOccurrenceRequest;
@@ -1319,21 +1325,30 @@ async function payOccurrenceInternal(options: PayOccurrenceInternalOptions): Pro
       throw new Error('Occurrence is already fully paid');
     }
 
-    const [account] = await tx
-      .select()
-      .from(accounts)
-      .where(
-        and(
-          eq(accounts.id, options.input.accountId),
-          eq(accounts.userId, options.userId),
-          eq(accounts.householdId, options.householdId)
-        )
-      )
-      .limit(1);
+    // Autopay runs on behalf of the household — the rule's pay-from account may
+    // belong to any member, so scope it by household and act as its OWNER.
+    // Manual payments keep strict caller-ownership scoping.
+    if (options.paymentMethod !== 'autopay' && options.userId === null) {
+      throw new Error('userId is required for non-autopay payments');
+    }
+    const accountScope =
+      options.paymentMethod === 'autopay'
+        ? and(
+            eq(accounts.id, options.input.accountId),
+            eq(accounts.householdId, options.householdId)
+          )
+        : and(
+            eq(accounts.id, options.input.accountId),
+            eq(accounts.userId, options.userId as string),
+            eq(accounts.householdId, options.householdId)
+          );
+    const [account] = await tx.select().from(accounts).where(accountScope).limit(1);
 
     if (!account) {
       throw new Error('Account not found');
     }
+
+    const actorUserId = options.paymentMethod === 'autopay' ? account.userId : (options.userId as string);
 
     // Validate the amount is a real, finite integer number of cents before it can
     // reach a balance. A JSON string like "1e999" would otherwise pass a bare
@@ -1382,7 +1397,7 @@ async function payOccurrenceInternal(options: PayOccurrenceInternalOptions): Pro
 
     await insertTransactionMovement(tx, {
       id: transactionId,
-      userId: options.userId,
+      userId: actorUserId,
       householdId: options.householdId,
       accountId: account.id,
       categoryId: template.categoryId,
@@ -1400,7 +1415,7 @@ async function payOccurrenceInternal(options: PayOccurrenceInternalOptions): Pro
 
     await updateScopedAccountBalance(tx, {
       accountId: account.id,
-      userId: options.userId,
+      userId: actorUserId,
       householdId: options.householdId,
       balanceCents: nextBalanceCents,
       usageCount: (account.usageCount || 0) + 1,
