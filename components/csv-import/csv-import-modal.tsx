@@ -25,6 +25,7 @@ import { ColumnMapper } from './column-mapper';
 import { ImportPreview, type StagingRecord, type TransferDecision } from './import-preview';
 import { autoDetectMappings, type ColumnMapping } from '@/lib/csv-import';
 import { toast } from 'sonner';
+import Papa from 'papaparse';
 import { toastErrorWithHelp } from '@/lib/help/toast-with-help';
 import { HELP_SECTIONS } from '@/lib/help/help-sections';
 import { 
@@ -51,6 +52,48 @@ interface CSVImportModalProps {
   defaultTemplateId?: string;
 }
 
+/**
+ * Header/sample parsing that MATCHES THE SERVER (finding P4).
+ *
+ * These used to be `line.split(delimiter)` here while the server used
+ * PapaParse, so any quoted field containing the delimiter produced a different
+ * column list on each side and the whole import failed with an unactionable
+ * per-row error.
+ */
+function parseCsvHeaders(
+  dataLines: string[],
+  delimiter: string,
+  hasHeaderRow: boolean
+): string[] {
+  const firstRow = (Papa.parse(dataLines[0] ?? '', { delimiter, header: false })
+    .data as string[][])[0] ?? [];
+  return hasHeaderRow
+    ? firstRow.map((h) => String(h).trim().replace(/^"|"$/g, ''))
+    : firstRow.map((_, i) => `Column ${i + 1}`);
+}
+
+function parseCsvSampleRows(
+  dataLines: string[],
+  delimiter: string,
+  hasHeaderRow: boolean,
+  csvHeaders: string[]
+): Array<Record<string, string>> {
+  const body = hasHeaderRow ? dataLines.slice(1) : dataLines;
+  const parsed = Papa.parse(body.slice(0, 20).join('\n'), {
+    delimiter,
+    header: false,
+    skipEmptyLines: true,
+  }).data as string[][];
+
+  return parsed.map((values) => {
+    const row: Record<string, string> = {};
+    csvHeaders.forEach((header, i) => {
+      row[header] = values[i] ?? '';
+    });
+    return row;
+  });
+}
+
 export function CSVImportModal({
   open,
   onOpenChange,
@@ -62,7 +105,7 @@ export function CSVImportModal({
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
-  const [_fileContent, setFileContent] = useState<string>('');
+  const [fileContent, setFileContent] = useState<string>('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -106,6 +149,33 @@ export function CSVImportModal({
       loadDefaultTemplate(defaultTemplateId);
     }
   }, [open, defaultTemplateId]);
+
+  // Recompute headers when the parse settings change (finding P5).
+  //
+  // headers and mappings were derived once, in handleFileSelect, from the
+  // delimiter/skipRows/hasHeaderRow values that happened to be set BEFORE the
+  // user reached the Settings step where those controls live. Changing any of
+  // them re-sent the new value to the server but left the mappings pointing at
+  // the old column names — so a semicolon-delimited or preamble-heavy statement
+  // failed every row with "Date field is required".
+  useEffect(() => {
+    if (!fileContent) return;
+
+    const lines = fileContent.split('\n').filter((line) => line.trim());
+    const dataLines = lines.slice(skipRows);
+    if (dataLines.length === 0) return;
+
+    const csvHeaders = parseCsvHeaders(dataLines, delimiter, hasHeaderRow);
+    setHeaders(csvHeaders);
+    setMappings((current) => {
+      // Keep the user's own mapping choices when the columns are unchanged;
+      // re-detect when the parse produced a different set of columns.
+      const sameColumns =
+        current.length > 0 && current.every((m) => csvHeaders.includes(m.csvColumn));
+      return sameColumns ? current : autoDetectMappings(csvHeaders, sourceType === 'credit_card');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileContent, delimiter, skipRows, hasHeaderRow]);
 
   const loadDefaultTemplate = async (templateId: string) => {
     try {
@@ -169,27 +239,17 @@ export function CSVImportModal({
         return;
       }
 
-      const csvHeaders = hasHeaderRow
-        ? dataLines[0]
-            .split(delimiter)
-            .map((h) => h.trim().replace(/^"|"$/g, ''))
-        : dataLines[0]
-            .split(delimiter)
-            .map((_, i) => `Column ${i + 1}`);
+      // PapaParse, NOT split(delimiter) (finding P4). The server parses with
+      // PapaParse, so a quoted field containing the delimiter — `"Description,
+      // Full"` — produced FOUR client headers and THREE server headers. The
+      // mapping is built from the client's names, so every row then failed with
+      // "Description field is required", an error the user cannot act on.
+      const csvHeaders = parseCsvHeaders(dataLines, delimiter, hasHeaderRow);
 
       setHeaders(csvHeaders);
 
       // Phase 12: Detect credit card from headers and sample data
-      const sampleRows = (hasHeaderRow ? dataLines.slice(1) : dataLines)
-        .slice(0, 20)
-        .map(line => {
-          const values = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-          const row: Record<string, string> = {};
-          csvHeaders.forEach((header, i) => {
-            row[header] = values[i] || '';
-          });
-          return row;
-        });
+      const sampleRows = parseCsvSampleRows(dataLines, delimiter, hasHeaderRow, csvHeaders);
 
       const detection = detectCreditCard(csvHeaders, sampleRows);
       setDetectedSourceType(detection.sourceType);
@@ -558,7 +618,10 @@ export function CSVImportModal({
                   <SelectContent>
                     <SelectItem value=",">Comma (,)</SelectItem>
                     <SelectItem value=";">Semicolon (;)</SelectItem>
-                    <SelectItem value="\t">Tab</SelectItem>
+                    {/* Must be an EXPRESSION (finding P6): a JSX attribute string does not
+                        process escapes, so value="\t" was the two characters
+                        backslash-t and tab-delimited files were unparseable. */}
+                    <SelectItem value={"\t"}>Tab</SelectItem>
                     <SelectItem value="|">Pipe (|)</SelectItem>
                   </SelectContent>
                 </Select>

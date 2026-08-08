@@ -9,8 +9,9 @@ import {
   ruleExecutionLog,
   accounts,
   merchants,
+  budgetCategories,
 } from '@/lib/db/schema';
-import { eq, and, ne } from 'drizzle-orm';
+import { eq, and, ne, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import Decimal from 'decimal.js';
@@ -312,8 +313,27 @@ export async function POST(
             console.warn('Rule action execution errors during import confirm:', executionResult.errors);
           }
         } else if (mappedData.category) {
-          // Use provided category if available
-          categoryId = mappedData.category;
+          // Resolve the CSV's category TEXT to a real category id (findings
+          // P9/M16/SEC8). This assigned the raw cell value straight into
+          // transactions.categoryId — "Groceries", or worse "DEBIT" once
+          // auto-detect mapped a bank's Type column here — and categoryId has no
+          // foreign key, so the row silently fell out of every budget and
+          // category rollup. An unmatched name now leaves the transaction
+          // uncategorized rather than carrying a dangling id.
+          const categoryName = String(mappedData.category).trim();
+          if (categoryName) {
+            const [matched] = await db
+              .select({ id: budgetCategories.id })
+              .from(budgetCategories)
+              .where(
+                and(
+                  eq(budgetCategories.householdId, householdId),
+                  sql`lower(${budgetCategories.name}) = lower(${categoryName})`
+                )
+              )
+              .limit(1);
+            categoryId = matched?.id ?? null;
+          }
         }
 
         const amount = new Decimal(

@@ -169,11 +169,28 @@ export const autoDetectMappings = (headers: string[], isCreditCard: boolean = fa
 
   const patterns: Record<string, RegExp> = {
     date: /date|posted|transaction.*date|trans.*date|trans_date/i,
-    description: /description|memo|detail|merchant|payee|name|transaction|trans(?!_)|ref/i,
+    // Finding P7: `name|transaction|ref` matched "Account Name", "Transaction
+    // ID" and "Reference", so on a Mint/Wells Fargo export the ACCOUNT NAME
+    // became every transaction's description and the real Description column was
+    // demoted to notes. Since the description also seeds the merchant, every row
+    // collapsed onto one merchant and duplicate detection flagged nearly all of
+    // them. Bare `name`/`ref` are gone; `transaction` must look like a
+    // description rather than an id.
+    description: /description|memo|detail|merchant|payee|narrative|particulars|transaction\s*(?:description|detail|memo)/i,
     withdrawal: /withdrawal|withdraw|debit|paid.*out|spent|expense/i,
     deposit: /deposit|credit|received|income/i,
-    amount: /^amount$|^value$|^total$|^balance$/i, // More specific to avoid matching withdrawal/deposit
-    category: /category|type|class|cat/i,
+    // Finding P8: `^balance$` mapped a RUNNING BALANCE column to the amount, so
+    // every transaction's amount became the account balance at that point. First
+    // match wins, so a file listing Balance before Amount imported nonsense.
+    amount: /^amount$|^value$|^total$/i,
+    // Finding P9: `type` here sent a bank's Type column into categoryId as a raw
+    // string. Category is a named user concept; a Type column is not one.
+    category: /category|class|^cat$/i,
+    // A bank's Type/DR-CR column IS the authoritative direction signal, and is
+    // now honoured as one (see applyMappings and hasAuthoritativeDirection).
+    // Deliberately narrow so "Transaction Type" still reaches
+    // cc_transaction_type below, which is the better match for card statements.
+    type: /^type$|^dr\/cr$|^debit\/credit$|^debit or credit$/i,
     merchant: /merchant|vendor|payee|store|retailer|supplier/i,
     notes: /note|comment|memo|description|reference/i,
     // Phase 12: Credit card specific patterns

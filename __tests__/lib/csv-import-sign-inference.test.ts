@@ -13,7 +13,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
-import { applyMappings, detectAmountColumnIsSigned, type ColumnMapping } from '@/lib/csv-import';
+import {
+  applyMappings,
+  autoDetectMappings,
+  detectAmountColumnIsSigned,
+  type ColumnMapping,
+} from '@/lib/csv-import';
 
 const DATE = 'MM/DD/YYYY';
 
@@ -190,5 +195,44 @@ describe('applyMappings sign inference (M2/M3/P1)', () => {
     );
     expect(inn.type).toBe('income');
     expect(amountOf(inn)).toBe(2000);
+  });
+});
+
+/**
+ * Auto-detect column mapping — findings P7, P8, P9.
+ * These headers are the exact shapes the hunt proved were mismapped.
+ */
+describe('autoDetectMappings (P7/P8/P9)', () => {
+  const fieldFor = (headers: string[], column: string) =>
+    autoDetectMappings(headers, false).find((m) => m.csvColumn === column)?.appField;
+
+  it('P7: "Account Name" does not steal the description slot', () => {
+    const headers = ['Account Name', 'Date', 'Description', 'Amount', 'Category'];
+    expect(fieldFor(headers, 'Description')).toBe('description');
+    expect(fieldFor(headers, 'Account Name')).not.toBe('description');
+  });
+
+  it('P8: a running-balance column is not mapped to amount', () => {
+    const headers = ['Date', 'Description', 'Balance', 'Amount'];
+    expect(fieldFor(headers, 'Amount')).toBe('amount');
+    expect(fieldFor(headers, 'Balance')).not.toBe('amount');
+  });
+
+  it('P9: a bank Type column maps to type, not category', () => {
+    const headers = ['Date', 'Description', 'Type', 'Amount'];
+    expect(fieldFor(headers, 'Type')).toBe('type');
+    expect(fieldFor(headers, 'Type')).not.toBe('category');
+  });
+
+  it('a real Category column still maps to category', () => {
+    const headers = ['Date', 'Description', 'Category', 'Amount'];
+    expect(fieldFor(headers, 'Category')).toBe('category');
+  });
+
+  it('"Transaction ID" and "Reference" are not descriptions', () => {
+    const headers = ['Date', 'Transaction ID', 'Reference', 'Description', 'Amount'];
+    expect(fieldFor(headers, 'Description')).toBe('description');
+    expect(fieldFor(headers, 'Transaction ID')).not.toBe('description');
+    expect(fieldFor(headers, 'Reference')).not.toBe('description');
   });
 });
