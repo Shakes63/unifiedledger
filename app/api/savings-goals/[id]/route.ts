@@ -23,7 +23,6 @@ export async function GET(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       )
@@ -74,7 +73,6 @@ export async function PUT(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       )
@@ -189,7 +187,6 @@ export async function PUT(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       );
@@ -232,7 +229,6 @@ export async function DELETE(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       )

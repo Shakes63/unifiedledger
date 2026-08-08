@@ -24,7 +24,6 @@ export async function PUT(
       .where(
         and(
           eq(savingsGoals.id, id),
-          eq(savingsGoals.userId, userId),
           eq(savingsGoals.householdId, householdId)
         )
       )

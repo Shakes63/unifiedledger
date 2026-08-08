@@ -81,7 +81,6 @@ export async function GET(request: Request) {
         .from(savingsGoals)
         .where(
           and(
-            eq(savingsGoals.userId, userId),
             eq(savingsGoals.householdId, householdId)
           )
         ),
