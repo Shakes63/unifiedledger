@@ -6,9 +6,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
-import { savingsGoalContributions, savingsGoals } from '@/lib/db/schema';
+import { savingsGoalContributions, savingsGoals, transactions } from '@/lib/db/schema';
 import { handleGoalContribution } from '@/lib/goals/contribution-handler';
-import { setupTestUserWithHousehold, cleanupTestHousehold } from './test-utils';
+import { setupTestUserWithHousehold, cleanupTestHousehold, createTestTransaction } from './test-utils';
 
 describe('savings goal balance in integer cents (RC-4)', () => {
   let ctx: { userId: string; householdId: string } | null = null;
@@ -17,6 +17,7 @@ describe('savings goal balance in integer cents (RC-4)', () => {
     if (ctx) {
       await db.delete(savingsGoalContributions).where(eq(savingsGoalContributions.householdId, ctx.householdId));
       await db.delete(savingsGoals).where(eq(savingsGoals.householdId, ctx.householdId));
+      await db.delete(transactions).where(eq(transactions.householdId, ctx.householdId));
       await cleanupTestHousehold(ctx.userId, ctx.householdId);
       ctx = null;
     }
@@ -37,8 +38,17 @@ describe('savings goal balance in integer cents (RC-4)', () => {
     } as typeof savingsGoals.$inferInsert);
 
     // Three $33.33 contributions — the kind of values that drift under float +.
+    // Each needs a real transaction row: contributions.transaction_id became a
+    // genuine FK in migration 0021.
     for (let i = 0; i < 3; i++) {
-      await handleGoalContribution(goalId, 33.33, nanoid(), ctx.userId, ctx.householdId);
+      const txId = nanoid();
+      await db.insert(transactions).values(
+        createTestTransaction(ctx.userId, ctx.householdId, 'acct-goal', {
+          id: txId,
+          amount: 33.33,
+        }) as typeof transactions.$inferInsert
+      );
+      await handleGoalContribution(goalId, 33.33, txId, ctx.userId, ctx.householdId);
     }
 
     const [goal] = await db.select().from(savingsGoals).where(eq(savingsGoals.id, goalId));

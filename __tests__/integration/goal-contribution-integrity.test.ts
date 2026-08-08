@@ -12,9 +12,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
-import { savingsGoalContributions, savingsGoals, savingsMilestones } from '@/lib/db/schema';
+import { savingsGoalContributions, savingsGoals, savingsMilestones, transactions } from '@/lib/db/schema';
 import { handleGoalContribution } from '@/lib/goals/contribution-handler';
-import { setupTestUserWithHousehold, cleanupTestHousehold } from './test-utils';
+import { setupTestUserWithHousehold, cleanupTestHousehold, createTestTransaction } from './test-utils';
 
 describe('goal contribution integrity', () => {
   let ctx: { userId: string; householdId: string } | null = null;
@@ -26,10 +26,24 @@ describe('goal contribution integrity', () => {
         .where(eq(savingsGoalContributions.householdId, ctx.householdId));
       await db.delete(savingsMilestones).where(eq(savingsMilestones.householdId, ctx.householdId));
       await db.delete(savingsGoals).where(eq(savingsGoals.householdId, ctx.householdId));
+      await db.delete(transactions).where(eq(transactions.householdId, ctx.householdId));
       await cleanupTestHousehold(ctx.userId, ctx.householdId);
       ctx = null;
     }
   });
+
+  // contributions.transaction_id is a real FK since migration 0021, so every
+  // contribution needs a transaction that actually exists.
+  async function fundingTx(amount: number): Promise<string> {
+    const txId = nanoid();
+    await db.insert(transactions).values(
+      createTestTransaction(ctx!.userId, ctx!.householdId, 'acct-goal', {
+        id: txId,
+        amount,
+      }) as typeof transactions.$inferInsert
+    );
+    return txId;
+  }
 
   async function makeGoal(overrides: Partial<typeof savingsGoals.$inferInsert> = {}) {
     ctx = ctx ?? (await setupTestUserWithHousehold());
@@ -54,7 +68,7 @@ describe('goal contribution integrity', () => {
     const goalId = await makeGoal();
 
     for (const amount of [100, 250.55, 12.01]) {
-      await handleGoalContribution(goalId, amount, nanoid(), ctx.userId, ctx.householdId);
+      await handleGoalContribution(goalId, amount, await fundingTx(amount), ctx.userId, ctx.householdId);
     }
 
     const [goal] = await db.select().from(savingsGoals).where(eq(savingsGoals.id, goalId));
@@ -78,7 +92,7 @@ describe('goal contribution integrity', () => {
     const result = await handleGoalContribution(
       goalId,
       750.06,
-      nanoid(),
+      await fundingTx(750.06),
       ctx.userId,
       ctx.householdId
     );
@@ -94,7 +108,7 @@ describe('goal contribution integrity', () => {
     ctx = await setupTestUserWithHousehold();
     const goalId = await makeGoal();
 
-    await handleGoalContribution(goalId, 500, nanoid(), ctx.userId, ctx.householdId);
+    await handleGoalContribution(goalId, 500, await fundingTx(500), ctx.userId, ctx.householdId);
 
     const [fifty] = await db
       .select()
@@ -115,7 +129,7 @@ describe('goal contribution integrity', () => {
     const result = await handleGoalContribution(
       goalId,
       100,
-      nanoid(),
+      await fundingTx(100),
       ctx.userId,
       ctx.householdId
     );
@@ -139,7 +153,7 @@ describe('goal contribution integrity', () => {
       const result = await handleGoalContribution(
         goalId,
         25,
-        nanoid(),
+        await fundingTx(25),
         ctx.userId,
         ctx.householdId
       );
@@ -151,9 +165,125 @@ describe('goal contribution integrity', () => {
     ctx = await setupTestUserWithHousehold();
     const goalId = await makeGoal({ targetAmount: 0, targetAmountCents: 0 });
 
-    const result = await handleGoalContribution(goalId, 50, nanoid(), ctx.userId, ctx.householdId);
+    const result = await handleGoalContribution(goalId, 50, await fundingTx(50), ctx.userId, ctx.householdId);
 
     expect(result.success).toBe(true);
     expect(result.milestonesAchieved).toEqual([]);
+  });
+});
+
+describe('goal deletion keeps financial history (A7/A8)', () => {
+  let ctx: { userId: string; householdId: string } | null = null;
+
+  afterEach(async () => {
+    if (ctx) {
+      await db
+        .delete(savingsGoalContributions)
+        .where(eq(savingsGoalContributions.householdId, ctx.householdId));
+      await db.delete(savingsMilestones).where(eq(savingsMilestones.householdId, ctx.householdId));
+      await db.delete(savingsGoals).where(eq(savingsGoals.householdId, ctx.householdId));
+      await db.delete(transactions).where(eq(transactions.householdId, ctx.householdId));
+      await cleanupTestHousehold(ctx.userId, ctx.householdId);
+      ctx = null;
+    }
+  });
+
+  it('deleting a goal unlinks its contributions instead of erasing them', async () => {
+    ctx = await setupTestUserWithHousehold();
+    const goalId = nanoid();
+    await db.insert(savingsGoals).values({
+      id: goalId,
+      userId: ctx.userId,
+      householdId: ctx.householdId,
+      name: 'Vacation',
+      targetAmount: 1000,
+      targetAmountCents: 100000,
+      currentAmount: 0,
+      currentAmountCents: 0,
+    } as typeof savingsGoals.$inferInsert);
+
+    const txId = nanoid();
+    await db.insert(transactions).values(
+      createTestTransaction(ctx.userId, ctx.householdId, 'acct-goal', {
+        id: txId,
+        amount: 100,
+      }) as typeof transactions.$inferInsert
+    );
+    await handleGoalContribution(goalId, 100, txId, ctx.userId, ctx.householdId);
+
+    await db.delete(savingsGoals).where(eq(savingsGoals.id, goalId));
+
+    // The contribution row survives with goalId cleared, so the savings-rate
+    // report (which sums contribution rows) still reflects the money that moved.
+    const rows = await db
+      .select()
+      .from(savingsGoalContributions)
+      .where(eq(savingsGoalContributions.householdId, ctx.householdId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].goalId).toBeNull();
+    expect(rows[0].amountCents).toBe(10000);
+  });
+
+  it('deleting a transaction clears the contribution link instead of dangling', async () => {
+    ctx = await setupTestUserWithHousehold();
+    const goalId = nanoid();
+    await db.insert(savingsGoals).values({
+      id: goalId,
+      userId: ctx.userId,
+      householdId: ctx.householdId,
+      name: 'Car',
+      targetAmount: 1000,
+      targetAmountCents: 100000,
+      currentAmount: 0,
+      currentAmountCents: 0,
+    } as typeof savingsGoals.$inferInsert);
+
+    const txId = nanoid();
+    await db.insert(transactions).values(
+      createTestTransaction(ctx.userId, ctx.householdId, 'acct-goal', {
+        id: txId,
+        amount: 75,
+      }) as typeof transactions.$inferInsert
+    );
+    await handleGoalContribution(goalId, 75, txId, ctx.userId, ctx.householdId);
+
+    await db.delete(transactions).where(eq(transactions.id, txId));
+
+    const [row] = await db
+      .select()
+      .from(savingsGoalContributions)
+      .where(eq(savingsGoalContributions.goalId, goalId));
+    expect(row).toBeTruthy();
+    expect(row.transactionId).toBeNull();
+  });
+
+  it('a goal cannot hold two milestones at the same percentage', async () => {
+    ctx = await setupTestUserWithHousehold();
+    const goalId = nanoid();
+    await db.insert(savingsGoals).values({
+      id: goalId,
+      userId: ctx.userId,
+      householdId: ctx.householdId,
+      name: 'Home',
+      targetAmount: 1000,
+      targetAmountCents: 100000,
+    } as typeof savingsGoals.$inferInsert);
+
+    const milestone = {
+      goalId,
+      userId: ctx.userId,
+      householdId: ctx.householdId,
+      percentage: 50,
+      milestoneAmount: 500,
+    };
+    await db
+      .insert(savingsMilestones)
+      .values({ id: nanoid(), ...milestone } as typeof savingsMilestones.$inferInsert);
+
+    await expect(
+      db
+        .insert(savingsMilestones)
+        .values({ id: nanoid(), ...milestone } as typeof savingsMilestones.$inferInsert)
+    ).rejects.toThrow(/UNIQUE/i);
   });
 });

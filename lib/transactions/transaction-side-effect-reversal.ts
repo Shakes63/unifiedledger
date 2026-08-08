@@ -149,6 +149,8 @@ export async function adjustTransactionSideEffectsForAmountChange(
   }
 
   for (const contribution of goalRows) {
+    // Unlinked rows (deleted goal) have nothing to re-apply against.
+    if (!contribution.goalId) continue;
     const newContributionCents = scaleCents(contribution.amountCents ?? null, contribution.amount);
     if (newContributionCents <= 0) continue;
     await handleGoalContribution(
@@ -245,6 +247,7 @@ async function reverseGoalContributions(
     );
 
   for (const contribution of contributions) {
+    if (!contribution.goalId) continue;
     const [goal] = await tx
       .select({
         currentAmount: savingsGoals.currentAmount,

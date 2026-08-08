@@ -148,6 +148,13 @@
       "when": 1773168000000,
       "tag": "0020_unique_rollover_history",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1773168001000,
+      "tag": "0021_goal_history_survives_delete",
+      "breakpoints": true
     }
   ]
 }

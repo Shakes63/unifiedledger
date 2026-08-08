@@ -294,6 +294,9 @@ export async function revertAllContributions(
     let totalReverted = 0;
 
     for (const contribution of contributionsToRevert) {
+      // goalId is nullable since 0021 (the goal may have been deleted while the
+      // contribution row survives); there is nothing to revert on the goal side.
+      if (!contribution.goalId) continue;
       const result = await revertGoalContribution(transactionId, contribution.goalId);
       if (result.success) {
         totalReverted += result.amountReverted;

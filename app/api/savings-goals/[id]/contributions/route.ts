@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 interface ContributionWithDetails {
   id: string;
-  transactionId: string;
+  transactionId: string | null;
   amount: number;
   createdAt: string;
   transactionDescription?: string | null;

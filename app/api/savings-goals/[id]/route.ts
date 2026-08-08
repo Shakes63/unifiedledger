@@ -1,7 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import { savingsGoals, savingsMilestones, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { queueSync } from '@/lib/calendar/sync-service';
 import { isSavingsGoalCategory, isSavingsGoalStatus } from '@/lib/goals/goal-enums';
@@ -238,18 +239,39 @@ export async function DELETE(
       return new Response(JSON.stringify({ error: 'Goal not found' }), { status: 404 });
     }
 
-    // Delete milestones first (filtered by household)
-    await db
-      .delete(savingsMilestones)
-      .where(
-        and(
-          eq(savingsMilestones.goalId, id),
-          eq(savingsMilestones.householdId, householdId)
-        )
-      );
+    // One unit (A8): these were three separate autocommits, so a failure partway
+    // through left a live goal with its milestone ladder already gone.
+    await runInDatabaseTransaction(async (tx) => {
+      await tx
+        .delete(savingsMilestones)
+        .where(
+          and(
+            eq(savingsMilestones.goalId, id),
+            eq(savingsMilestones.householdId, householdId)
+          )
+        );
 
-    // Delete goal
-    await db.delete(savingsGoals).where(eq(savingsGoals.id, id));
+      // Clear the goal link on transactions that pointed here. transactions is a
+      // parent table and carries no FK for this column, so without an explicit
+      // clear the reference dangles forever and the ledger keeps advertising a
+      // goal that no longer exists.
+      await tx
+        .update(transactions)
+        .set({ savingsGoalId: null })
+        .where(
+          and(
+            eq(transactions.savingsGoalId, id),
+            eq(transactions.householdId, householdId)
+          )
+        );
+
+      // Contribution rows are deliberately NOT deleted. They record money that
+      // actually moved, and the savings-rate report sums them — cascading them
+      // away rewrote past months' savings to zero (product decision: keep
+      // history, unlink the goal). Migration 0021 turns the FK into SET NULL, so
+      // this delete clears their goal_id rather than removing them.
+      await tx.delete(savingsGoals).where(eq(savingsGoals.id, id));
+    });
 
     // Queue calendar sync for goal deletion (non-blocking)
     queueSync(userId, householdId, 'goal_target', id, 'delete');

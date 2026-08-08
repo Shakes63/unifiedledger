@@ -106,6 +106,9 @@ describe('reverseTransactionSideEffects (C-LIFE-1/2/3)', () => {
 
   it('decrements a goal and removes the contribution row', async () => {
     ctx = await setupTestUserWithHousehold();
+    // savings_goal_contributions.transaction_id is a real FK now (0021,
+    // ON DELETE SET NULL), so the linking transaction must exist.
+    await seedLinkingTransaction();
     const goalId = nanoid();
     await db.insert(savingsGoals).values({
       id: goalId,
