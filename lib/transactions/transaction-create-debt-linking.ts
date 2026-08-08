@@ -60,7 +60,6 @@ export async function linkTransactionDebt({
         .from(debts)
         .where(
           and(
-            eq(debts.userId, userId),
             eq(debts.householdId, householdId),
             eq(debts.status, 'active'),
             eq(debts.categoryId, appliedCategoryId)

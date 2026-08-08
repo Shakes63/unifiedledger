@@ -202,7 +202,6 @@ export async function GET(request: Request) {
       .from(debts)
       .where(
         and(
-          eq(debts.userId, userId),
           eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )

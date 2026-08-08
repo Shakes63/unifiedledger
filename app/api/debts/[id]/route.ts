@@ -32,7 +32,6 @@ export async function GET(
       .where(
         and(
           eq(debts.id, id),
-          eq(debts.userId, userId),
           eq(debts.householdId, householdId)
         )
       )
@@ -104,7 +103,6 @@ export async function PUT(
       .where(
         and(
           eq(debts.id, id),
-          eq(debts.userId, userId),
           eq(debts.householdId, householdId)
         )
       )
@@ -325,7 +323,6 @@ export async function DELETE(
       .where(
         and(
           eq(debts.id, id),
-          eq(debts.userId, userId),
           eq(debts.householdId, householdId)
         )
       )

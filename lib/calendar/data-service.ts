@@ -384,7 +384,6 @@ export async function getMonthCalendarSummary(params: {
         .from(debts)
         .where(
           and(
-            eq(debts.userId, userId),
             eq(debts.householdId, householdId),
             isNotNull(debts.targetPayoffDate),
             gte(debts.targetPayoffDate, startDate),
@@ -402,7 +401,6 @@ export async function getMonthCalendarSummary(params: {
           and(
             eq(debtPayoffMilestones.userId, userId),
             eq(debtPayoffMilestones.householdId, householdId),
-            eq(debts.userId, userId),
             eq(debts.householdId, householdId),
             isNotNull(debtPayoffMilestones.achievedAt),
             gte(debtPayoffMilestones.achievedAt, `${startDate}T00:00:00`),
@@ -860,7 +858,7 @@ export async function getDayCalendarDetails(params: {
     db
       .select()
       .from(debts)
-      .where(and(eq(debts.userId, userId), eq(debts.householdId, householdId), eq(debts.targetPayoffDate, dateKey))),
+      .where(and(eq(debts.householdId, householdId), eq(debts.targetPayoffDate, dateKey))),
     db
       .select({
         milestone: debtPayoffMilestones,
@@ -872,7 +870,6 @@ export async function getDayCalendarDetails(params: {
         and(
           eq(debtPayoffMilestones.userId, userId),
           eq(debtPayoffMilestones.householdId, householdId),
-          eq(debts.userId, userId),
           eq(debts.householdId, householdId),
           isNotNull(debtPayoffMilestones.achievedAt),
           gte(debtPayoffMilestones.achievedAt, `${milestoneWindowStart}T00:00:00`),

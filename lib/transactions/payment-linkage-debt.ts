@@ -17,7 +17,10 @@ export type PaymentLinkageDbClient = Pick<typeof db, 'select' | 'insert' | 'upda
 export async function loadScopedDebt({
   dbClient,
   debtId,
-  userId,
+  // Debts are household-shared objects — household membership is the
+  // authorization boundary (S1 product decision, 2026-08-08). The parameter
+  // stays for call-site compatibility.
+  userId: _userId,
   householdId,
 }: {
   dbClient: PaymentLinkageDbClient;
@@ -29,7 +32,7 @@ export async function loadScopedDebt({
     .select()
     .from(debts)
     .where(
-      and(eq(debts.id, debtId), eq(debts.userId, userId), eq(debts.householdId, householdId))
+      and(eq(debts.id, debtId), eq(debts.householdId, householdId))
     )
     .limit(1);
 
@@ -97,7 +100,7 @@ export async function persistLegacyDebtPayment({
         updatedAt: nowIso,
       })
       .where(
-        and(eq(debts.id, debtId), eq(debts.userId, userId), eq(debts.householdId, householdId))
+        and(eq(debts.id, debtId), eq(debts.householdId, householdId))
       ),
     batchUpdateMilestones(debtId, fromMoneyCents(newCents) ?? 0),
   ]);

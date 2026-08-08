@@ -82,7 +82,6 @@ export async function GET(request: Request) {
         .where(
           and(
             eq(debts.id, sourceId),
-            eq(debts.userId, userId),
             eq(debts.householdId, householdId)
           )
         )
@@ -280,7 +279,6 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(debts.id, sourceId),
-            eq(debts.userId, userId),
             eq(debts.householdId, householdId)
           )
         )
@@ -326,7 +324,6 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(debts.id, sourceId),
-              eq(debts.userId, userId),
               eq(debts.householdId, householdId)
             )
           )
