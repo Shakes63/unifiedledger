@@ -1,10 +1,13 @@
 import { db } from '@/lib/db';
 import { calendarConnections, calendarSyncSettings } from '@/lib/db/schema';
-import { 
-  exchangeTickTickCodeForTokens, 
+import {
+  exchangeTickTickCodeForTokens,
   listTickTickProjects,
   createTickTickProject,
 } from '@/lib/calendar/ticktick-calendar';
+import { encryptToken } from '@/lib/encryption/oauth-encryption';
+import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { v4 as uuidv4 } from 'uuid';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -14,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/calendar-sync/ticktick/callback
- * Handles the OAuth callback from TickTick
+ * Handles the OAuth callback from TickTick.
  * Query params: code, state, error (optional)
  */
 export async function GET(request: Request) {
@@ -23,47 +26,54 @@ export async function GET(request: Request) {
   const state = searchParams.get('state');
   const error = searchParams.get('error');
 
-  // Base URL for redirects
   const baseUrl = process.env.APP_URL || 'http://localhost:3000';
   const settingsUrl = `${baseUrl}/dashboard/settings`;
+  const fail = (reason: string) =>
+    `${settingsUrl}?tab=data&calendarError=${encodeURIComponent(reason)}`;
 
-  // Handle user cancellation or errors
-  if (error) {
-    console.error('TickTick OAuth error:', error);
-    return redirect(`${settingsUrl}?tab=data&calendarError=${encodeURIComponent(error)}`);
-  }
-
-  if (!code || !state) {
-    return redirect(`${settingsUrl}?tab=data&calendarError=missing_params`);
-  }
+  // A redirect target is computed inside a try, then issued OUTSIDE it —
+  // next/navigation redirect() throws NEXT_REDIRECT, and issuing it inside the
+  // try let the catch swallow the SUCCESS redirect and send every completed
+  // connection to an error page (bug-hunt finding SY3).
+  let redirectTo: string;
 
   try {
-    // Verify state from cookie
+    if (error) {
+      console.error('TickTick OAuth error:', error);
+      redirect(fail(error));
+    }
+    if (!code || !state) {
+      redirect(fail('missing_params'));
+    }
+
+    // Identity comes from the SESSION, never from the state cookie (bug-hunt
+    // finding SEC1): the callback previously trusted client-controlled
+    // userId/householdId out of the cookie with no auth check, letting an
+    // attacker bind their TickTick account to a victim's household. The cookie
+    // is used ONLY for CSRF state matching now.
+    const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
+
     const cookieStore = await cookies();
     const stateDataStr = cookieStore.get('ticktick_oauth_state')?.value;
-
     if (!stateDataStr) {
-      return redirect(`${settingsUrl}?tab=data&calendarError=state_expired`);
+      redirect(fail('state_expired'));
     }
 
-    const stateData = JSON.parse(stateDataStr);
-
+    const stateData = JSON.parse(stateDataStr as string);
     if (stateData.state !== state) {
-      return redirect(`${settingsUrl}?tab=data&calendarError=state_mismatch`);
+      redirect(fail('state_mismatch'));
+    }
+    // The cookie was issued to THIS session (connect route sets it after
+    // requireAuth) — reject a state cookie minted for a different user.
+    if (stateData.userId && stateData.userId !== userId) {
+      redirect(fail('state_mismatch'));
     }
 
-    const { userId, householdId } = stateData;
-
-    // Clear the state cookie
     cookieStore.delete('ticktick_oauth_state');
 
-    // Exchange code for tokens
-    const tokens = await exchangeTickTickCodeForTokens(code);
+    const tokens = await exchangeTickTickCodeForTokens(code as string);
 
-    // Create the connection record
-    const connectionId = uuidv4();
-    
-    // Check if connection already exists for this user/household/provider
     const existing = await db
       .select()
       .from(calendarConnections)
@@ -76,34 +86,35 @@ export async function GET(request: Request) {
       )
       .limit(1);
 
+    const connectionId = existing[0]?.id ?? uuidv4();
+
     if (existing[0]) {
-      // Update existing connection
       await db
         .update(calendarConnections)
         .set({
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken || existing[0].refreshToken,
+          accessToken: encryptToken(tokens.accessToken),
+          refreshToken: tokens.refreshToken
+            ? encryptToken(tokens.refreshToken)
+            : existing[0].refreshToken,
           tokenExpiresAt: tokens.expiresAt,
           isActive: true,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(calendarConnections.id, existing[0].id));
     } else {
-      // Create new connection
       await db.insert(calendarConnections).values({
         id: connectionId,
         userId,
         householdId,
         provider: 'ticktick',
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: encryptToken(tokens.accessToken),
+        refreshToken: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
         tokenExpiresAt: tokens.expiresAt,
         isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
 
-      // Create default sync settings if they don't exist
       const existingSettings = await db
         .select()
         .from(calendarSyncSettings)
@@ -126,31 +137,25 @@ export async function GET(request: Request) {
           syncDebtMilestones: true,
           syncPayoffDates: true,
           syncGoalTargetDates: true,
-          reminderMinutes: 1440, // 1 day
+          reminderMinutes: 1440,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
       }
     }
 
-    // Try to get projects and select or create one for Unified Ledger
-    const finalConnectionId = existing[0]?.id || connectionId;
+    // Best-effort project selection — never fails the connection.
     try {
-      const projects = await listTickTickProjects(finalConnectionId);
-      
-      // Look for existing "Unified Ledger" project or use first project
+      const projects = await listTickTickProjects(connectionId);
       let selectedProject = projects.find((p) => p.name === 'Unified Ledger');
-      
       if (!selectedProject) {
-        // Create a new project for Unified Ledger
         try {
-          selectedProject = await createTickTickProject(finalConnectionId, 'Unified Ledger');
+          selectedProject = await createTickTickProject(connectionId, 'Unified Ledger');
         } catch (createError) {
           console.error('Error creating project, using first available:', createError);
           selectedProject = projects[0];
         }
       }
-      
       if (selectedProject) {
         await db
           .update(calendarConnections)
@@ -159,17 +164,25 @@ export async function GET(request: Request) {
             calendarName: selectedProject.name,
             updatedAt: new Date().toISOString(),
           })
-          .where(eq(calendarConnections.id, finalConnectionId));
+          .where(eq(calendarConnections.id, connectionId));
       }
     } catch (projectError) {
       console.error('Error fetching/creating projects:', projectError);
-      // Continue anyway - user can select project later
     }
 
-    // Redirect to settings page with success
-    return redirect(`${settingsUrl}?tab=data&calendarConnected=ticktick`);
+    redirectTo = `${settingsUrl}?tab=data&calendarConnected=ticktick`;
   } catch (err) {
+    // NEXT_REDIRECT from an early redirect() above must propagate, not be
+    // rewritten as callback_failed.
+    if (err && typeof err === 'object' && 'digest' in err && String((err as { digest: unknown }).digest).startsWith('NEXT_REDIRECT')) {
+      throw err;
+    }
+    if (err instanceof Error && err.message === 'Unauthorized') {
+      redirect(fail('unauthorized'));
+    }
     console.error('Error in TickTick OAuth callback:', err);
-    return redirect(`${settingsUrl}?tab=data&calendarError=callback_failed`);
+    redirectTo = fail('callback_failed');
   }
+
+  redirect(redirectTo);
 }

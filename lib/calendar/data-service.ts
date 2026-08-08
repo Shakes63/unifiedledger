@@ -1,5 +1,5 @@
 import { addDays, addMonths, format, parseISO, subDays } from 'date-fns';
-import { and, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNotNull, lte, ne } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
@@ -29,7 +29,11 @@ import {
   getBillCalendarQueryEndDate,
   type CalendarBillDisplayMode,
 } from '@/lib/calendar/bill-display-mode';
-import { parseLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
+import {
+  getRelativeLocalDateString,
+  parseLocalDateString,
+  toLocalDateString,
+} from '@/lib/utils/local-date';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export interface GoalSummary {
@@ -338,6 +342,12 @@ export async function getMonthCalendarSummary(params: {
       ? await getBudgetSettings(userId, householdId)
       : undefined;
   const billQueryEndDate = getBillCalendarQueryEndDate(endDate, billDisplayMode);
+  // Milestone achievedAt is a UTC-ISO timestamp but the range bounds are
+  // local-naive; widen by a day each side so a milestone achieved in the
+  // local evening of a month-edge day isn't excluded, then bucket by local
+  // date (bug-hunt finding T3).
+  const milestoneRangeStart = `${getRelativeLocalDateString(-1, parseLocalDateString(startDate))}T00:00:00`;
+  const milestoneRangeEnd = `${getRelativeLocalDateString(1, parseLocalDateString(endDate))}T23:59:59.999Z`;
 
   const [monthTransactions, occurrencesWithTemplates, monthGoals, monthDebts, monthMilestones, unifiedMilestones] =
     await Promise.all([
@@ -346,7 +356,6 @@ export async function getMonthCalendarSummary(params: {
         .from(transactions)
         .where(
           and(
-            eq(transactions.userId, userId),
             eq(transactions.householdId, householdId),
             gte(transactions.date, startDate),
             lte(transactions.date, endDate)
@@ -363,6 +372,11 @@ export async function getMonthCalendarSummary(params: {
           and(
             eq(billOccurrences.householdId, householdId),
             eq(billTemplates.householdId, householdId),
+            // Paused templates (isActive=false) keep their already-materialized
+            // future occurrences; the calendar must not show them as due
+            // (bug-hunt finding D1). Skipped occurrences aren't due either (D2).
+            eq(billTemplates.isActive, true),
+            ne(billOccurrences.status, 'skipped'),
             gte(billOccurrences.dueDate, startDate),
             lte(billOccurrences.dueDate, billQueryEndDate)
           )
@@ -399,12 +413,11 @@ export async function getMonthCalendarSummary(params: {
         .innerJoin(debts, eq(debtPayoffMilestones.debtId, debts.id))
         .where(
           and(
-            eq(debtPayoffMilestones.userId, userId),
             eq(debtPayoffMilestones.householdId, householdId),
             eq(debts.householdId, householdId),
             isNotNull(debtPayoffMilestones.achievedAt),
-            gte(debtPayoffMilestones.achievedAt, `${startDate}T00:00:00`),
-            lte(debtPayoffMilestones.achievedAt, `${endDate}T23:59:59`)
+            gte(debtPayoffMilestones.achievedAt, milestoneRangeStart),
+            lte(debtPayoffMilestones.achievedAt, milestoneRangeEnd)
           )
         ),
       db
@@ -412,11 +425,10 @@ export async function getMonthCalendarSummary(params: {
         .from(billMilestones)
         .where(
           and(
-            eq(billMilestones.userId, userId),
             eq(billMilestones.householdId, householdId),
             isNotNull(billMilestones.achievedAt),
-            gte(billMilestones.achievedAt, `${startDate}T00:00:00`),
-            lte(billMilestones.achievedAt, `${endDate}T23:59:59`)
+            gte(billMilestones.achievedAt, milestoneRangeStart),
+            lte(billMilestones.achievedAt, milestoneRangeEnd)
           )
         ),
     ]);
@@ -427,8 +439,13 @@ export async function getMonthCalendarSummary(params: {
       summary.incomeCount++;
     } else if (txn.type === 'expense') {
       summary.expenseCount++;
-      summary.totalSpent += Math.abs(parseFloat(txn.amount?.toString() || '0'));
-    } else if (txn.type === 'transfer_in' || txn.type === 'transfer_out') {
+      // Sum from integer cents, not the float mirror (bug-hunt finding D3).
+      summary.totalSpent += Math.abs(centsToDollars(txn.amountCents));
+    } else if (txn.type === 'transfer_out') {
+      // Count a transfer ONCE (bug-hunt finding D3): a canonical transfer has
+      // both a transfer_out and transfer_in leg on the same day; counting
+      // both double-reported every transfer. The out leg is the canonical
+      // side (the list API dedupes the same way).
       summary.transferCount++;
     }
   }
@@ -481,7 +498,6 @@ export async function getMonthCalendarSummary(params: {
           .from(accounts)
           .where(
             and(
-              eq(accounts.userId, userId),
               eq(accounts.householdId, householdId),
               inArray(accounts.id, allAccountIds)
             )
@@ -569,7 +585,7 @@ export async function getMonthCalendarSummary(params: {
 
     const autopayRule = autopayRuleMap.get(template.id);
     if (!autopayRule) continue;
-    const autopayDate = format(subDays(new Date(occurrence.dueDate), autopayRule.daysBeforeDue || 0), 'yyyy-MM-dd');
+    const autopayDate = format(subDays(parseLocalDateString(occurrence.dueDate), autopayRule.daysBeforeDue || 0), 'yyyy-MM-dd');
     if (autopayDate < startDate || autopayDate > endDate) continue;
 
     const autopaySummary = upsertSummary(daySummaries, autopayDate);
@@ -656,7 +672,6 @@ export async function getMonthCalendarSummary(params: {
       .from(accounts)
       .where(
         and(
-          eq(accounts.userId, userId),
           eq(accounts.householdId, householdId),
           inArray(accounts.type, ['credit', 'line_of_credit']),
           eq(accounts.isActive, true)
@@ -746,7 +761,7 @@ export async function getMonthCalendarSummary(params: {
           .select()
           .from(accounts)
           .where(
-            and(eq(accounts.userId, userId), eq(accounts.householdId, householdId), inArray(accounts.id, milestoneAccountIds))
+            and(eq(accounts.householdId, householdId), inArray(accounts.id, milestoneAccountIds))
           )
       : Promise.resolve([]),
   ]);
@@ -829,7 +844,7 @@ export async function getDayCalendarDetails(params: {
     db
       .select()
       .from(transactions)
-      .where(and(eq(transactions.userId, userId), eq(transactions.householdId, householdId), eq(transactions.date, dateKey))),
+      .where(and(eq(transactions.householdId, householdId), eq(transactions.date, dateKey))),
     db
       .select({
         occurrence: billOccurrences,
@@ -842,6 +857,9 @@ export async function getDayCalendarDetails(params: {
           ? and(
               eq(billOccurrences.householdId, householdId),
               eq(billTemplates.householdId, householdId),
+              // Paused templates + skipped occurrences aren't due (D1/D2).
+              eq(billTemplates.isActive, true),
+              ne(billOccurrences.status, 'skipped'),
               gte(billOccurrences.dueDate, billDateRange.start),
               lte(billOccurrences.dueDate, billDateRange.end)
             )
@@ -868,7 +886,6 @@ export async function getDayCalendarDetails(params: {
       .innerJoin(debts, eq(debtPayoffMilestones.debtId, debts.id))
       .where(
         and(
-          eq(debtPayoffMilestones.userId, userId),
           eq(debtPayoffMilestones.householdId, householdId),
           eq(debts.householdId, householdId),
           isNotNull(debtPayoffMilestones.achievedAt),
@@ -881,7 +898,6 @@ export async function getDayCalendarDetails(params: {
       .from(billMilestones)
       .where(
         and(
-          eq(billMilestones.userId, userId),
           eq(billMilestones.householdId, householdId),
           isNotNull(billMilestones.achievedAt),
           gte(billMilestones.achievedAt, `${milestoneWindowStart}T00:00:00`),
@@ -971,7 +987,7 @@ export async function getDayCalendarDetails(params: {
       ? db
           .select()
           .from(accounts)
-          .where(and(eq(accounts.userId, userId), eq(accounts.householdId, householdId), inArray(accounts.id, allAccountIds)))
+          .where(and(eq(accounts.householdId, householdId), inArray(accounts.id, allAccountIds)))
       : Promise.resolve([]),
   ]);
 
@@ -1039,7 +1055,7 @@ export async function getDayCalendarDetails(params: {
     .map<CalendarAutopayEventDetail | null>((row) => {
       const rule = autopayRuleMap.get(row.template.id);
       if (!rule) return null;
-      const autopayDate = format(subDays(new Date(row.occurrence.dueDate), rule.daysBeforeDue || 0), 'yyyy-MM-dd');
+      const autopayDate = format(subDays(parseLocalDateString(row.occurrence.dueDate), rule.daysBeforeDue || 0), 'yyyy-MM-dd');
       if (autopayDate !== dateKey) return null;
       return {
         id: `autopay-${row.occurrence.id}`,
@@ -1129,7 +1145,6 @@ export async function getDayCalendarDetails(params: {
       .from(accounts)
       .where(
         and(
-          eq(accounts.userId, userId),
           eq(accounts.householdId, householdId),
           inArray(accounts.type, ['credit', 'line_of_credit']),
           eq(accounts.isActive, true)
@@ -1198,7 +1213,6 @@ export async function getDayCalendarDetails(params: {
           .from(accounts)
           .where(
             and(
-              eq(accounts.userId, userId),
               eq(accounts.householdId, householdId),
               inArray(accounts.id, billMilestoneAccountIds)
             )

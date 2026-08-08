@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { normalizeCalendarBillDisplayMode } from '@/lib/calendar/bill-display-mode';
-import { format } from 'date-fns';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import { getDayCalendarDetails } from '@/lib/calendar/data-service';
 
 export const dynamic = 'force-dynamic';
@@ -29,8 +29,14 @@ export async function GET(request: Request) {
       );
     }
 
-    const date = new Date(dateStr);
-    const dateKey = format(date, 'yyyy-MM-dd');
+    // The client sends a date-only key ('YYYY-MM-DD'); use it verbatim. The old
+    // code took the client's UTC instant (date.toISOString()) and re-formatted
+    // it in the SERVER's timezone, so the modal could show the wrong day's data
+    // whenever client and server offsets differed (bug-hunt finding T1). Fall
+    // back to server-local formatting only for a legacy full-ISO value.
+    const dateKey = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+      ? dateStr
+      : toLocalDateString(new Date(dateStr));
     const {
       transactions,
       bills,

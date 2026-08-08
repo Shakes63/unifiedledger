@@ -146,8 +146,37 @@ export function decryptOAuthSecret(encryptedSecret: string): string {
 }
 
 /**
+ * Encrypt a stored OAuth ACCESS/REFRESH token (calendar sync). Same AES-GCM
+ * scheme as the client secret — tokens were previously stored plaintext in
+ * calendar_connections (bug-hunt finding SEC2).
+ */
+export function encryptToken(token: string): string {
+  return encryptOAuthSecret(token);
+}
+
+/**
+ * Decrypt a stored token, tolerating LEGACY PLAINTEXT rows: any token written
+ * before encryption shipped will fail to decode as ciphertext, so we return it
+ * unchanged (it re-encrypts on the next refresh/write). Ciphertext is always
+ * valid base64 of at least IV+authTag length, so a real token can't be
+ * mistaken for legacy plaintext.
+ */
+export function decryptToken(stored: string): string {
+  if (!stored) return stored;
+  try {
+    const combined = Buffer.from(stored, 'base64');
+    if (combined.length < IV_LENGTH + AUTH_TAG_LENGTH) {
+      return stored; // too short to be our ciphertext -> legacy plaintext
+    }
+    return decryptOAuthSecret(stored);
+  } catch {
+    return stored; // not our ciphertext -> legacy plaintext
+  }
+}
+
+/**
  * Generate a new encryption key (for manual key generation)
- * 
+ *
  * @returns A random 32-byte key as a hex string
  */
 export function generateEncryptionKey(): string {

@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { format } from 'date-fns';
 
 import { GET as GET_CALENDAR_MONTH } from '@/app/api/calendar/month/route';
 
@@ -42,13 +41,13 @@ describe('GET /api/calendar/month household scoping', () => {
     expect(response.status).toBe(200);
 
     expect(getAndVerifyHousehold).toHaveBeenCalledTimes(1);
-    const expectedStartDate = format(new Date('2025-12-01'), 'yyyy-MM-dd');
-    const expectedEndDate = format(new Date('2025-12-31'), 'yyyy-MM-dd');
+    // Date-only keys are used verbatim — no server-timezone reinterpretation
+    // (bug-hunt finding T4).
     expect(getMonthCalendarSummary).toHaveBeenCalledWith({
       userId: 'user_1',
       householdId: 'hh_1',
-      startDate: expectedStartDate,
-      endDate: expectedEndDate,
+      startDate: '2025-12-01',
+      endDate: '2025-12-31',
       billDisplayMode: 'due-date',
     });
   });

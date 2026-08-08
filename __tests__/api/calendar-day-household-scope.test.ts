@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { format } from 'date-fns';
 
 import { GET as GET_CALENDAR_DAY } from '@/app/api/calendar/day/route';
 
@@ -63,11 +62,12 @@ describe('GET /api/calendar/day household scoping', () => {
     expect(response.status).toBe(200);
 
     expect(getAndVerifyHousehold).toHaveBeenCalledTimes(1);
-    const expectedDateKey = format(new Date('2025-12-01'), 'yyyy-MM-dd');
+    // A date-only key is used verbatim — no server-timezone reinterpretation
+    // (bug-hunt finding T1). The old code TZ-shifted this to 2025-11-30.
     expect(getDayCalendarDetails).toHaveBeenCalledWith({
       userId: 'user_1',
       householdId: 'hh_1',
-      dateKey: expectedDateKey,
+      dateKey: '2025-12-01',
       billDisplayMode: 'due-date',
     });
   });

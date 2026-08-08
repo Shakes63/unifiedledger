@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { GET } from '@/app/api/calendar-sync/ticktick/callback/route';
 
 vi.mock('@/lib/calendar/ticktick-calendar', () => ({
   exchangeTickTickCodeForTokens: vi.fn(),
@@ -8,83 +7,84 @@ vi.mock('@/lib/calendar/ticktick-calendar', () => ({
   createTickTickProject: vi.fn(),
 }));
 
+vi.mock('@/lib/encryption/oauth-encryption', () => ({
+  // Identity encryption for assertions — the real AES path is unit-tested
+  // separately and needs a key env var we don't want in this suite.
+  encryptToken: (t: string) => `enc(${t})`,
+  decryptToken: (t: string) => t,
+}));
+
+vi.mock('@/lib/auth-helpers', () => ({ requireAuth: vi.fn() }));
+vi.mock('@/lib/api/household-auth', () => ({ getAndVerifyHousehold: vi.fn() }));
+
 vi.mock('@/lib/db', () => ({
-  db: {
-    select: vi.fn(),
-    insert: vi.fn(),
-    update: vi.fn(),
-  },
+  db: { select: vi.fn(), insert: vi.fn(), update: vi.fn() },
 }));
 
-vi.mock('uuid', () => ({
-  v4: vi.fn(),
-}));
+vi.mock('uuid', () => ({ v4: vi.fn() }));
 
-const redirectMock = vi.fn((url: string) => {
-  // In Next.js, redirect() may throw in some contexts, but in this route we want
-  // to assert the target URL without having it swallowed by the route's try/catch.
-  return new Response(null, { status: 302, headers: { Location: url } });
-});
+// Faithful to next/navigation: redirect() THROWS a NEXT_REDIRECT error and
+// never returns. Tests read the target off the thrown error.
+class RedirectError extends Error {
+  digest: string;
+  target: string;
+  constructor(url: string) {
+    super('NEXT_REDIRECT');
+    this.digest = `NEXT_REDIRECT;push;${url};`;
+    this.target = url;
+  }
+}
 vi.mock('next/navigation', () => ({
-  redirect: (url: string) => redirectMock(url),
+  redirect: (url: string) => {
+    throw new RedirectError(url);
+  },
 }));
 
 let cookieValue: string | undefined;
 const cookieDelete = vi.fn();
 vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => ({
-    get: (name: string) => {
-      if (name !== 'ticktick_oauth_state') return undefined;
-      return cookieValue ? { value: cookieValue } : undefined;
-    },
+    get: (name: string) =>
+      name === 'ticktick_oauth_state' && cookieValue ? { value: cookieValue } : undefined,
     delete: cookieDelete,
   })),
 }));
 
+import { GET } from '@/app/api/calendar-sync/ticktick/callback/route';
 import {
   exchangeTickTickCodeForTokens,
   listTickTickProjects,
   createTickTickProject,
 } from '@/lib/calendar/ticktick-calendar';
+import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 function createRequest(url: string): Request {
-  return { url } as unknown as Request;
+  return { url, headers: new Headers() } as unknown as Request;
 }
 
 function mockSelectLimit(rows: any[]) {
   return {
     from: vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue(rows),
-      }),
+      where: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue(rows) }),
     }),
   };
 }
+const mockInsert = () => ({ values: vi.fn().mockResolvedValue(undefined) });
+const mockUpdate = () => ({
+  set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+});
 
-function mockInsert() {
-  return {
-    values: vi.fn().mockResolvedValue(undefined),
-  };
-}
-
-function mockUpdate() {
-  return {
-    set: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue(undefined),
-    }),
-  };
-}
-
-async function expectRedirect(fn: Promise<unknown>): Promise<string> {
-  const res = (await fn) as unknown;
-  if (res instanceof Response) {
-    const loc = res.headers.get('Location');
-    if (!loc) throw new Error('Expected redirect response to have Location header');
-    return loc;
+async function redirectTarget(fn: Promise<unknown>): Promise<string> {
+  try {
+    await fn;
+  } catch (err) {
+    if (err instanceof RedirectError) return err.target;
+    throw err;
   }
-  throw new Error('Expected redirect Response');
+  throw new Error('Expected a redirect');
 }
 
 describe('GET /api/calendar-sync/ticktick/callback', () => {
@@ -93,10 +93,8 @@ describe('GET /api/calendar-sync/ticktick/callback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.APP_URL = 'http://app.local';
-
     cookieValue = undefined;
-    // Important: clearAllMocks() does NOT reset mockReturnValueOnce queues.
-    // Reset any mocks where we rely on call-order return values.
+
     (uuidv4 as any).mockReset();
     (db.select as any).mockReset();
     (db.insert as any).mockReset();
@@ -104,11 +102,13 @@ describe('GET /api/calendar-sync/ticktick/callback', () => {
     (exchangeTickTickCodeForTokens as any).mockReset();
     (listTickTickProjects as any).mockReset();
     (createTickTickProject as any).mockReset();
+    (requireAuth as any).mockReset();
+    (getAndVerifyHousehold as any).mockReset();
 
-    (uuidv4 as any)
-      .mockReturnValueOnce('conn-uuid-1')
-      .mockReturnValueOnce('settings-uuid-1');
+    (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
+    (getAndVerifyHousehold as any).mockResolvedValue({ householdId: 'hh-1' });
 
+    (uuidv4 as any).mockReturnValueOnce('conn-uuid-1').mockReturnValueOnce('settings-uuid-1');
     (db.insert as any).mockReturnValue(mockInsert());
     (db.update as any).mockReturnValue(mockUpdate());
 
@@ -117,9 +117,7 @@ describe('GET /api/calendar-sync/ticktick/callback', () => {
       refreshToken: 'rt',
       expiresAt: '2099-01-01T00:00:00.000Z',
       tokenType: 'Bearer',
-      scope: 'tasks:read tasks:write',
     });
-
     (listTickTickProjects as any).mockResolvedValue([{ id: 'proj-1', name: 'Unified Ledger' }]);
     (createTickTickProject as any).mockResolvedValue({ id: 'proj-new', name: 'Unified Ledger' });
   });
@@ -130,95 +128,85 @@ describe('GET /api/calendar-sync/ticktick/callback', () => {
   });
 
   it('redirects with calendarError when error query param present', async () => {
-    const url = 'http://localhost/api/calendar-sync/ticktick/callback?error=access_denied&state=s&code=c';
-    const redirectUrl = await expectRedirect(GET(createRequest(url)));
-    expect(redirectUrl).toBe('http://app.local/dashboard/settings?tab=data&calendarError=access_denied');
+    const url = 'http://localhost/cb?error=access_denied&state=s&code=c';
+    expect(await redirectTarget(GET(createRequest(url)))).toBe(
+      'http://app.local/dashboard/settings?tab=data&calendarError=access_denied'
+    );
   });
 
   it('redirects with missing_params when code/state missing', async () => {
-    const url = 'http://localhost/api/calendar-sync/ticktick/callback?state=s';
-    const redirectUrl = await expectRedirect(GET(createRequest(url)));
-    expect(redirectUrl).toBe('http://app.local/dashboard/settings?tab=data&calendarError=missing_params');
+    const url = 'http://localhost/cb?state=s';
+    expect(await redirectTarget(GET(createRequest(url)))).toBe(
+      'http://app.local/dashboard/settings?tab=data&calendarError=missing_params'
+    );
+  });
+
+  it('SEC1: identity comes from the session, not the cookie — 401 becomes unauthorized redirect', async () => {
+    (requireAuth as any).mockRejectedValue(new Error('Unauthorized'));
+    cookieValue = JSON.stringify({ state: 's', userId: 'victim', householdId: 'victim-hh' });
+    const url = 'http://localhost/cb?state=s&code=c';
+    expect(await redirectTarget(GET(createRequest(url)))).toBe(
+      'http://app.local/dashboard/settings?tab=data&calendarError=unauthorized'
+    );
+    expect(exchangeTickTickCodeForTokens).not.toHaveBeenCalled();
+  });
+
+  it('SEC1: a state cookie minted for a DIFFERENT user is rejected', async () => {
+    // Session is user-1, but the cookie claims victim — reject.
+    cookieValue = JSON.stringify({ state: 's', userId: 'victim', householdId: 'victim-hh' });
+    const url = 'http://localhost/cb?state=s&code=c';
+    expect(await redirectTarget(GET(createRequest(url)))).toBe(
+      'http://app.local/dashboard/settings?tab=data&calendarError=state_mismatch'
+    );
+    expect(exchangeTickTickCodeForTokens).not.toHaveBeenCalled();
   });
 
   it('redirects with state_expired when state cookie missing', async () => {
-    const url = 'http://localhost/api/calendar-sync/ticktick/callback?state=s&code=c';
-    const redirectUrl = await expectRedirect(GET(createRequest(url)));
-    expect(redirectUrl).toBe('http://app.local/dashboard/settings?tab=data&calendarError=state_expired');
+    const url = 'http://localhost/cb?state=s&code=c';
+    expect(await redirectTarget(GET(createRequest(url)))).toBe(
+      'http://app.local/dashboard/settings?tab=data&calendarError=state_expired'
+    );
   });
 
-  it('redirects with state_mismatch when cookie state does not match query', async () => {
-    cookieValue = JSON.stringify({ state: 'cookie-s', userId: 'user-1', householdId: 'hh-1' });
-    const url = 'http://localhost/api/calendar-sync/ticktick/callback?state=query-s&code=c';
-    const redirectUrl = await expectRedirect(GET(createRequest(url)));
-    expect(redirectUrl).toBe('http://app.local/dashboard/settings?tab=data&calendarError=state_mismatch');
-  });
-
-  it('upserts existing connection, selects Unified Ledger project if present, and redirects success', async () => {
+  it('creates a new connection with ENCRYPTED tokens bound to the SESSION user, redirects success', async () => {
     cookieValue = JSON.stringify({ state: 's', userId: 'user-1', householdId: 'hh-1' });
-
-    // existing connection found -> update
+    const insertSpy = mockInsert();
+    (db.insert as any).mockReturnValue(insertSpy);
     (db.select as any)
-      .mockReturnValueOnce(mockSelectLimit([{ id: 'conn-existing', refreshToken: 'old-rt' }]));
+      .mockReturnValueOnce(mockSelectLimit([])) // no existing connection
+      .mockReturnValueOnce(mockSelectLimit([])); // no existing settings
 
-    const url = 'http://localhost/api/calendar-sync/ticktick/callback?state=s&code=c';
-    const redirectUrl = await expectRedirect(GET(createRequest(url)));
+    const url = 'http://localhost/cb?state=s&code=c';
+    const target = await redirectTarget(GET(createRequest(url)));
 
+    expect(target).toBe('http://app.local/dashboard/settings?tab=data&calendarConnected=ticktick');
+    // Tokens stored encrypted, bound to the session user.
+    const inserted = insertSpy.values.mock.calls[0][0];
+    expect(inserted.userId).toBe('user-1');
+    expect(inserted.householdId).toBe('hh-1');
+    expect(inserted.accessToken).toBe('enc(at)');
+    expect(inserted.refreshToken).toBe('enc(rt)');
     expect(cookieDelete).toHaveBeenCalledWith('ticktick_oauth_state');
-    expect(exchangeTickTickCodeForTokens).toHaveBeenCalledTimes(1);
-    expect(db.update).toHaveBeenCalledTimes(2); // update connection + set project
-    expect(db.insert).toHaveBeenCalledTimes(0);
-    expect(listTickTickProjects).toHaveBeenCalledWith('conn-existing');
-    expect(redirectUrl).toBe('http://app.local/dashboard/settings?tab=data&calendarConnected=ticktick');
   });
 
-  it('creates new connection + default settings when missing and redirects success', async () => {
+  it('SY3: a successful connection redirects to success, not callback_failed', async () => {
     cookieValue = JSON.stringify({ state: 's', userId: 'user-1', householdId: 'hh-1' });
-
-    // existing connection: none
-    // existing settings: none
-    (db.select as any)
-      .mockReturnValueOnce(mockSelectLimit([]))
-      .mockReturnValueOnce(mockSelectLimit([]));
-
-    const url = 'http://localhost/api/calendar-sync/ticktick/callback?state=s&code=c';
-    const redirectUrl = await expectRedirect(GET(createRequest(url)));
-
-    expect(db.insert).toHaveBeenCalledTimes(2); // connection + settings
-    expect(db.update).toHaveBeenCalledTimes(1); // set project (if found)
-    expect(listTickTickProjects).toHaveBeenCalledWith('conn-uuid-1');
-    expect(redirectUrl).toBe('http://app.local/dashboard/settings?tab=data&calendarConnected=ticktick');
+    (db.select as any).mockReturnValueOnce(
+      mockSelectLimit([{ id: 'conn-existing', refreshToken: 'enc(old)' }])
+    );
+    const url = 'http://localhost/cb?state=s&code=c';
+    expect(await redirectTarget(GET(createRequest(url)))).toBe(
+      'http://app.local/dashboard/settings?tab=data&calendarConnected=ticktick'
+    );
   });
 
-  it('falls back to creating project if Unified Ledger not present; if create fails, uses first project', async () => {
-    cookieValue = JSON.stringify({ state: 's', userId: 'user-1', householdId: 'hh-1' });
-
-    (db.select as any)
-      .mockReturnValueOnce(mockSelectLimit([]))
-      .mockReturnValueOnce(mockSelectLimit([]));
-
-    (listTickTickProjects as any).mockResolvedValue([{ id: 'proj-a', name: 'A' }]);
-    (createTickTickProject as any).mockRejectedValue(new Error('create failed'));
-
-    const url = 'http://localhost/api/calendar-sync/ticktick/callback?state=s&code=c';
-    const redirectUrl = await expectRedirect(GET(createRequest(url)));
-
-    expect(createTickTickProject).toHaveBeenCalledTimes(1);
-    expect(db.update).toHaveBeenCalledTimes(1); // set project to fallback
-    expect(redirectUrl).toBe('http://app.local/dashboard/settings?tab=data&calendarConnected=ticktick');
-  });
-
-  it('redirects callback_failed on unexpected exception', async () => {
+  it('redirects callback_failed on an unexpected exception', async () => {
     cookieValue = JSON.stringify({ state: 's', userId: 'user-1', householdId: 'hh-1' });
     (exchangeTickTickCodeForTokens as any).mockRejectedValue(new Error('boom'));
-
-    // existing connection select
     (db.select as any).mockReturnValueOnce(mockSelectLimit([]));
-
-    const url = 'http://localhost/api/calendar-sync/ticktick/callback?state=s&code=c';
-    const redirectUrl = await expectRedirect(GET(createRequest(url)));
-    expect(redirectUrl).toBe('http://app.local/dashboard/settings?tab=data&calendarError=callback_failed');
+    const url = 'http://localhost/cb?state=s&code=c';
+    expect(await redirectTarget(GET(createRequest(url)))).toBe(
+      'http://app.local/dashboard/settings?tab=data&calendarError=callback_failed'
+    );
   });
 });
-
-

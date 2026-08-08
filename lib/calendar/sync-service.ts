@@ -549,8 +549,36 @@ export async function isSyncEnabled(
 }
 
 /**
- * Queue a sync operation (non-blocking)
- * This is useful for triggering syncs from API routes without blocking the response
+ * Run background work with bounded retry/backoff (bug-hunt finding SY2): the
+ * old fire-and-forget swallowed the first transient provider error and gave
+ * up. This does NOT survive a process restart — a fully durable, persisted
+ * sync queue with a cron drain is a documented follow-up; retry covers the
+ * common transient-outage case in the meantime.
+ */
+function runBackgroundSync(label: string, work: () => Promise<void>): void {
+  setImmediate(async () => {
+    const delaysMs = [0, 2000, 10000];
+    for (let attempt = 0; attempt < delaysMs.length; attempt++) {
+      if (delaysMs[attempt] > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
+      }
+      try {
+        await work();
+        return;
+      } catch (error) {
+        const last = attempt === delaysMs.length - 1;
+        console.error(
+          `[calendar-sync] ${label} failed (attempt ${attempt + 1}/${delaysMs.length})${last ? ' — giving up' : ', retrying'}:`,
+          error
+        );
+      }
+    }
+  });
+}
+
+/**
+ * Queue a sync operation (non-blocking).
+ * Triggers a sync from an API route without blocking the response.
  */
 export function queueSync(
   userId: string,
@@ -559,12 +587,18 @@ export function queueSync(
   sourceId: string,
   action: 'create' | 'update' | 'delete'
 ): void {
-  // Use setImmediate to run sync in the background
-  setImmediate(async () => {
-    try {
-      await syncEntity(userId, householdId, sourceType, sourceId, action);
-    } catch (error) {
-      console.error('Background sync error:', error);
-    }
+  runBackgroundSync(`syncEntity(${sourceType}:${sourceId}:${action})`, () =>
+    syncEntity(userId, householdId, sourceType, sourceId, action)
+  );
+}
+
+/**
+ * Queue a full resync of a household's calendar (non-blocking). Used for
+ * bill-template changes that affect MANY occurrences (bug-hunt finding SY1 —
+ * bill mutations previously never reached the external calendar at all).
+ */
+export function queueFullSync(userId: string, householdId: string): void {
+  runBackgroundSync(`fullSync(${householdId})`, async () => {
+    await fullSync(userId, householdId);
   });
 }

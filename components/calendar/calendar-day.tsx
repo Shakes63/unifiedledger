@@ -216,7 +216,10 @@ export function CalendarDay({
                   <Clock className="w-2 h-2 shrink-0" />
                   <span className="truncate">{autopay.billName}</span>
                 </div>
-              ))}
+                            ))}
+              {summary.autopayEvents.length > 2 && (
+                <span className="text-[8px] pl-1" style={{ color: 'var(--color-muted-foreground)' }}>+{summary.autopayEvents.length - 2} more</span>
+              )}
             </div>
           )}
 
@@ -236,7 +239,10 @@ export function CalendarDay({
                   <Target className="w-2 h-2 shrink-0" />
                   <span className="truncate">{goal.name}</span>
                 </div>
-              ))}
+                            ))}
+              {summary.goals.length > 2 && (
+                <span className="text-[8px] pl-1" style={{ color: 'var(--color-muted-foreground)' }}>+{summary.goals.length - 2} more</span>
+              )}
             </div>
           )}
 
@@ -256,7 +262,10 @@ export function CalendarDay({
                   <TrendingDown className="w-2 h-2 shrink-0" />
                   <span className="truncate">{payoff.name}</span>
                 </div>
-              ))}
+                            ))}
+              {summary.payoffDates.length > 2 && (
+                <span className="text-[8px] pl-1" style={{ color: 'var(--color-muted-foreground)' }}>+{summary.payoffDates.length - 2} more</span>
+              )}
             </div>
           )}
 
@@ -280,7 +289,10 @@ export function CalendarDay({
                   )}
                   <span className="truncate">{debt.name}</span>
                 </div>
-              ))}
+                            ))}
+              {summary.debts.length > 2 && (
+                <span className="text-[8px] pl-1" style={{ color: 'var(--color-muted-foreground)' }}>+{summary.debts.length - 2} more</span>
+              )}
             </div>
           )}
 
@@ -300,7 +312,10 @@ export function CalendarDay({
                   <Trophy className="w-2 h-2 shrink-0" />
                   <span className="truncate">{milestone.name}</span>
                 </div>
-              ))}
+                            ))}
+              {summary.billMilestones.length > 2 && (
+                <span className="text-[8px] pl-1" style={{ color: 'var(--color-muted-foreground)' }}>+{summary.billMilestones.length - 2} more</span>
+              )}
             </div>
           )}
 

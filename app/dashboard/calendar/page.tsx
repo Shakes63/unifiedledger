@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import { ArrowLeft, CalendarDays, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CalendarHeader } from '@/components/calendar/calendar-header';
@@ -217,37 +218,52 @@ export default function CalendarPage() {
       return;
     }
 
+    // Abort the previous month's request so a slow earlier response can't win
+    // the race and render stale data over the current month (bug-hunt finding
+    // U1 — fast next-next navigation blanked the grid).
+    const controller = new AbortController();
+
     const loadCalendarData = async () => {
       try {
         setIsLoading(true);
         const monthStart = startOfMonth(currentDate);
         const monthEnd = endOfMonth(currentDate);
-        const visibleStart = startOfWeek(monthStart);
-        const visibleEnd = endOfWeek(monthEnd);
+        // Send date-only keys, not UTC instants (bug-hunt findings T1/T4).
+        const visibleStart = toLocalDateString(startOfWeek(monthStart));
+        const visibleEnd = toLocalDateString(endOfWeek(monthEnd));
         const response = await fetchWithHousehold(
-          `/api/calendar/month?startDate=${visibleStart.toISOString()}&endDate=${visibleEnd.toISOString()}&billDisplayMode=${billDisplayMode}`
+          `/api/calendar/month?startDate=${visibleStart}&endDate=${visibleEnd}&billDisplayMode=${billDisplayMode}`,
+          { signal: controller.signal }
         );
         if (response.ok) {
           const data = await response.json();
           setDaySummaries(data.daySummaries || {});
         }
       } catch (error) {
+        if ((error as Error)?.name === 'AbortError') return;
         console.error('Error loading calendar data:', error);
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
     loadCalendarData();
+    return () => controller.abort();
   }, [billDisplayMode, currentDate, fetchWithHousehold, selectedHouseholdId]);
 
   const handleDayClick = async (date: Date) => {
     if (!selectedHouseholdId) return;
     try {
-      setIsLoading(true);
+      // Do NOT set the page-wide isLoading here (bug-hunt finding U3): the
+      // grid is gated on !isLoading, so setting it unmounted the whole
+      // calendar mid-click — in week view that remounted CalendarWeek and
+      // re-fetched all 7 days on every click. Open the modal in a loading
+      // state instead and leave the grid mounted.
       setSelectedDay(date);
+      setIsModalOpen(true);
+      // Send a date-only key, not a UTC instant (bug-hunt finding T1).
       const response = await fetchWithHousehold(
-        `/api/calendar/day?date=${date.toISOString()}&billDisplayMode=${billDisplayMode}`
+        `/api/calendar/day?date=${toLocalDateString(date)}&billDisplayMode=${billDisplayMode}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -259,12 +275,11 @@ export default function CalendarPage() {
         setSelectedDayPayoffDates(data.payoffDates || []);
         setSelectedDayBillMilestones(data.billMilestones || []);
         setSelectedDayInfo(data.summary);
-        setIsModalOpen(true);
+      } else {
+        console.error('Error loading day details: HTTP', response.status);
       }
     } catch (error) {
       console.error('Error loading day details:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
