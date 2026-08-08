@@ -429,16 +429,25 @@ export function generateOccurrenceDates(
   let cursorYear = from.getFullYear();
   let cursorMonth = from.getMonth();
 
-  if (
-    (template.recurrenceType === 'quarterly' ||
-      template.recurrenceType === 'semi_annual' ||
-      template.recurrenceType === 'annual') &&
-    template.recurrenceStartMonth !== null
-  ) {
-    cursorMonth = template.recurrenceStartMonth;
-    if (cursorMonth < from.getMonth()) {
-      cursorYear += 1;
-    }
+  if (monthStep > 1) {
+    // Anchor multi-month cycles to the TEMPLATE, not the caller's query window
+    // (same C-BILL-1 rule the weekly branch follows): a window-anchored
+    // quarterly cursor shifts phase as the rolling window advances, so over
+    // months the DB accumulates an occurrence at EVERY month's due day and
+    // autopay pays each one. recurrenceStartMonth wins when set; otherwise the
+    // template's creation month anchors the cycle. Start the cursor a year
+    // behind the window and let the catch-up loop below land on the first
+    // in-cycle date >= from — the old code jumped a whole year forward when
+    // startMonth was behind the window month, skipping the in-window cycle
+    // dates (a Jan-anchored quarterly queried in June generated nothing for
+    // Jul/Oct).
+    cursorMonth =
+      template.recurrenceStartMonth !== null
+        ? template.recurrenceStartMonth
+        : template.createdAt
+          ? new Date(template.createdAt).getMonth()
+          : from.getMonth();
+    cursorYear = from.getFullYear() - 1;
   }
 
   // Iterate a (year, month) cursor and re-clamp from the INTENDED due day each

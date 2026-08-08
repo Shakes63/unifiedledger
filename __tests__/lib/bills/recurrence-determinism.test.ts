@@ -58,6 +58,57 @@ describe('generateOccurrenceDates determinism (C-BILL-1)', () => {
     expect(octoberFromJuly).toEqual(['2026-10-31']);
   });
 
+  it('quarterly without a start month keeps a stable 3-month phase as the window slides', () => {
+    // createdAt mid-month/midday so the anchor month is February in every TZ.
+    const tpl = template({
+      recurrenceType: 'quarterly',
+      recurrenceDueDay: 10,
+      createdAt: '2026-02-15T12:00:00.000Z',
+    });
+
+    // Union many rolling window starts, as the real daily callers do. The bug
+    // anchored the cycle to each window's start month, so the union accumulated
+    // an occurrence at EVERY month's 10th.
+    const union = new Set<string>();
+    for (let offset = 0; offset < 120; offset += 7) {
+      const from = new Date(2026, 2, 1 + offset);
+      const to = new Date(2026, 2 + 10, 1 + offset);
+      for (const d of generateOccurrenceDates(tpl, from, to)) {
+        union.add(d);
+      }
+    }
+
+    // One quarterly series anchored on February: months 2, 5, 8, 11 only.
+    const months = [...union].map((d) => Number(d.slice(5, 7)));
+    expect(months.length).toBeGreaterThan(0);
+    for (const month of months) {
+      expect(month % 3).toBe(2 % 3);
+    }
+  });
+
+  it('quarterly with a start month generates the in-window cycle dates', () => {
+    // Jan-anchored quarterly cycle = Jan/Apr/Jul/Oct. The bug jumped a whole
+    // year forward when startMonth < the window month, generating NOTHING for
+    // an in-window Jul/Oct.
+    const tpl = template({
+      recurrenceType: 'quarterly',
+      recurrenceDueDay: 15,
+      recurrenceStartMonth: 0,
+    });
+    const dates = generateOccurrenceDates(tpl, new Date(2026, 5, 23), new Date(2026, 11, 5));
+    expect(dates).toEqual(['2026-07-15', '2026-10-15']);
+  });
+
+  it('annual with a start month emits only the next cycle date, not a stale year-back one', () => {
+    const tpl = template({
+      recurrenceType: 'annual',
+      recurrenceDueDay: 15,
+      recurrenceStartMonth: 0,
+    });
+    const dates = generateOccurrenceDates(tpl, new Date(2026, 5, 1), new Date(2027, 5, 30));
+    expect(dates).toEqual(['2027-01-15']);
+  });
+
   it('biweekly keeps a stable 14-day phase as the query window slides (no weekly degeneration)', () => {
     const tpl = template({
       recurrenceType: 'biweekly',
