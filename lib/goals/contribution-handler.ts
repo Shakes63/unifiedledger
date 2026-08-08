@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { savingsGoals, savingsMilestones, savingsGoalContributions, notifications } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -47,71 +48,97 @@ export async function handleGoalContribution(
       };
     }
 
-    // Get the current goal — HOUSEHOLD-SCOPED (M-DBG-12: the lookup was by id
-    // only, so a crafted goalId credited another household's goal).
-    const [goal] = await db
-      .select()
-      .from(savingsGoals)
-      .where(and(eq(savingsGoals.id, goalId), eq(savingsGoals.householdId, householdId)));
+    // The read, the goal UPDATE and the contribution INSERT are ONE unit
+    // (findings A1/A3). Previously each statement autocommitted on its own, so
+    // (a) two concurrent contributions both read the same starting balance and
+    // the second overwrote the first — proven to lose money — and (b) a crash
+    // between the update and the insert left the goal credited with no
+    // contribution row, which the reversal path can never undo.
+    // runInDatabaseTransaction serializes on BEGIN IMMEDIATE and nested calls
+    // join the caller's transaction, so this composes with the transaction
+    // create/update orchestrators.
+    return await runInDatabaseTransaction(async (tx) => {
+      // Re-read INSIDE the transaction: a goal fetched before BEGIN is exactly
+      // the stale read that caused the lost update.
+      const [goal] = await tx
+        .select()
+        .from(savingsGoals)
+        .where(and(eq(savingsGoals.id, goalId), eq(savingsGoals.householdId, householdId)));
 
-    if (!goal) {
-      return {
-        success: false,
+      if (!goal) {
+        return {
+          success: false,
+          goalId,
+          previousAmount: 0,
+          newAmount: 0,
+          contribution: amount,
+          milestonesAchieved: [],
+          error: 'Goal not found',
+        };
+      }
+
+      // A cancelled goal is closed to new money (product decision). Paused and
+      // completed goals still accept contributions.
+      if (goal.status === 'cancelled') {
+        return {
+          success: false,
+          goalId,
+          previousAmount: 0,
+          newAmount: 0,
+          contribution: amount,
+          milestonesAchieved: [],
+          error: 'Goal is cancelled and cannot receive contributions',
+        };
+      }
+
+      // Work in integer cents so the goal total can't drift (RC-4).
+      const previousCents = getGoalCurrentCents(goal);
+      const contributionCents = toMoneyCents(amount) ?? 0;
+      const newCents = previousCents + contributionCents;
+      const previousAmount = new Decimal(fromMoneyCents(previousCents) ?? 0);
+      const newAmount = new Decimal(fromMoneyCents(newCents) ?? 0);
+
+      // Update the goal's current amount (cents authoritative, float derived)
+      await tx
+        .update(savingsGoals)
+        .set({
+          ...buildGoalCurrentFields(newCents),
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(savingsGoals.id, goalId));
+
+      // Record the contribution
+      await tx.insert(savingsGoalContributions).values({
+        id: uuidv4(),
+        transactionId,
         goalId,
-        previousAmount: 0,
-        newAmount: 0,
+        userId,
+        householdId,
+        amount: fromMoneyCents(contributionCents) ?? 0,
+        amountCents: contributionCents,
+        createdAt: new Date().toISOString(),
+      });
+
+      // Check for milestone achievements
+      const milestonesAchieved = await checkMilestones(
+        goalId,
+        previousAmount.toNumber(),
+        newAmount.toNumber(),
+        goal.targetAmount,
+        userId,
+        householdId,
+        tx
+      );
+
+      return {
+        success: true,
+        goalId,
+        previousAmount: previousAmount.toNumber(),
+        newAmount: newAmount.toNumber(),
         contribution: amount,
-        milestonesAchieved: [],
-        error: 'Goal not found',
+        milestonesAchieved,
       };
-    }
-
-    // Work in integer cents so the goal total can't drift (RC-4).
-    const previousCents = getGoalCurrentCents(goal);
-    const contributionCents = toMoneyCents(amount) ?? 0;
-    const newCents = previousCents + contributionCents;
-    const previousAmount = new Decimal(fromMoneyCents(previousCents) ?? 0);
-    const newAmount = new Decimal(fromMoneyCents(newCents) ?? 0);
-
-    // Update the goal's current amount (cents authoritative, float derived)
-    await db
-      .update(savingsGoals)
-      .set({
-        ...buildGoalCurrentFields(newCents),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(savingsGoals.id, goalId));
-
-    // Record the contribution
-    await db.insert(savingsGoalContributions).values({
-      id: uuidv4(),
-      transactionId,
-      goalId,
-      userId,
-      householdId,
-      amount: fromMoneyCents(contributionCents) ?? 0,
-      amountCents: contributionCents,
-      createdAt: new Date().toISOString(),
     });
-
-    // Check for milestone achievements
-    const milestonesAchieved = await checkMilestones(
-      goalId,
-      previousAmount.toNumber(),
-      newAmount.toNumber(),
-      goal.targetAmount,
-      userId,
-      householdId
-    );
-
-    return {
-      success: true,
-      goalId,
-      previousAmount: previousAmount.toNumber(),
-      newAmount: newAmount.toNumber(),
-      contribution: amount,
-      milestonesAchieved,
-    };
   } catch (error) {
     console.error('Error handling goal contribution:', error);
     return {
@@ -124,6 +151,38 @@ export async function handleGoalContribution(
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
+}
+
+/**
+ * Goal contributions can never exceed the transaction funding them (M-DBG-12).
+ *
+ * This lived inline in the non-transfer create branch only, so the transfer
+ * branch credited whatever the payload asked for: a $10 transfer carrying a
+ * $10,000 contribution credited the goal $10,000, fired every milestone, and
+ * fed a fabricated $10,000 into the savings-rate report. One shared oracle so
+ * the two branches can't drift apart again.
+ *
+ * The half-cent tolerance absorbs float representation of the incoming amount.
+ */
+export function contributionsExceedTransaction(
+  contributions: GoalContribution[],
+  transactionAmount: number
+): boolean {
+  // Per-entry check first: a sum-only guard was bypassable with a negative
+  // offsetting entry (finding A6). `[{g1: 10000}, {g2: -9995}]` against a $10
+  // transaction sums to 5 and passed, then handleGoalContribution rejected the
+  // negative row individually while crediting g1 the full $10,000.
+  const hasInvalidEntry = contributions.some((contribution) => {
+    const value = Number(contribution.amount);
+    return !Number.isFinite(value) || value <= 0;
+  });
+  if (hasInvalidEntry) return true;
+
+  const totalRequested = contributions.reduce(
+    (sum, contribution) => sum + Number(contribution.amount),
+    0
+  );
+  return totalRequested > Math.abs(transactionAmount) + 0.005;
 }
 
 /**
@@ -257,20 +316,37 @@ async function checkMilestones(
   newAmount: number,
   targetAmount: number,
   userId: string,
-  householdId: string
+  householdId: string,
+  client: typeof db = db
 ): Promise<number[]> {
   const milestonePercentages = [25, 50, 75, 100];
   const achieved: number[] = [];
 
+  // A zero or negative target has no meaningful percentage; bail rather than
+  // dividing by zero (NaN/Infinity silently fail every comparison below).
+  if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
+    return achieved;
+  }
+
+  // Compare in INTEGER CENTS, not float percentages (finding M4). `target * 0.75`
+  // is not exact in binary: for a $1000.08 goal, saving exactly $750.06 gave
+  // 74.99999999999999 >= 75 === false, so the 75% milestone never fired and the
+  // badge was unreachable. Cross-multiplying in cents makes the boundary exact.
+  const targetCents = toMoneyCents(targetAmount) ?? 0;
+  const previousCents = toMoneyCents(previousAmount) ?? 0;
+  const newCents = toMoneyCents(newAmount) ?? 0;
+
   for (const percentage of milestonePercentages) {
     const milestoneAmount = (targetAmount * percentage) / 100;
-    const previousPercentage = (previousAmount / targetAmount) * 100;
-    const newPercentage = (newAmount / targetAmount) * 100;
+    // previous < threshold <= new, as integers: x*100 vs targetCents*percentage
+    const crossed =
+      previousCents * 100 < targetCents * percentage &&
+      newCents * 100 >= targetCents * percentage;
 
     // Check if we crossed this milestone
-    if (previousPercentage < percentage && newPercentage >= percentage) {
+    if (crossed) {
       // Check if milestone already exists
-      const existingMilestones = await db
+      const existingMilestones = await client
         .select()
         .from(savingsMilestones)
         .where(
@@ -284,16 +360,21 @@ async function checkMilestones(
 
       if (existingMilestone && !existingMilestone.achievedAt) {
         // Update existing milestone
-        await db
+        await client
           .update(savingsMilestones)
           .set({
             achievedAt: new Date().toISOString(),
+            // Stamp notificationSentAt here (finding M5): this path creates the
+            // notification inline, but left the column NULL, so the milestone
+            // cron re-selected the same milestone and sent a SECOND identical
+            // notification for one event.
+            notificationSentAt: new Date().toISOString(),
           })
           .where(eq(savingsMilestones.id, existingMilestone.id));
         achieved.push(percentage);
       } else if (!existingMilestone) {
         // Create new milestone
-        await db.insert(savingsMilestones).values({
+        await client.insert(savingsMilestones).values({
           id: uuidv4(),
           goalId,
           userId,
@@ -301,6 +382,7 @@ async function checkMilestones(
           percentage,
           milestoneAmount,
           achievedAt: new Date().toISOString(),
+          notificationSentAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
         });
         achieved.push(percentage);
@@ -308,13 +390,13 @@ async function checkMilestones(
 
       // Create notification for milestone
       if (achieved.includes(percentage)) {
-        const [goal] = await db
+        const [goal] = await client
           .select()
           .from(savingsGoals)
           .where(eq(savingsGoals.id, goalId));
 
         if (goal) {
-          await db.insert(notifications).values({
+          await client.insert(notifications).values({
             id: uuidv4(),
             userId,
             householdId,

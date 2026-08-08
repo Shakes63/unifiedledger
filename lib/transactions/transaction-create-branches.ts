@@ -9,7 +9,7 @@
  * transfer-branch / branch-execution / branch-run) during the post-audit
  * cleanup; behavior is unchanged.
  */
-import { handleGoalContribution, handleMultipleContributions } from '@/lib/goals/contribution-handler';
+import { contributionsExceedTransaction, handleGoalContribution, handleMultipleContributions } from '@/lib/goals/contribution-handler';
 import { apiDebugLog } from '@/lib/api/route-helpers';
 import { autoClassifyTransaction } from '@/lib/tax/auto-classify';
 import { handleAccountChange } from '@/lib/rules/account-action-handler';
@@ -57,16 +57,11 @@ async function handleTransactionGoalContributions({
 
   try {
     if (goalContributions && goalContributions.length > 0) {
-      // Contributions cannot exceed the funding transaction (M-DBG-12: a $10
-      // transaction with a $10,000 goalContributions payload previously credited
-      // the goal $10,000 and fired milestones).
-      const totalRequested = goalContributions.reduce(
-        (sum, contribution) => sum + (Number(contribution.amount) || 0),
-        0
-      );
-      if (totalRequested > Math.abs(amount) + 0.005) {
+      // Contributions cannot exceed the funding transaction (M-DBG-12), via the
+      // shared oracle so this branch and the transfer branch stay in step.
+      if (contributionsExceedTransaction(goalContributions, amount)) {
         console.error(
-          `Goal contributions (${totalRequested}) exceed transaction amount (${amount}); skipping`
+          `Goal contributions exceed transaction amount (${amount}); skipping`
         );
         return;
       }

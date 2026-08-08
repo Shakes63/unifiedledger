@@ -12,6 +12,7 @@ import { findCreditPaymentBillInstance, processBillPayment } from '@/lib/bills/b
 import { accounts } from '@/lib/db/schema';
 import {
   handleGoalContribution,
+  contributionsExceedTransaction,
   handleMultipleContributions,
 } from '@/lib/goals/contribution-handler';
 import { trackTransferPairUsage } from '@/lib/analytics/usage-analytics-service';
@@ -116,6 +117,15 @@ async function executeTransferGoalContributionUpdates({
 
   try {
     if (goalContributions && goalContributions.length > 0) {
+      // Same cap as the non-transfer branch (M3/P5): this path had none, so a
+      // $10 transfer could credit a goal $10,000.
+      if (contributionsExceedTransaction(goalContributions, amount.toNumber())) {
+        console.error(
+          `Goal contributions exceed transfer amount (${amount.toString()}); skipping`
+        );
+        return;
+      }
+
       const contributionResults = await handleMultipleContributions(
         goalContributions,
         transferInId,
