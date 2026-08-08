@@ -130,7 +130,10 @@ const EXPECTED_SQLITE_FKS = {
   transaction_tags: ['transactions'],
   custom_field_values: ['transactions'],
   debt_payments: ['debts', 'transactions'],
-  savings_goal_contributions: ['savings_goals'],
+  // Both links added in 0021 (ON DELETE SET NULL): a contribution row records
+  // money that moved, so it outlives its goal AND its funding transaction.
+  savings_goal_contributions: ['savings_goals', 'transactions'],
+  savings_milestones: ['savings_goals'],
   bill_payment_events: ['bill_occurrences'],
   transfers: ['transactions', 'transactions'],
 };
