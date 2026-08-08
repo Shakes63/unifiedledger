@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { importTemplates } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
@@ -39,6 +40,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId: verifiedHouseholdId } = await getAndVerifyHousehold(request, userId);
 
     const body = await request.json();
 
@@ -51,7 +53,6 @@ export async function POST(request: Request) {
       hasHeaderRow = true,
       skipRows = 0,
       defaultAccountId,
-      householdId,
     } = body;
 
     // Validate required fields
@@ -68,7 +69,14 @@ export async function POST(request: Request) {
     const template = {
       id: templateId,
       userId,
-      householdId: householdId || null,
+      // Derived from the VERIFIED household, never taken from the body
+      // (finding SEC6). This route destructured householdId from the request and
+      // wrote it straight into the insert with no membership check at all —
+      // getAndVerifyHousehold appeared nowhere in this file — so a caller could
+      // persist a template stamped with a household they do not belong to.
+      // Not currently readable (every template read is userId-scoped), but it is
+      // a write-primitive waiting for the first household-scoped template list.
+      householdId: verifiedHouseholdId,
       name,
       description: description || null,
       columnMappings: JSON.stringify(columnMappings),
