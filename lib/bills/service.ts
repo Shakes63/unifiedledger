@@ -59,7 +59,7 @@ import {
   isLiabilityAccountType,
   updateScopedAccountBalance,
 } from '@/lib/transactions/money-movement-service';
-import { assertIntegerCents } from '@/lib/utils/money-cents';
+import { assertIntegerCents, toMoneyCents } from '@/lib/utils/money-cents';
 
 const TEMPLATE_LIMIT_DEFAULT = 50;
 const OCCURRENCE_LIMIT_DEFAULT = 50;
@@ -337,6 +337,81 @@ function normalizeTemplatePatch(
 function monthDate(year: number, monthIndex: number, dayOfMonth: number): Date {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   return new Date(year, monthIndex, Math.min(dayOfMonth, daysInMonth));
+}
+
+/**
+ * Resolve how many cents an autopay rule should move for an occurrence.
+ *
+ * Every amountType is implemented explicitly — the old code special-cased
+ * 'fixed' and silently fell through to the FULL remaining amount for
+ * minimum_payment / statement_balance / full_balance, i.e. a $35-minimum rule
+ * drained the whole $1,200 statement. Types whose data source is missing SKIP
+ * with a reason instead of guessing: an unattended payment must never move
+ * more than the user configured.
+ */
+export function resolveAutopayAmountCents({
+  rule,
+  occurrence,
+  linkedAccount,
+}: {
+  rule: { amountType: string; fixedAmountCents: number | null };
+  occurrence: { amountRemainingCents: number };
+  linkedAccount?: {
+    type: string;
+    currentBalance: number | null;
+    currentBalanceCents: number | null;
+    statementBalance: number | null;
+    minimumPaymentAmount: number | null;
+  };
+}): { amountCents: number; skipReason?: never } | { amountCents?: never; skipReason: string } {
+  const remainingCents = occurrence.amountRemainingCents;
+
+  switch (rule.amountType) {
+    case 'fixed':
+      if (rule.fixedAmountCents === null) {
+        return { skipReason: 'Fixed-amount autopay rule has no amount configured' };
+      }
+      return { amountCents: Math.min(rule.fixedAmountCents, remainingCents) };
+
+    case 'minimum_payment': {
+      const minimumCents = linkedAccount ? toMoneyCents(linkedAccount.minimumPaymentAmount) : null;
+      if (minimumCents === null) {
+        return {
+          skipReason:
+            'Minimum-payment autopay requires a linked liability account with a minimum payment amount',
+        };
+      }
+      return { amountCents: Math.min(minimumCents, remainingCents) };
+    }
+
+    case 'statement_balance': {
+      // The occurrence's billed amount IS the statement when no linked account
+      // tracks one; otherwise pay the tracked statement, capped at what the
+      // occurrence still owes.
+      const statementCents = linkedAccount ? toMoneyCents(linkedAccount.statementBalance) : null;
+      if (statementCents === null) {
+        return { amountCents: remainingCents };
+      }
+      return { amountCents: Math.min(statementCents, remainingCents) };
+    }
+
+    case 'full_balance': {
+      if (linkedAccount) {
+        // Pay off everything owed on the linked account — this may legitimately
+        // exceed the occurrence's billed amount (new purchases since the
+        // statement); the occurrence then records an overpayment.
+        const owedCents = getAccountBalanceCents(linkedAccount);
+        if (owedCents <= 0) {
+          return { skipReason: 'Linked liability account has no balance to pay' };
+        }
+        return { amountCents: owedCents };
+      }
+      return { amountCents: remainingCents };
+    }
+
+    default:
+      return { skipReason: `Unknown autopay amount type: ${rule.amountType}` };
+  }
 }
 
 // Exported for tests: generation must be deterministic for a template regardless
@@ -1779,6 +1854,25 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
     }
 
     const ruleByTemplateId = new Map(rules.map((rule) => [rule.templateId, rule]));
+    const templateById = new Map(templateRows.map((template) => [template.id, template]));
+
+    // Linked liability accounts feed the non-fixed amount types (minimum /
+    // statement / full balance).
+    const linkedAccountIds = templateRows
+      .map((template) => template.linkedLiabilityAccountId)
+      .filter((id): id is string => Boolean(id));
+    const linkedAccountRows = linkedAccountIds.length
+      ? await db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              inArray(accounts.id, linkedAccountIds),
+              eq(accounts.householdId, options.householdId)
+            )
+          )
+      : [];
+    const linkedAccountById = new Map(linkedAccountRows.map((account) => [account.id, account]));
 
     await Promise.all(
       templateRows.map((template) =>
@@ -1799,6 +1893,32 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
         )
       );
 
+    // One autopay payment per OCCURRENCE, ever. The old per-day idempotency
+    // key (`autopay:<id>:<runDate>`) only blocked same-day repeats, so a
+    // fixed-amount rule left the occurrence 'partial' and re-paid it every day
+    // of the 14-day catch-up window — a "cap my payment at $100" rule drained
+    // $100/day until the bill was gone. Pre-loading the existing autopay events
+    // also makes retry runs count replays as SKIPPED instead of re-reporting
+    // them as fresh successes (double-counted stats/notifications).
+    const autopayKeyFor = (occurrenceId: string) => `autopay:${occurrenceId}`;
+    const existingAutopayEvents = occurrences.length
+      ? await db
+          .select({ idempotencyKey: billPaymentEvents.idempotencyKey })
+          .from(billPaymentEvents)
+          .where(
+            and(
+              eq(billPaymentEvents.householdId, options.householdId),
+              inArray(
+                billPaymentEvents.idempotencyKey,
+                occurrences.map((occurrence) => autopayKeyFor(occurrence.id))
+              )
+            )
+          )
+      : [];
+    const alreadyAutopaid = new Set(
+      existingAutopayEvents.map((event) => event.idempotencyKey)
+    );
+
     for (const occurrence of occurrences) {
       const rule = ruleByTemplateId.get(occurrence.templateId);
       if (!rule) {
@@ -1818,10 +1938,28 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
 
       processedCount += 1;
 
-      let amountCents = occurrence.amountRemainingCents;
-      if (rule.amountType === 'fixed' && rule.fixedAmountCents !== null) {
-        amountCents = Math.min(rule.fixedAmountCents, occurrence.amountRemainingCents);
+      if (alreadyAutopaid.has(autopayKeyFor(occurrence.id))) {
+        skippedCount += 1;
+        continue;
       }
+
+      const template = templateById.get(occurrence.templateId);
+      const linkedAccount = template?.linkedLiabilityAccountId
+        ? linkedAccountById.get(template.linkedLiabilityAccountId)
+        : undefined;
+
+      const resolution = resolveAutopayAmountCents({ rule, occurrence, linkedAccount });
+      if (resolution.skipReason !== undefined) {
+        skippedCount += 1;
+        errors.push({
+          templateId: occurrence.templateId,
+          occurrenceId: occurrence.id,
+          message: resolution.skipReason,
+          code: 'AUTOPAY_SKIPPED',
+        });
+        continue;
+      }
+      const amountCents = resolution.amountCents;
 
       if (amountCents <= 0) {
         skippedCount += 1;
@@ -1845,10 +1983,10 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
             paymentDate: runDate,
             notes: `Autopay ${runDate}`,
             // Row-level idempotency (H-BILL-4): the unique index on
-            // bill_payment_events.idempotency_key makes a concurrent duplicate
-            // payment for the same occurrence+day impossible even if two runs
-            // race past the run-level guard.
-            idempotencyKey: `autopay:${occurrence.id}:${runDate}`,
+            // bill_payment_events.idempotency_key makes a duplicate autopay
+            // payment for the occurrence impossible even if two runs race past
+            // the run-level guard.
+            idempotencyKey: autopayKeyFor(occurrence.id),
           },
           paymentMethod: 'autopay',
         });
@@ -1856,11 +1994,19 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
         successCount += 1;
         totalAmountCents = new Decimal(totalAmountCents).plus(amountCents).toNumber();
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Autopay failed';
+        // A concurrent run (manual click racing the cron) losing on the
+        // idempotency unique index means the OTHER run paid the bill — that is
+        // a skip, not a failure worth alarming the user about.
+        if (/UNIQUE constraint failed/i.test(message) && /idempotency/i.test(message)) {
+          skippedCount += 1;
+          continue;
+        }
         failedCount += 1;
         errors.push({
           templateId: occurrence.templateId,
           occurrenceId: occurrence.id,
-          message: error instanceof Error ? error.message : 'Autopay failed',
+          message,
           code: 'AUTOPAY_PAYMENT_FAILED',
         });
       }
