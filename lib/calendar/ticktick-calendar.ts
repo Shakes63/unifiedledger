@@ -9,7 +9,7 @@ import { db } from '@/lib/db';
 import { calendarConnections, oauthSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { CalendarEvent } from './google-calendar';
-import { decryptOAuthSecret } from '@/lib/encryption/oauth-encryption';
+import { decryptOAuthSecret, encryptToken, decryptToken } from '@/lib/encryption/oauth-encryption';
 
 // TickTick OAuth configuration
 const TICKTICK_AUTH_URL = 'https://ticktick.com/oauth/authorize';
@@ -270,10 +270,16 @@ export async function getValidTickTickAccessToken(connectionId: string): Promise
     throw new Error('TickTick connection not found');
   }
 
-  const { accessToken, refreshToken, tokenExpiresAt } = connection[0];
+  // Tokens are stored encrypted (SEC2); decrypt for use (tolerates any legacy
+  // plaintext rows).
+  const accessToken = decryptToken(connection[0].accessToken);
+  const refreshToken = connection[0].refreshToken
+    ? decryptToken(connection[0].refreshToken)
+    : null;
+  const { tokenExpiresAt } = connection[0];
 
   // Check if token is expired (with 5 minute buffer)
-  const isExpired = tokenExpiresAt && 
+  const isExpired = tokenExpiresAt &&
     new Date(tokenExpiresAt).getTime() < Date.now() + 5 * 60 * 1000;
 
   if (!isExpired) {
@@ -287,12 +293,12 @@ export async function getValidTickTickAccessToken(connectionId: string): Promise
   // Refresh the token
   const newTokens = await refreshTickTickToken(refreshToken);
 
-  // Update the database
+  // Update the database — store encrypted.
   await db
     .update(calendarConnections)
     .set({
-      accessToken: newTokens.accessToken,
-      refreshToken: newTokens.refreshToken,
+      accessToken: encryptToken(newTokens.accessToken),
+      refreshToken: newTokens.refreshToken ? encryptToken(newTokens.refreshToken) : null,
       tokenExpiresAt: newTokens.expiresAt,
       updatedAt: new Date().toISOString(),
     })
