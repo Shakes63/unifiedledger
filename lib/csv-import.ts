@@ -946,13 +946,21 @@ function calculateSimpleSimilarity(str1: string, str2: string): number {
  * Patterns for detecting credit card transaction types from description
  */
 export const CC_TYPE_DETECTION_PATTERNS: Record<CCTransactionType, RegExp> = {
-  payment: /payment|thank\s*you|autopay|automatic\s*payment|credit\s*card\s*payment|online\s*payment/i,
-  refund: /refund|return|credit|reversal|adjustment|chargeback|merchant\s*credit/i,
+  // Findings P3/M7: these were bare substrings, so ordinary MERCHANT NAMES were
+  // read as transaction types — "NAVY FEDERAL CREDIT UNION" and "CREDIT KARMA"
+  // became refunds (income), "BONUS BURGER GRILL" and "REWARD SHOE STORE" became
+  // rewards (income), "IPARK PAYMENT NYC" became a payment. On a liability that
+  // is a 2x error per row. A merchant descriptor contains the issuer's own
+  // wording for these events, so the patterns are anchored to that wording
+  // rather than to a word that happens to appear in a business name.
+  payment: /\bthank\s*you\b|\bautopay\b|\bautomatic\s*payment\b|\bonline\s*payment\b|\bcredit\s*card\s*payment\b|\bpayment\s*(?:received|posted|thank)\b|^\s*payment\b|\bpayment\s*-\s*thank\b/i,
+  refund: /\brefund(?:ed)?\b(?!s?\s*(?:llc|inc|co\b))|\breturn(?:ed)?\b(?!s?\s*(?:llc|inc|co\b))|\bmerchant\s*credit\b|\breversal\b|\bchargeback\b|\bcredit\s*adjustment\b/i,
   interest: /interest\s*charge|finance\s*charge|interest\s*payment|purchase\s*interest|periodic\s*interest/i,
   fee: /annual\s*fee|late\s*fee|foreign\s*transaction|fee:|returned\s*payment\s*fee|over\s*limit\s*fee|cash\s*advance\s*fee/i,
-  cash_advance: /cash\s*advance|atm\s*withdraw|cash\s*disbursement|casino/i,
+  // 'casino' removed: a casino PURCHASE is a purchase, not a cash advance.
+  cash_advance: /cash\s*advance|atm\s*withdraw|cash\s*disbursement/i,
   balance_transfer: /balance\s*transfer|bt\s*-|promo\s*transfer|promotional\s*transfer/i,
-  reward: /reward|cashback|statement\s*credit|bonus|points\s*redemption|rewards\s*credit/i,
+  reward: /\brewards?\s*(?:credit|redemption|earned|applied)\b|\bcashback\b|\bcash\s*back\b|\bstatement\s*credit\b|\bpoints\s*redemption\b/i,
   purchase: /.*/, // Catch-all
 };
 
@@ -1007,10 +1015,23 @@ export function detectCCTransactionType(
 /**
  * Apply credit card specific processing to a mapped transaction
  */
+export interface CreditCardProcessingOptions {
+  /**
+   * True when the row's direction came from an authoritative column — a
+   * Debit/Credit pair or an explicitly mapped type column — rather than being
+   * guessed. Finding P2: this function used to re-derive the type from the
+   * DESCRIPTION alone and clobber that signal, so a Capital One refund sitting
+   * in the Credit column was booked as a charge. The file's own column is a
+   * better witness than a regex over a merchant name.
+   */
+  hasAuthoritativeDirection?: boolean;
+}
+
 export function applyCreditCardProcessing(
   transaction: MappedTransaction,
   amountSignConvention: 'standard' | 'credit_card',
-  customPatterns?: Partial<Record<CCTransactionType, string>>
+  customPatterns?: Partial<Record<CCTransactionType, string>>,
+  options: CreditCardProcessingOptions = {}
 ): MappedTransaction {
   const amount = transaction.amount instanceof Decimal
     ? transaction.amount.toNumber()
@@ -1025,42 +1046,58 @@ export function applyCreditCardProcessing(
     );
   }
   
-  // Set transaction type based on credit card transaction type
-  switch (transaction.ccTransactionType) {
-    case 'payment':
-      // Payments to credit cards are transfer_in to the card
-      transaction.type = 'transfer_in';
-      break;
-    case 'refund':
-      transaction.type = 'income';
-      transaction.isRefund = true;
-      break;
-    case 'balance_transfer':
-      transaction.type = 'transfer_in';
-      transaction.isBalanceTransfer = true;
-      break;
-    case 'reward':
-      transaction.type = 'income';
-      break;
-    default:
-      // Purchases, fees, interest, cash advances are expenses
-      transaction.type = 'expense';
-      break;
-  }
-  
-  // Handle amount sign convention
-  if (amountSignConvention === 'credit_card') {
-    // Credit card convention: positive = charge (expense), negative = credit/payment
-    // Ensure amount is positive for expenses, handle the type appropriately
-    if (amount < 0 && ['purchase', 'fee', 'interest', 'cash_advance'].includes(transaction.ccTransactionType || '')) {
-      // Negative amount but should be expense - this is actually a credit/refund
-      transaction.type = 'income';
-      transaction.amount = new Decimal(Math.abs(amount));
-    } else if (amount > 0 && ['payment', 'refund', 'reward'].includes(transaction.ccTransactionType || '')) {
-      // Positive amount but should be credit - this is a payment in wrong sign
-      transaction.amount = new Decimal(Math.abs(amount));
+  // Set transaction type based on credit card transaction type.
+  // The label (ccTransactionType) is always recorded; the DIRECTION is only
+  // overridden when the file gave us nothing authoritative to go on (P2).
+  if (options.hasAuthoritativeDirection) {
+    if (transaction.ccTransactionType === 'refund') transaction.isRefund = true;
+    if (transaction.ccTransactionType === 'balance_transfer') transaction.isBalanceTransfer = true;
+  } else {
+    switch (transaction.ccTransactionType) {
+      case 'payment':
+        // Payments to credit cards are transfer_in to the card
+        transaction.type = 'transfer_in';
+        break;
+      case 'refund':
+        transaction.type = 'income';
+        transaction.isRefund = true;
+        break;
+      case 'balance_transfer':
+        // Finding M6: this was transfer_in, which on a liability is a CREDIT —
+        // so moving $3,000 of debt ONTO the card reduced what you owed by
+        // $3,000. New debt arriving on this card behaves like a purchase.
+        transaction.type = 'expense';
+        transaction.isBalanceTransfer = true;
+        break;
+      case 'reward':
+        transaction.type = 'income';
+        break;
+      default:
+        // Purchases, fees, interest, cash advances are expenses
+        transaction.type = 'expense';
+        break;
     }
   }
   
+  // Handle amount sign convention
+  if (amountSignConvention === 'credit_card' && !options.hasAuthoritativeDirection) {
+    // Credit card convention: positive = charge (expense), negative = credit/payment.
+    // A negative amount on a row we classified as a charge is really a credit.
+    if (amount < 0 && ['purchase', 'fee', 'interest', 'cash_advance'].includes(transaction.ccTransactionType || '')) {
+      transaction.type = 'income';
+    }
+  }
+
+  // Magnitude is ALWAYS positive (finding M4). The old code only normalized two
+  // specific sign/type combinations, so a NEGATIVE payment or refund — the
+  // Amex/Citi convention — kept its sign, and paying $500 off the card ADDED
+  // $500 to the debt. Direction belongs to the type, never to the sign.
+  if (transaction.amount !== undefined) {
+    const magnitude = transaction.amount instanceof Decimal
+      ? transaction.amount
+      : new Decimal(transaction.amount as unknown as number);
+    transaction.amount = magnitude.abs();
+  }
+
   return transaction;
 }

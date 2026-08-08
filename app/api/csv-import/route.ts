@@ -305,6 +305,9 @@ export async function POST(request: NextRequest) {
     // things in a signed bank export and an unsigned expense list, and no single
     // row can tell them apart.
     const amountColumnIsSigned = detectAmountColumnIsSigned(parsed.rows, columnMappings);
+    const hasAuthoritativeDirectionColumn = columnMappings.some(
+      (m) => m.appField === 'withdrawal' || m.appField === 'deposit' || m.appField === 'type'
+    );
 
     for (let i = 0; i < parsed.rows.length; i++) {
       const row = parsed.rows[i];
@@ -321,9 +324,17 @@ export async function POST(request: NextRequest) {
           { amountColumnIsSigned }
         );
 
-        // Phase 12: Apply credit card processing if this is a credit card import
+        // Phase 12: Apply credit card processing if this is a credit card import.
+        // hasAuthoritativeDirection (P2): when the file itself states the
+        // direction — a Debit/Credit column pair or a mapped type column — that
+        // beats guessing from the merchant description, which used to clobber it.
         if (sourceType === 'credit_card') {
-          mappedData = applyCreditCardProcessing(mappedData, amountSignConvention);
+          mappedData = applyCreditCardProcessing(
+            mappedData,
+            amountSignConvention,
+            undefined,
+            { hasAuthoritativeDirection: hasAuthoritativeDirectionColumn }
+          );
         }
 
         // Validate
