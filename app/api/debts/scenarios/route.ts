@@ -56,9 +56,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (typeof scenario.extraMonthlyPayment !== 'number' || scenario.extraMonthlyPayment < 0) {
+      // Number.isFinite, not typeof (bug-hunt finding M4): NaN and Infinity
+      // are typeof 'number' and NaN < 0 is false, so both sailed through and
+      // produced 360-period garbage simulations.
+      if (!Number.isFinite(scenario.extraMonthlyPayment) || scenario.extraMonthlyPayment < 0) {
         return NextResponse.json(
-          { error: 'extraMonthlyPayment must be a non-negative number' },
+          { error: 'extraMonthlyPayment must be a non-negative finite number' },
           { status: 400 }
         );
       }

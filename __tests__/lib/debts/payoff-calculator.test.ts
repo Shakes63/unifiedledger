@@ -116,8 +116,10 @@ describe('lib/debts/payoff-calculator', () => {
       })];
       const result = calculatePayoffStrategy(debts, 0, 'avalanche');
 
-      // Should hit MAX_PERIODS limit (360 months) since payment < interest
-      expect(result.totalMonths).toBe(360);
+      // Payment < interest is flagged as never-payable (bug-hunt finding M1) —
+      // the old behavior burned 360 periods and reported the cap as a payoff.
+      expect(result.totalMonths).toBe(-1);
+      expect(result.hasUnpayableDebts).toBe(true);
     });
 
     it('handles $0.01 debt', () => {
@@ -130,7 +132,10 @@ describe('lib/debts/payoff-calculator', () => {
       expect(result.totalMonths).toBeLessThanOrEqual(1);
     });
 
-    it('handles large debt ($1M)', () => {
+    it('handles large debt ($1M): beyond the 30-year horizon is flagged, not capped', () => {
+      // $1M at 5% with a $5k payment amortizes in ~431 months — past the
+      // 30-year simulation horizon. The old code silently reported the 360
+      // cap as the payoff.
       const debts = [baseDebt({
         remainingBalance: 1000000,
         minimumPayment: 5000,
@@ -139,9 +144,25 @@ describe('lib/debts/payoff-calculator', () => {
       })];
       const result = calculatePayoffStrategy(debts, 0, 'avalanche');
 
-      expect(result.totalMonths).toBeGreaterThan(0);
-      expect(result.totalMonths).toBeLessThanOrEqual(360);
+      expect(result.totalMonths).toBe(-1);
+      expect(result.hasUnpayableDebts).toBe(true);
       expect(result.totalInterestPaid).toBeGreaterThan(0);
+
+      // A payment that amortizes inside the horizon (~26 years) stays a
+      // normal, dated payoff.
+      const payable = calculatePayoffStrategy(
+        [baseDebt({
+          remainingBalance: 1000000,
+          minimumPayment: 5800,
+          interestRate: 5,
+          loanType: 'installment',
+        })],
+        0,
+        'avalanche'
+      );
+      expect(payable.hasUnpayableDebts).toBe(false);
+      expect(payable.totalMonths).toBeGreaterThan(0);
+      expect(payable.totalMonths).toBeLessThanOrEqual(360);
     });
 
     it('final balance is exactly 0 for each schedule', () => {
@@ -238,5 +259,70 @@ describe('lib/debts/payoff-calculator', () => {
       // Biweekly makes ~26 payments/year vs 12 monthly, so pays off faster
       expect(biweekly.totalMonths).toBeLessThanOrEqual(monthly.totalMonths);
     });
+  });
+});
+
+describe('bug-hunt regressions (M1/M3/M5)', () => {
+  it('M1: a debt whose minimum does not cover interest is flagged never-payable, not "paid off in 30 years"', () => {
+    // $10,000 @ 24% APR -> $200/month interest; the $100 minimum loses ground
+    // every month. The old sim burned 360 periods and reported monthsToPayoff
+    // 360 with megadollar interest.
+    const result = calculatePayoffStrategy(
+      [baseDebt({ remainingBalance: 10000, minimumPayment: 100, interestRate: 24 })],
+      0,
+      'avalanche'
+    );
+    expect(result.hasUnpayableDebts).toBe(true);
+    expect(result.totalMonths).toBe(-1);
+    expect(result.schedules[0].paidOff).toBe(false);
+    expect(result.schedules[0].monthsToPayoff).toBe(-1);
+    // The stall detector stops the sim early instead of compounding for 30
+    // simulated years.
+    expect(result.schedules[0].monthlyBreakdown.length).toBeLessThan(24);
+  });
+
+  it('M1: a payable plan is unaffected by the stall detector', () => {
+    const result = calculatePayoffStrategy(
+      [baseDebt({ remainingBalance: 1200, minimumPayment: 100, interestRate: 0 })],
+      0,
+      'avalanche'
+    );
+    expect(result.hasUnpayableDebts).toBe(false);
+    expect(result.totalMonths).toBe(12);
+    expect(result.schedules[0].paidOff).toBe(true);
+  });
+
+  it('M3: a non-focus debt payoff-month surplus rolls into the plan instead of vanishing', () => {
+    // Avalanche: focus = A (20%). B ($5 balance, $100 minimum) overshoots in
+    // month 1 by ~$95, which the old code discarded. With the surplus rolled,
+    // the total plan pays off strictly faster than a plan where that $95/month
+    // budget never existed after month 1.
+    const debts = [
+      baseDebt({ id: 'A', name: 'A', remainingBalance: 2000, minimumPayment: 200, interestRate: 20 }),
+      baseDebt({ id: 'B', name: 'B', remainingBalance: 5, minimumPayment: 100, interestRate: 0 }),
+    ];
+    const withSurplus = calculatePayoffStrategy(debts, 0, 'avalanche');
+
+    // Reference: same focus debt but B (and its freed-up $100 budget) never
+    // existed at all — strictly less money available than the rolled plan.
+    const reference = calculatePayoffStrategy(
+      [baseDebt({ id: 'A', name: 'A', remainingBalance: 2000, minimumPayment: 200, interestRate: 20 })],
+      0,
+      'avalanche'
+    );
+    expect(withSurplus.totalMonths).toBeLessThan(reference.totalMonths);
+  });
+
+  it('M5: the recommended payment matches the simulation cadence for biweekly', () => {
+    const debts = [
+      baseDebt({ id: 'A', remainingBalance: 3000, minimumPayment: 300, interestRate: 12 }),
+      baseDebt({ id: 'B', remainingBalance: 6000, minimumPayment: 100, interestRate: 6 }),
+    ];
+    const result = calculatePayoffStrategy(debts, 100, 'avalanche', 'biweekly');
+    // Monthly budget 500; per biweekly period 500 / (26/12) ≈ 230.77.
+    // Focus (A) gets its share: total per-period minus other minimums.
+    const periods = 26 / 12;
+    const expected = 500 / periods - 100 / periods;
+    expect(result.nextRecommendedPayment.recommendedPayment).toBeCloseTo(expected, 2);
   });
 });
