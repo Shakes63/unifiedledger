@@ -30,7 +30,10 @@ import {
 import { resolveAccountEntityId } from '@/lib/household/entities';
 import { nanoid } from 'nanoid';
 import { validateCanonicalTransferInput } from '@/lib/transactions/transfer-contract';
-import { reverseTransactionSideEffects } from '@/lib/transactions/transaction-side-effect-reversal';
+import {
+  adjustTransactionSideEffectsForAmountChange,
+  reverseTransactionSideEffects,
+} from '@/lib/transactions/transaction-side-effect-reversal';
 
 // ---------------------------------------------------------------------------
 // from transfer-service-types.ts
@@ -1521,6 +1524,22 @@ async function executeTransferUpdateOrchestration({
     resultTransferInId = updated.transferInId;
     resultSourceAccountId = updated.sourceAccountId;
     resultDestinationAccountId = updated.destinationAccountId;
+
+    // Re-scale side effects hanging off either leg when the amount changed
+    // (bug-hunt finding L4): a checking->card transfer that paid a card bill
+    // kept the occurrence at the OLD amount after an edit — create links the
+    // payment and delete reverses it, but update forgot it entirely.
+    if (amountCents !== undefined && amountCents !== currentTransferAmountCents) {
+      for (const legId of [updated.transferOutId, updated.transferInId]) {
+        await adjustTransactionSideEffectsForAmountChange(tx, {
+          transactionId: legId,
+          userId,
+          householdId,
+          oldAmountCents: currentTransferAmountCents,
+          newAmountCents: amountCents,
+        });
+      }
+    }
   });
 
   return {

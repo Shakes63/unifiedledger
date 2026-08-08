@@ -92,8 +92,11 @@ describe('POST /api/transactions/[id]/convert-to-transfer linkage fields', () =>
       const tx = {
         select: () => ({
           from: (table: unknown) => ({
-            where: () => ({
-              limit: async () => {
+            // The side-effect reversal awaits `.where()` directly (no .limit),
+            // so the mock must be thenable AND expose .limit for the
+            // balance-read paths.
+            where: () => {
+              const limit = async () => {
                 if (table === accounts) {
                   txAccountSelectCall += 1;
                   if (txAccountSelectCall === 1) {
@@ -102,8 +105,9 @@ describe('POST /api/transactions/[id]/convert-to-transfer linkage fields', () =>
                   return [{ id: 'acc-target', currentBalance: 400, currentBalanceCents: 40000 }];
                 }
                 return [];
-              },
-            }),
+              };
+              return Object.assign(Promise.resolve([]), { limit });
+            },
           }),
         }),
         insert: (table: unknown) => ({
@@ -121,6 +125,9 @@ describe('POST /api/transactions/[id]/convert-to-transfer linkage fields', () =>
               }
             },
           }),
+        }),
+        delete: () => ({
+          where: async () => {},
         }),
       };
 

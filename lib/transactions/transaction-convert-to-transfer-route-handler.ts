@@ -22,6 +22,7 @@ import {
 } from '@/lib/transactions/money-movement-service';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { linkExistingTransactionsAsCanonicalTransfer } from '@/lib/transactions/transfer-service';
+import { reverseTransactionSideEffects } from '@/lib/transactions/transaction-side-effect-reversal';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { nanoid } from 'nanoid';
@@ -117,6 +118,9 @@ async function updateConvertedTransactionRecord({
       type: transferType,
       categoryId: null,
       merchantId: null,
+      // The expense's bill link was unwound by the side-effect reversal —
+      // a transfer leg must not keep claiming it paid a bill (L5).
+      billId: null,
       transferId: transferGroupId,
       transferGroupId,
       pairedTransactionId,
@@ -518,6 +522,16 @@ async function executeUnmatchedTransferConversion({
   const nowIso = new Date().toISOString();
 
   await runInDatabaseTransaction(async (tx) => {
+    // The transaction stops being an expense/income — whatever it did as one
+    // (bill payment marking an occurrence paid, debt payment, goal
+    // contribution) must unwind first, or the occurrence stays "paid" by a
+    // transaction that is no longer a payment (bug-hunt finding L5).
+    await reverseTransactionSideEffects(tx, {
+      transactionId: id,
+      userId,
+      householdId,
+    });
+
     if (isExpense) {
       await executeExpenseConversionWrites({
         tx,
@@ -773,11 +787,33 @@ async function executeMatchedTransactionConversion({
     return matchingValidationError;
   }
 
-  const result = await linkExistingTransactionsAsCanonicalTransfer({
-    userId,
-    householdId,
-    firstTransactionId: id,
-    secondTransactionId: matchingTransactionId,
+  const result = await runInDatabaseTransaction(async (tx) => {
+    // Both rows stop being expense/income — unwind their side effects (bill
+    // links, debt payments, goal contributions) before linking (L5). The link
+    // call joins this open transaction.
+    await reverseTransactionSideEffects(tx, { transactionId: id, userId, householdId });
+    await reverseTransactionSideEffects(tx, {
+      transactionId: matchingTransactionId,
+      userId,
+      householdId,
+    });
+    await tx
+      .update(transactions)
+      .set({ billId: null })
+      .where(and(eq(transactions.id, id), eq(transactions.householdId, householdId)));
+    await tx
+      .update(transactions)
+      .set({ billId: null })
+      .where(
+        and(eq(transactions.id, matchingTransactionId), eq(transactions.householdId, householdId))
+      );
+
+    return linkExistingTransactionsAsCanonicalTransfer({
+      userId,
+      householdId,
+      firstTransactionId: id,
+      secondTransactionId: matchingTransactionId,
+    });
   });
 
   return buildConvertSuccessResponse({

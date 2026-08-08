@@ -4,8 +4,10 @@ import { db } from '@/lib/db';
 import {
   billOccurrences,
   billPaymentEvents,
+  billTemplates,
   debtPayments,
   debts,
+  interestDeductions,
   savingsGoalContributions,
   savingsGoals,
 } from '@/lib/db/schema';
@@ -328,6 +330,48 @@ export async function reverseBillPayments(
           )
         );
     }
+
+    // Restore the principal this payment took off the bill's tracked debt
+    // balance (bug-hunt finding L1) — the payment path decremented
+    // billTemplates.debtRemainingBalanceCents and the event row carries
+    // principalCents for exactly this reversal. Adding the principal back is
+    // order-independent across multiple payments.
+    const principalCents =
+      event.principalCents !== null && event.principalCents !== undefined
+        ? Number(event.principalCents)
+        : 0;
+    if (principalCents > 0) {
+      const [template] = await tx
+        .select({ debtRemainingBalanceCents: billTemplates.debtRemainingBalanceCents })
+        .from(billTemplates)
+        .where(
+          and(eq(billTemplates.id, event.templateId), eq(billTemplates.householdId, householdId))
+        )
+        .limit(1);
+      if (template && template.debtRemainingBalanceCents !== null) {
+        await tx
+          .update(billTemplates)
+          .set({
+            debtRemainingBalanceCents: template.debtRemainingBalanceCents + principalCents,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(
+            and(eq(billTemplates.id, event.templateId), eq(billTemplates.householdId, householdId))
+          );
+      }
+    }
+
+    // The payment's interest classification created a tax-deduction row keyed
+    // by this event — deleting the payment must not leave a deduction claiming
+    // interest that was never paid (L1).
+    await tx
+      .delete(interestDeductions)
+      .where(
+        and(
+          eq(interestDeductions.billPaymentId, event.id),
+          eq(interestDeductions.householdId, householdId)
+        )
+      );
 
     await tx.delete(billPaymentEvents).where(eq(billPaymentEvents.id, event.id));
   }

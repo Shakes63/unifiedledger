@@ -8,6 +8,9 @@
  * GET - Preview what would be processed (for debugging)
  */
 
+import { eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { autopayRules } from '@/lib/db/schema';
 import { getAutopayDueToday } from '@/lib/bills/autopay-processor';
 import { runAutopay } from '@/lib/bills/service';
 import { getAutopayProcessingSummary } from '@/lib/notifications/autopay-notifications';
@@ -31,44 +34,59 @@ export async function POST(request: Request) {
   try {
     console.log(`[Autopay Cron] Starting autopay processing at ${new Date().toISOString()}`);
 
-    const householdId = request.headers.get('x-household-id');
-    const userId = request.headers.get('x-user-id');
+    // The scheduler authenticates with only the CRON_SECRET and serves EVERY
+    // household — the old version hard-required x-household-id/x-user-id
+    // headers the scheduler never sends, so scheduled autopay 400'd on every
+    // trigger and never ran (bug-hunt finding A1). An optional x-household-id
+    // still scopes a manual invocation to one household.
+    const scopedHouseholdId = request.headers.get('x-household-id');
 
-    if (!householdId || !userId) {
-      return Response.json(
-        {
-          error: 'Missing required scope headers',
-          message: 'Autopay cron requests must include x-household-id and x-user-id headers.',
-        },
-        { status: 400 }
-      );
-    }
+    const enabledRuleHouseholds = await db
+      .selectDistinct({ householdId: autopayRules.householdId })
+      .from(autopayRules)
+      .where(eq(autopayRules.isEnabled, true));
 
-    const runResult = await runAutopay({
-      userId,
-      householdId,
-      runType: 'scheduled',
-      dryRun: false,
-    });
+    const householdIds = enabledRuleHouseholds
+      .map((row) => row.householdId)
+      .filter((id) => !scopedHouseholdId || id === scopedHouseholdId);
 
-    const stats: {
-      processed: number;
-      successful: number;
-      failed: number;
-      skipped: number;
-      totalAmount: number;
-    } = {
-      processed: runResult.processedCount,
-      successful: runResult.successCount,
-      failed: runResult.failedCount,
-      skipped: runResult.skippedCount,
-      totalAmount: runResult.totalAmountCents / 100,
+    const stats = {
+      households: householdIds.length,
+      processed: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0,
+      totalAmount: 0,
     };
-    const errors = runResult.errors.length > 0 ? runResult.errors : undefined;
+    const errors: unknown[] = [];
+
+    for (const householdId of householdIds) {
+      try {
+        const runResult = await runAutopay({
+          userId: null,
+          householdId,
+          runType: 'scheduled',
+          dryRun: false,
+        });
+        stats.processed += runResult.processedCount;
+        stats.successful += runResult.successCount;
+        stats.failed += runResult.failedCount;
+        stats.skipped += runResult.skippedCount;
+        stats.totalAmount += runResult.totalAmountCents / 100;
+        errors.push(...runResult.errors);
+      } catch (error) {
+        stats.failed += 1;
+        errors.push({
+          householdId,
+          message: error instanceof Error ? error.message : 'Autopay run failed',
+          code: 'AUTOPAY_RUN_FAILED',
+        });
+      }
+    }
 
     const summary = getAutopayProcessingSummary(stats);
 
-    console.log(`[Autopay Cron] Completed: ${summary}`);
+    console.log(`[Autopay Cron] Completed across ${stats.households} household(s): ${summary}`);
 
     return Response.json({
       success: true,
@@ -76,7 +94,7 @@ export async function POST(request: Request) {
       summary,
       timestamp: new Date().toISOString(),
       stats,
-      errors,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
     console.error('[Autopay Cron] Error:', error);

@@ -38,6 +38,7 @@ import {
   billOccurrences,
   billPaymentEvents,
   billTemplates,
+  interestDeductions,
   userHouseholdPreferences,
 } from '@/lib/db/schema';
 import {
@@ -59,7 +60,8 @@ import {
   isLiabilityAccountType,
   updateScopedAccountBalance,
 } from '@/lib/transactions/money-movement-service';
-import { assertIntegerCents } from '@/lib/utils/money-cents';
+import { createCanonicalTransferPair } from '@/lib/transactions/transfer-service';
+import { assertIntegerCents, toMoneyCents } from '@/lib/utils/money-cents';
 
 const TEMPLATE_LIMIT_DEFAULT = 50;
 const OCCURRENCE_LIMIT_DEFAULT = 50;
@@ -82,11 +84,15 @@ const RECURRENCE_HORIZON_COUNT: Record<
   BillTemplateDto['recurrenceType'],
   number
 > = {
+  // Sized so an explicit ~13-month window (e.g. ensure-instances for a full
+  // year) is never silently truncated — the old monthly cap of 8 made a
+  // January "generate 2027" request stop at August (bug-hunt finding R5).
+  // These are runaway guards, not pagination.
   one_time: 1,
-  weekly: 18,
-  biweekly: 12,
-  semi_monthly: 16,
-  monthly: 8,
+  weekly: 54,
+  biweekly: 27,
+  semi_monthly: 27,
+  monthly: 14,
   quarterly: 8,
   semi_annual: 6,
   annual: 4,
@@ -126,7 +132,12 @@ export interface ListOccurrencesOptions {
 }
 
 export interface RunAutopayOptions {
-  userId: string;
+  /**
+   * The acting user for MANUAL runs. Scheduled cron runs pass null — autopay
+   * acts as the owner of each rule's pay-from account, so no single caller
+   * identity exists (a cron endpoint serves every household).
+   */
+  userId: string | null;
   householdId: string;
   runDate?: string;
   runType?: 'scheduled' | 'manual' | 'dry_run';
@@ -339,6 +350,81 @@ function monthDate(year: number, monthIndex: number, dayOfMonth: number): Date {
   return new Date(year, monthIndex, Math.min(dayOfMonth, daysInMonth));
 }
 
+/**
+ * Resolve how many cents an autopay rule should move for an occurrence.
+ *
+ * Every amountType is implemented explicitly — the old code special-cased
+ * 'fixed' and silently fell through to the FULL remaining amount for
+ * minimum_payment / statement_balance / full_balance, i.e. a $35-minimum rule
+ * drained the whole $1,200 statement. Types whose data source is missing SKIP
+ * with a reason instead of guessing: an unattended payment must never move
+ * more than the user configured.
+ */
+export function resolveAutopayAmountCents({
+  rule,
+  occurrence,
+  linkedAccount,
+}: {
+  rule: { amountType: string; fixedAmountCents: number | null };
+  occurrence: { amountRemainingCents: number };
+  linkedAccount?: {
+    type: string;
+    currentBalance: number | null;
+    currentBalanceCents: number | null;
+    statementBalance: number | null;
+    minimumPaymentAmount: number | null;
+  };
+}): { amountCents: number; skipReason?: never } | { amountCents?: never; skipReason: string } {
+  const remainingCents = occurrence.amountRemainingCents;
+
+  switch (rule.amountType) {
+    case 'fixed':
+      if (rule.fixedAmountCents === null) {
+        return { skipReason: 'Fixed-amount autopay rule has no amount configured' };
+      }
+      return { amountCents: Math.min(rule.fixedAmountCents, remainingCents) };
+
+    case 'minimum_payment': {
+      const minimumCents = linkedAccount ? toMoneyCents(linkedAccount.minimumPaymentAmount) : null;
+      if (minimumCents === null) {
+        return {
+          skipReason:
+            'Minimum-payment autopay requires a linked liability account with a minimum payment amount',
+        };
+      }
+      return { amountCents: Math.min(minimumCents, remainingCents) };
+    }
+
+    case 'statement_balance': {
+      // The occurrence's billed amount IS the statement when no linked account
+      // tracks one; otherwise pay the tracked statement, capped at what the
+      // occurrence still owes.
+      const statementCents = linkedAccount ? toMoneyCents(linkedAccount.statementBalance) : null;
+      if (statementCents === null) {
+        return { amountCents: remainingCents };
+      }
+      return { amountCents: Math.min(statementCents, remainingCents) };
+    }
+
+    case 'full_balance': {
+      if (linkedAccount) {
+        // Pay off everything owed on the linked account — this may legitimately
+        // exceed the occurrence's billed amount (new purchases since the
+        // statement); the occurrence then records an overpayment.
+        const owedCents = getAccountBalanceCents(linkedAccount);
+        if (owedCents <= 0) {
+          return { skipReason: 'Linked liability account has no balance to pay' };
+        }
+        return { amountCents: owedCents };
+      }
+      return { amountCents: remainingCents };
+    }
+
+    default:
+      return { skipReason: `Unknown autopay amount type: ${rule.amountType}` };
+  }
+}
+
 // Exported for tests: generation must be deterministic for a template regardless
 // of the query window (C-BILL-1), or the (templateId, dueDate) unique index
 // cannot dedupe and bills get double-charged.
@@ -348,17 +434,29 @@ export function generateOccurrenceDates(
   toDate: Date
 ): string[] {
   const dates: string[] = [];
-  const from = startOfDay(fromDate);
+  const requestedFrom = startOfDay(fromDate);
   const to = endOfDay(toDate);
 
   if (template.recurrenceType === 'one_time') {
     if (!template.recurrenceSpecificDueDate) return dates;
     const dueDate = parseDateOrThrow(template.recurrenceSpecificDueDate, 'recurrenceSpecificDueDate');
-    if ((isAfter(dueDate, from) || dueDate.getTime() === from.getTime()) && !isAfter(dueDate, to)) {
+    if (
+      (isAfter(dueDate, requestedFrom) || dueDate.getTime() === requestedFrom.getTime()) &&
+      !isAfter(dueDate, to)
+    ) {
       dates.push(format(dueDate, 'yyyy-MM-dd'));
     }
     return dates;
   }
+
+  // Recurring bills never generate occurrences from before the template
+  // existed (bug-hunt finding R3): callers can pass arbitrary past windows
+  // (ensure-instances accepts any year >= 2000), which retro-created
+  // instantly-overdue occurrences and permanently inflated the dashboard's
+  // overdue counts. One-time bills above keep an explicitly chosen past date.
+  const creationFloor = template.createdAt ? startOfDay(new Date(template.createdAt)) : null;
+  const from =
+    creationFloor && isBefore(requestedFrom, creationFloor) ? creationFloor : requestedFrom;
 
   if (template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly') {
     const weekday = template.recurrenceDueWeekday;
@@ -429,16 +527,25 @@ export function generateOccurrenceDates(
   let cursorYear = from.getFullYear();
   let cursorMonth = from.getMonth();
 
-  if (
-    (template.recurrenceType === 'quarterly' ||
-      template.recurrenceType === 'semi_annual' ||
-      template.recurrenceType === 'annual') &&
-    template.recurrenceStartMonth !== null
-  ) {
-    cursorMonth = template.recurrenceStartMonth;
-    if (cursorMonth < from.getMonth()) {
-      cursorYear += 1;
-    }
+  if (monthStep > 1) {
+    // Anchor multi-month cycles to the TEMPLATE, not the caller's query window
+    // (same C-BILL-1 rule the weekly branch follows): a window-anchored
+    // quarterly cursor shifts phase as the rolling window advances, so over
+    // months the DB accumulates an occurrence at EVERY month's due day and
+    // autopay pays each one. recurrenceStartMonth wins when set; otherwise the
+    // template's creation month anchors the cycle. Start the cursor a year
+    // behind the window and let the catch-up loop below land on the first
+    // in-cycle date >= from — the old code jumped a whole year forward when
+    // startMonth was behind the window month, skipping the in-window cycle
+    // dates (a Jan-anchored quarterly queried in June generated nothing for
+    // Jul/Oct).
+    cursorMonth =
+      template.recurrenceStartMonth !== null
+        ? template.recurrenceStartMonth
+        : template.createdAt
+          ? new Date(template.createdAt).getMonth()
+          : from.getMonth();
+    cursorYear = from.getFullYear() - 1;
   }
 
   // Iterate a (year, month) cursor and re-clamp from the INTENDED due day each
@@ -545,22 +652,46 @@ async function ensureTemplateOccurrences(
           )
         );
 
-      const allocationInserts = createdRows.map((occurrence) => ({
-        id: nanoid(),
-        occurrenceId: occurrence.id,
-        templateId: template.id,
-        householdId: template.householdId,
-        periodNumber: template.budgetPeriodAssignment as number,
-        allocatedAmountCents: occurrence.amountDueCents,
-        paidAmountCents: 0,
-        isPaid: false,
-        paymentEventId: null,
-        createdAt: now,
-        updatedAt: now,
-      }));
+      // Only backfill occurrences that don't have an allocation yet, and
+      // insert idempotently (bug-hunt finding R4): two concurrent requests
+      // both survive the occurrence onConflictDoNothing above, and the loser
+      // used to 500 on the (occurrenceId, periodNumber) unique index; a crash
+      // between the two inserts also left occurrences permanently
+      // allocation-less because the date-based dedupe skipped them on retry.
+      const existingAllocations = createdRows.length
+        ? await db
+            .select({ occurrenceId: billOccurrenceAllocations.occurrenceId })
+            .from(billOccurrenceAllocations)
+            .where(
+              inArray(
+                billOccurrenceAllocations.occurrenceId,
+                createdRows.map((occurrence) => occurrence.id)
+              )
+            )
+        : [];
+      const allocated = new Set(existingAllocations.map((row) => row.occurrenceId));
+
+      const allocationInserts = createdRows
+        .filter((occurrence) => !allocated.has(occurrence.id))
+        .map((occurrence) => ({
+          id: nanoid(),
+          occurrenceId: occurrence.id,
+          templateId: template.id,
+          householdId: template.householdId,
+          periodNumber: template.budgetPeriodAssignment as number,
+          allocatedAmountCents: occurrence.amountDueCents,
+          paidAmountCents: 0,
+          isPaid: false,
+          paymentEventId: null,
+          createdAt: now,
+          updatedAt: now,
+        }));
 
       if (allocationInserts.length > 0) {
-        await db.insert(billOccurrenceAllocations).values(allocationInserts);
+        await db
+          .insert(billOccurrenceAllocations)
+          .values(allocationInserts)
+          .onConflictDoNothing();
       }
     }
   }
@@ -765,12 +896,41 @@ export async function listBillTemplates(options: ListTemplatesOptions) {
   };
 }
 
+/**
+ * Every account id persisted onto a bill template or autopay rule must belong
+ * to the caller's household (bug-hunt finding S1) — the fields were previously
+ * stored straight from the request body, allowing dangling references to other
+ * households' accounts.
+ */
+export async function assertHouseholdAccounts(
+  householdId: string,
+  accountIds: Array<string | null | undefined>
+): Promise<void> {
+  const ids = [...new Set(accountIds.filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return;
+  const rows = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(inArray(accounts.id, ids), eq(accounts.householdId, householdId)));
+  const found = new Set(rows.map((row) => row.id));
+  const missing = ids.filter((id) => !found.has(id));
+  if (missing.length > 0) {
+    throw new Error(`Account not found in household: ${missing.join(', ')}`);
+  }
+}
+
 export async function createBillTemplate(
   userId: string,
   householdId: string,
   input: CreateBillTemplateRequest
 ): Promise<BillTemplateDto> {
   normalizeTemplatePatch(input, 'create');
+
+  await assertHouseholdAccounts(householdId, [
+    input.paymentAccountId,
+    input.linkedLiabilityAccountId,
+    input.chargedToAccountId,
+  ]);
 
   const now = nowIso();
   const templateId = nanoid();
@@ -790,7 +950,7 @@ export async function createBillTemplate(
     recurrenceDueWeekday: input.recurrenceDueWeekday ?? null,
     recurrenceSpecificDueDate: input.recurrenceSpecificDueDate ?? null,
     recurrenceStartMonth: input.recurrenceStartMonth ?? null,
-    defaultAmountCents: Math.max(0, input.defaultAmountCents),
+    defaultAmountCents: Math.max(0, assertIntegerCents(input.defaultAmountCents)),
     isVariableAmount: input.isVariableAmount ?? false,
     amountToleranceBps: input.amountToleranceBps ?? 500,
     categoryId: input.categoryId ?? null,
@@ -848,6 +1008,12 @@ export async function updateBillTemplate(
     throw new Error('Template not found');
   }
 
+  await assertHouseholdAccounts(householdId, [
+    input.paymentAccountId,
+    input.linkedLiabilityAccountId,
+    input.chargedToAccountId,
+  ]);
+
   const nextValues: Partial<typeof billTemplates.$inferInsert> = {
     updatedAt: nowIso(),
   };
@@ -867,7 +1033,8 @@ export async function updateBillTemplate(
     nextValues.recurrenceSpecificDueDate = input.recurrenceSpecificDueDate;
   }
   if (input.recurrenceStartMonth !== undefined) nextValues.recurrenceStartMonth = input.recurrenceStartMonth;
-  if (input.defaultAmountCents !== undefined) nextValues.defaultAmountCents = Math.max(0, input.defaultAmountCents);
+  if (input.defaultAmountCents !== undefined)
+    nextValues.defaultAmountCents = Math.max(0, assertIntegerCents(input.defaultAmountCents));
   if (input.isVariableAmount !== undefined) nextValues.isVariableAmount = input.isVariableAmount;
   if (input.amountToleranceBps !== undefined) nextValues.amountToleranceBps = input.amountToleranceBps;
   if (input.categoryId !== undefined) nextValues.categoryId = input.categoryId;
@@ -1100,7 +1267,8 @@ export async function listOccurrences(options: ListOccurrencesOptions) {
 }
 
 interface PayOccurrenceInternalOptions {
-  userId: string;
+  /** Null only for autopay, which acts as the pay-from account's owner. */
+  userId: string | null;
   householdId: string;
   occurrenceId: string;
   input: PayOccurrenceRequest;
@@ -1235,21 +1403,30 @@ async function payOccurrenceInternal(options: PayOccurrenceInternalOptions): Pro
       throw new Error('Occurrence is already fully paid');
     }
 
-    const [account] = await tx
-      .select()
-      .from(accounts)
-      .where(
-        and(
-          eq(accounts.id, options.input.accountId),
-          eq(accounts.userId, options.userId),
-          eq(accounts.householdId, options.householdId)
-        )
-      )
-      .limit(1);
+    // Autopay runs on behalf of the household — the rule's pay-from account may
+    // belong to any member, so scope it by household and act as its OWNER.
+    // Manual payments keep strict caller-ownership scoping.
+    if (options.paymentMethod !== 'autopay' && options.userId === null) {
+      throw new Error('userId is required for non-autopay payments');
+    }
+    const accountScope =
+      options.paymentMethod === 'autopay'
+        ? and(
+            eq(accounts.id, options.input.accountId),
+            eq(accounts.householdId, options.householdId)
+          )
+        : and(
+            eq(accounts.id, options.input.accountId),
+            eq(accounts.userId, options.userId as string),
+            eq(accounts.householdId, options.householdId)
+          );
+    const [account] = await tx.select().from(accounts).where(accountScope).limit(1);
 
     if (!account) {
       throw new Error('Account not found');
     }
+
+    const actorUserId = options.paymentMethod === 'autopay' ? account.userId : (options.userId as string);
 
     // Validate the amount is a real, finite integer number of cents before it can
     // reach a balance. A JSON string like "1e999" would otherwise pass a bare
@@ -1293,36 +1470,80 @@ async function payOccurrenceInternal(options: PayOccurrenceInternalOptions): Pro
       );
     }
 
-    const transactionId = nanoid();
     const now = nowIso();
 
-    await insertTransactionMovement(tx, {
-      id: transactionId,
-      userId: options.userId,
-      householdId: options.householdId,
-      accountId: account.id,
-      categoryId: template.categoryId,
-      merchantId: template.merchantId,
-      date: paymentDate,
-      amountCents,
-      description: template.name,
-      notes: options.input.notes ?? null,
-      type: transactionType,
-      isPending: false,
-      syncStatus: 'synced',
-      createdAt: now,
-      updatedAt: now,
-    });
+    // A bill linked to a liability account is a PAYMENT toward that account:
+    // the money movement is a transfer funding -> card that reduces what you
+    // owe. The old code always booked a bare expense on the funding account —
+    // the card's balance never dropped and reports counted the payment as new
+    // spending (bug-hunt finding A2).
+    let linkedLiabilityAccount: typeof account | undefined;
+    if (
+      template.billType === 'expense' &&
+      template.linkedLiabilityAccountId &&
+      template.linkedLiabilityAccountId !== account.id
+    ) {
+      const [linked] = await tx
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, template.linkedLiabilityAccountId),
+            eq(accounts.householdId, options.householdId)
+          )
+        )
+        .limit(1);
+      if (linked && isLiabilityAccountType(linked.type)) {
+        linkedLiabilityAccount = linked;
+      }
+    }
 
-    await updateScopedAccountBalance(tx, {
-      accountId: account.id,
-      userId: options.userId,
-      householdId: options.householdId,
-      balanceCents: nextBalanceCents,
-      usageCount: (account.usageCount || 0) + 1,
-      lastUsedAt: now,
-      updatedAt: now,
-    });
+    let transactionId: string;
+    if (linkedLiabilityAccount) {
+      const pair = await createCanonicalTransferPair({
+        userId: actorUserId,
+        householdId: options.householdId,
+        fromAccountId: account.id,
+        toAccountId: linkedLiabilityAccount.id,
+        amountCents,
+        date: paymentDate,
+        description: template.name,
+        notes: options.input.notes ?? null,
+      });
+      // The transfer-in leg (the liability being credited) carries the bill
+      // link — the same convention the manual-transfer auto-link uses.
+      transactionId = pair.toTransactionId;
+    } else {
+      transactionId = nanoid();
+
+      await insertTransactionMovement(tx, {
+        id: transactionId,
+        userId: actorUserId,
+        householdId: options.householdId,
+        accountId: account.id,
+        categoryId: template.categoryId,
+        merchantId: template.merchantId,
+        date: paymentDate,
+        amountCents,
+        description: template.name,
+        notes: options.input.notes ?? null,
+        type: transactionType,
+        isPending: false,
+        syncStatus: 'synced',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await updateScopedAccountBalance(tx, {
+        accountId: account.id,
+        userId: actorUserId,
+        householdId: options.householdId,
+        balanceCents: nextBalanceCents,
+        usageCount: (account.usageCount || 0) + 1,
+        lastUsedAt: now,
+        updatedAt: now,
+      });
+    }
 
     const balanceBeforeCents = template.debtRemainingBalanceCents;
     const principalCents = balanceBeforeCents !== null ? Math.min(amountCents, balanceBeforeCents) : null;
@@ -1532,6 +1753,37 @@ export async function resetOccurrence(
         updatedAt: now,
       })
       .where(eq(billOccurrenceAllocations.occurrenceId, occurrenceId));
+
+    // Resetting must also delete the occurrence's payment events (bug-hunt
+    // finding L3): surviving events replayed against the zeroed state — a
+    // later delete of the original transaction subtracted its old amount from
+    // payments made AFTER the reset, and an edit re-marked the occurrence
+    // paid. The events' interest tax-deduction rows go with them.
+    const staleEvents = await tx
+      .select({ id: billPaymentEvents.id })
+      .from(billPaymentEvents)
+      .where(
+        and(
+          eq(billPaymentEvents.occurrenceId, occurrenceId),
+          eq(billPaymentEvents.householdId, householdId)
+        )
+      );
+    if (staleEvents.length > 0) {
+      await tx.delete(interestDeductions).where(
+        inArray(
+          interestDeductions.billPaymentId,
+          staleEvents.map((event) => event.id)
+        )
+      );
+      await tx
+        .delete(billPaymentEvents)
+        .where(
+          and(
+            eq(billPaymentEvents.occurrenceId, occurrenceId),
+            eq(billPaymentEvents.householdId, householdId)
+          )
+        );
+    }
   });
 
   const [updated] = await db
@@ -1770,6 +2022,25 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
     }
 
     const ruleByTemplateId = new Map(rules.map((rule) => [rule.templateId, rule]));
+    const templateById = new Map(templateRows.map((template) => [template.id, template]));
+
+    // Linked liability accounts feed the non-fixed amount types (minimum /
+    // statement / full balance).
+    const linkedAccountIds = templateRows
+      .map((template) => template.linkedLiabilityAccountId)
+      .filter((id): id is string => Boolean(id));
+    const linkedAccountRows = linkedAccountIds.length
+      ? await db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              inArray(accounts.id, linkedAccountIds),
+              eq(accounts.householdId, options.householdId)
+            )
+          )
+      : [];
+    const linkedAccountById = new Map(linkedAccountRows.map((account) => [account.id, account]));
 
     await Promise.all(
       templateRows.map((template) =>
@@ -1790,6 +2061,32 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
         )
       );
 
+    // One autopay payment per OCCURRENCE, ever. The old per-day idempotency
+    // key (`autopay:<id>:<runDate>`) only blocked same-day repeats, so a
+    // fixed-amount rule left the occurrence 'partial' and re-paid it every day
+    // of the 14-day catch-up window — a "cap my payment at $100" rule drained
+    // $100/day until the bill was gone. Pre-loading the existing autopay events
+    // also makes retry runs count replays as SKIPPED instead of re-reporting
+    // them as fresh successes (double-counted stats/notifications).
+    const autopayKeyFor = (occurrenceId: string) => `autopay:${occurrenceId}`;
+    const existingAutopayEvents = occurrences.length
+      ? await db
+          .select({ idempotencyKey: billPaymentEvents.idempotencyKey })
+          .from(billPaymentEvents)
+          .where(
+            and(
+              eq(billPaymentEvents.householdId, options.householdId),
+              inArray(
+                billPaymentEvents.idempotencyKey,
+                occurrences.map((occurrence) => autopayKeyFor(occurrence.id))
+              )
+            )
+          )
+      : [];
+    const alreadyAutopaid = new Set(
+      existingAutopayEvents.map((event) => event.idempotencyKey)
+    );
+
     for (const occurrence of occurrences) {
       const rule = ruleByTemplateId.get(occurrence.templateId);
       if (!rule) {
@@ -1809,10 +2106,28 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
 
       processedCount += 1;
 
-      let amountCents = occurrence.amountRemainingCents;
-      if (rule.amountType === 'fixed' && rule.fixedAmountCents !== null) {
-        amountCents = Math.min(rule.fixedAmountCents, occurrence.amountRemainingCents);
+      if (alreadyAutopaid.has(autopayKeyFor(occurrence.id))) {
+        skippedCount += 1;
+        continue;
       }
+
+      const template = templateById.get(occurrence.templateId);
+      const linkedAccount = template?.linkedLiabilityAccountId
+        ? linkedAccountById.get(template.linkedLiabilityAccountId)
+        : undefined;
+
+      const resolution = resolveAutopayAmountCents({ rule, occurrence, linkedAccount });
+      if (resolution.skipReason !== undefined) {
+        skippedCount += 1;
+        errors.push({
+          templateId: occurrence.templateId,
+          occurrenceId: occurrence.id,
+          message: resolution.skipReason,
+          code: 'AUTOPAY_SKIPPED',
+        });
+        continue;
+      }
+      const amountCents = resolution.amountCents;
 
       if (amountCents <= 0) {
         skippedCount += 1;
@@ -1836,10 +2151,10 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
             paymentDate: runDate,
             notes: `Autopay ${runDate}`,
             // Row-level idempotency (H-BILL-4): the unique index on
-            // bill_payment_events.idempotency_key makes a concurrent duplicate
-            // payment for the same occurrence+day impossible even if two runs
-            // race past the run-level guard.
-            idempotencyKey: `autopay:${occurrence.id}:${runDate}`,
+            // bill_payment_events.idempotency_key makes a duplicate autopay
+            // payment for the occurrence impossible even if two runs race past
+            // the run-level guard.
+            idempotencyKey: autopayKeyFor(occurrence.id),
           },
           paymentMethod: 'autopay',
         });
@@ -1847,11 +2162,19 @@ export async function runAutopay(options: RunAutopayOptions): Promise<AutopayRun
         successCount += 1;
         totalAmountCents = new Decimal(totalAmountCents).plus(amountCents).toNumber();
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Autopay failed';
+        // A concurrent run (manual click racing the cron) losing on the
+        // idempotency unique index means the OTHER run paid the bill — that is
+        // a skip, not a failure worth alarming the user about.
+        if (/UNIQUE constraint failed/i.test(message) && /idempotency/i.test(message)) {
+          skippedCount += 1;
+          continue;
+        }
         failedCount += 1;
         errors.push({
           templateId: occurrence.templateId,
           occurrenceId: occurrence.id,
-          message: error instanceof Error ? error.message : 'Autopay failed',
+          message,
           code: 'AUTOPAY_PAYMENT_FAILED',
         });
       }

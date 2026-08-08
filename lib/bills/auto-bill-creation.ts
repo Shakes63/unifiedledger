@@ -106,18 +106,23 @@ export async function createAnnualFeeBill({
 /**
  * Deactivates a template by setting isActive to false.
  * Used when disabling payment tracking on an account.
- * 
+ *
  * @param templateId - The ID of the template to deactivate
+ * @param householdId - Scopes the update — an id-only update was a latent
+ *   cross-household write primitive (bug-hunt finding S4).
  */
-export async function deactivateBillTemplate(templateId: string): Promise<void> {
-  const { eq } = await import('drizzle-orm');
+export async function deactivateBillTemplate(
+  templateId: string,
+  householdId: string
+): Promise<void> {
+  const { and, eq } = await import('drizzle-orm');
 
   await db
     .update(billTemplates)
-    .set({ 
+    .set({
       isActive: false,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(billTemplates.id, templateId));
+    .where(and(eq(billTemplates.id, templateId), eq(billTemplates.householdId, householdId)));
 }
 

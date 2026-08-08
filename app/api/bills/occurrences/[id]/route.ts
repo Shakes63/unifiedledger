@@ -11,7 +11,9 @@ import {
   billOccurrences,
   billPaymentEvents,
   billTemplates,
+  transactions,
 } from '@/lib/db/schema';
+import { assertIntegerCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,9 +85,29 @@ export async function PUT(
     if (payload.notes !== undefined) next.notes = payload.notes;
     if (payload.isManualOverride !== undefined) next.isManualOverride = payload.isManualOverride;
     if (payload.budgetPeriodOverride !== undefined) next.budgetPeriodOverride = payload.budgetPeriodOverride;
-    if (payload.transactionId !== undefined) next.lastTransactionId = payload.transactionId;
+    if (payload.transactionId !== undefined && payload.transactionId !== null) {
+      // lastTransactionId must reference a transaction this household owns —
+      // it was previously stored unverified (bug-hunt finding S2).
+      const [linkedTransaction] = await db
+        .select({ id: transactions.id })
+        .from(transactions)
+        .where(
+          and(eq(transactions.id, payload.transactionId), eq(transactions.householdId, householdId))
+        )
+        .limit(1);
+      if (!linkedTransaction) {
+        return Response.json(
+          { error: 'transactionId does not reference a transaction in this household' },
+          { status: 400 }
+        );
+      }
+      next.lastTransactionId = payload.transactionId;
+    } else if (payload.transactionId === null) {
+      next.lastTransactionId = null;
+    }
     if (payload.daysLate !== undefined) next.daysLate = Math.max(0, payload.daysLate);
-    if (payload.lateFeeCents !== undefined) next.lateFeeCents = Math.max(0, Math.round(payload.lateFeeCents));
+    if (payload.lateFeeCents !== undefined)
+      next.lateFeeCents = Math.max(0, assertIntegerCents(Math.round(payload.lateFeeCents)));
 
     if (payload.status) {
       if (payload.status === 'skipped') {
@@ -104,9 +126,12 @@ export async function PUT(
           next.lastTransactionId = null;
         }
       } else if (payload.status === 'paid') {
+        // Same finite/safe-integer validation the pay path uses (H-VAL-1 /
+        // bug-hunt finding S2): a JSON "9e15" or NaN previously round-tripped
+        // straight into amountPaidCents.
         const providedCents =
           payload.actualAmountCents !== undefined && payload.actualAmountCents !== null
-            ? Math.round(payload.actualAmountCents)
+            ? assertIntegerCents(Math.round(payload.actualAmountCents))
             : existing.occurrence.amountDueCents;
 
         const paidCents = Math.max(0, providedCents);
@@ -121,7 +146,9 @@ export async function PUT(
     } else {
       if (payload.actualAmountCents !== undefined) {
         const actualCents =
-          payload.actualAmountCents === null ? null : Math.max(0, Math.round(payload.actualAmountCents));
+          payload.actualAmountCents === null
+            ? null
+            : Math.max(0, assertIntegerCents(Math.round(payload.actualAmountCents)));
         next.actualAmountCents = actualCents;
       }
       if (payload.paidDate !== undefined) {

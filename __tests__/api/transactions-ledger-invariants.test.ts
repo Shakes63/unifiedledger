@@ -574,16 +574,23 @@ describe('Transaction ledger invariants', () => {
       const tx = {
         select: () => ({
           from: (table: unknown) => ({
-            where: (whereArg: unknown) => ({
-              limit: async () => {
+            // The conversion now runs the side-effect reversal first, whose
+            // queries await `.where(...)` directly — return a thenable empty
+            // array that still exposes `.limit()` for the balance reads.
+            where: (whereArg: unknown) => {
+              const limit = async () => {
                 if (table === accounts) {
                   const accountId = extractAccountId(whereArg);
                   return accountId ? [state.accounts[accountId]] : [];
                 }
                 return [];
-              },
-            }),
+              };
+              return Object.assign(Promise.resolve([]), { limit });
+            },
           }),
+        }),
+        delete: () => ({
+          where: async () => {},
         }),
         insert: (table: unknown) => ({
           values: async (values: Record<string, unknown>) => {

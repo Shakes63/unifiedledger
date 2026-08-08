@@ -109,7 +109,12 @@ export async function processBillPayment({
       .where(
         and(
           eq(billTemplates.id, resolvedBillId),
-          eq(billTemplates.createdByUserId, userId),
+          // Household scoping is the authorization boundary — bills are shared
+          // household objects (payOccurrence lets any member pay them). The old
+          // createdByUserId predicate made member B's edit of a payment on
+          // member A's bill silently fail the RE-APPLY after the reversal had
+          // already unwound it, permanently destroying the link (bug-hunt
+          // finding L6).
           eq(billTemplates.householdId, householdId),
           eq(billOccurrences.id, resolvedInstanceId),
           eq(billOccurrences.householdId, householdId)
@@ -326,7 +331,7 @@ export async function findCreditPaymentBillInstance(
   linkedAccountId: string,
   paymentAmount: number,
   paymentDate: string,
-  userId: string,
+  _userId: string,
   householdId: string,
   dateToleranceDays: number = 7
 ): Promise<{
@@ -343,7 +348,9 @@ export async function findCreditPaymentBillInstance(
     .where(
       and(
         eq(billTemplates.linkedLiabilityAccountId, linkedAccountId),
-        eq(billTemplates.createdByUserId, userId),
+        // Household-scoped like the rest of bills (see processBillPayment):
+        // a member paying the card via transfer must match the household's
+        // bill even when another member created it.
         eq(billTemplates.householdId, householdId),
         eq(billTemplates.billType, 'expense'),
         eq(billTemplates.isActive, true)

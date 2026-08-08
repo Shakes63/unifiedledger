@@ -321,7 +321,13 @@ export function formatDueDateDisplay(
   startMonth?: number | null
 ): string {
   if (isOneTimeFrequency(frequency) && specificDueDate) {
-    const date = new Date(specificDueDate);
+    // 'YYYY-MM-DD' parses as UTC midnight — west of UTC that renders the
+    // PREVIOUS day. Force local-time parsing for a date-only string.
+    const date = new Date(
+      /^\d{4}-\d{2}-\d{2}$/.test(specificDueDate)
+        ? `${specificDueDate}T00:00:00`
+        : specificDueDate
+    );
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',

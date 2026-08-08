@@ -9,7 +9,7 @@ import type {
   CreateBillTemplateRequest,
   AutopayAmountType,
 } from '@/lib/bills/contracts';
-import { createBillTemplate, listBillTemplates } from '@/lib/bills/service';
+import { assertHouseholdAccounts, createBillTemplate, listBillTemplates } from '@/lib/bills/service';
 import { toBillsV2Error } from '@/lib/bills/route-helpers';
 import { db } from '@/lib/db';
 import { autopayRules } from '@/lib/db/schema';
@@ -45,6 +45,9 @@ async function upsertAutopayRule(
   if (!config.payFromAccountId) {
     throw new Error('Autopay source account is required when autopay is enabled');
   }
+  // The pay-from account must belong to this household (S1) — autopay will
+  // act as its owner, so a foreign id must never be persisted.
+  await assertHouseholdAccounts(householdId, [config.payFromAccountId]);
 
   const values = {
     templateId,
