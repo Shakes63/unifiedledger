@@ -111,15 +111,40 @@ describe('lib/budgets/budget-schedule', () => {
       expect(period.startStr).toBe('2025-01-12');
     });
 
-    it('calculates dynamic periodsInMonth for five-week months', () => {
+    it('counts periods by START DAY within the month (May 2025 has 4 Mondays)', () => {
       const period = getCurrentBudgetPeriod(
         defaultSettings({ budgetCycleFrequency: 'weekly', budgetCycleStartDay: 1 }), // Monday
         new Date(2025, 4, 29), // May 29, 2025
       );
 
+      // Mondays in May 2025: 5, 12, 19, 26 -> the May 26 period is #4 of 4.
       expect(period.startStr).toBe('2025-05-26');
-      expect(period.periodNumber).toBe(5);
-      expect(period.periodsInMonth).toBe(5);
+      expect(period.periodNumber).toBe(4);
+      expect(period.periodsInMonth).toBe(4);
+      expect(period.owningMonth).toBe('2025-05');
+    });
+
+    it('a period keeps its number and month after crossing into the next month', () => {
+      const settings = defaultSettings({
+        budgetCycleFrequency: 'weekly',
+        budgetCycleStartDay: 1, // Monday
+      });
+      // The Monday-Apr-28 period runs Apr 28 - May 4. April 2025 has Mondays on
+      // 7, 14, 21, 28, so it is April's 4th period — and stays April's 4th on
+      // May 1, rather than becoming "week 1 of May".
+      const fromApril = getCurrentBudgetPeriod(settings, new Date(2025, 3, 30));
+      const fromMay = getCurrentBudgetPeriod(settings, new Date(2025, 4, 2));
+
+      expect(fromMay.startStr).toBe(fromApril.startStr);
+      expect(fromApril.periodNumber).toBe(4);
+      expect(fromMay.periodNumber).toBe(4);
+      expect(fromMay.owningMonth).toBe('2025-04');
+
+      // The next Monday opens May's period 1.
+      const nextPeriod = getCurrentBudgetPeriod(settings, new Date(2025, 4, 5));
+      expect(nextPeriod.startStr).toBe('2025-05-05');
+      expect(nextPeriod.periodNumber).toBe(1);
+      expect(nextPeriod.owningMonth).toBe('2025-05');
     });
   });
 
@@ -140,19 +165,37 @@ describe('lib/budgets/budget-schedule', () => {
       expect(period.startStr).toBe('2025-01-03');
     });
 
-    it('calculates dynamic periodsInMonth for three-paycheck months', () => {
-      const period = getCurrentBudgetPeriod(
-        defaultSettings({
-          budgetCycleFrequency: 'biweekly',
-          budgetCycleStartDay: 5, // Friday
-          budgetCycleReferenceDate: '2025-01-03T00:00:00',
-        }),
-        new Date(2025, 2, 29), // March 29, 2025
-      );
+    it('counts paydays per month — January 2025 is a three-paycheck month', () => {
+      const settings = defaultSettings({
+        budgetCycleFrequency: 'biweekly',
+        budgetCycleStartDay: 5, // Friday
+        budgetCycleReferenceDate: '2025-01-03T00:00:00',
+      });
+      // Paydays: Jan 3, 17, 31 -> three in January.
+      const third = getCurrentBudgetPeriod(settings, new Date(2025, 0, 31));
+      expect(third.startStr).toBe('2025-01-31');
+      expect(third.periodNumber).toBe(3);
+      expect(third.periodsInMonth).toBe(3);
+      expect(third.owningMonth).toBe('2025-01');
+    });
 
-      expect(period.startStr).toBe('2025-03-28');
-      expect(period.periodNumber).toBe(3);
-      expect(period.periodsInMonth).toBe(3);
+    it('a payday late in the month owns its period into the next month', () => {
+      const settings = defaultSettings({
+        budgetCycleFrequency: 'biweekly',
+        budgetCycleStartDay: 5, // Friday
+        budgetCycleReferenceDate: '2025-01-03T00:00:00',
+      });
+      // Payday Mar 28 runs Mar 28 - Apr 10. March paydays are Mar 14 and Mar 28,
+      // so it is March's 2nd — and remains so on April 5.
+      const atStart = getCurrentBudgetPeriod(settings, new Date(2025, 2, 29));
+      const inApril = getCurrentBudgetPeriod(settings, new Date(2025, 3, 5));
+
+      expect(atStart.startStr).toBe('2025-03-28');
+      expect(inApril.startStr).toBe('2025-03-28');
+      expect(atStart.periodNumber).toBe(2);
+      expect(inApril.periodNumber).toBe(2);
+      expect(inApril.owningMonth).toBe('2025-03');
+      expect(atStart.periodsInMonth).toBe(2);
     });
   });
 

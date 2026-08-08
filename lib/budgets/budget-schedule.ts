@@ -48,12 +48,10 @@ export interface BudgetPeriod {
   periodNumber: number; // 1-based period number within the owning month
   periodsInMonth: number; // Total periods in the owning month
   /**
-   * YYYY-MM of the month `periodNumber` was computed against. For weekly and
-   * biweekly cycles this is the month of the QUERY date, matching the app's
-   * existing convention — so a period straddling a month boundary reports a
-   * different number depending on when it was requested (bug-hunt finding P3,
-   * deferred as a product decision). Membership checks compare against this
-   * field so numbering and membership at least agree with each other.
+   * YYYY-MM of the month that owns this period — the month its START DAY (the
+   * payday) falls in. A period straddling a month boundary belongs wholly to
+   * the month it started in, so `periodNumber` is a stable property of the
+   * period rather than of whenever it was queried (bug-hunt finding P3).
    */
   owningMonth: string;
 }
@@ -158,12 +156,8 @@ function getWeeklyPeriod(settings: BudgetScheduleSettings, today: Date): BudgetP
   const startDayOfWeek = settings.budgetCycleStartDay ?? 0; // Default to Sunday
   const periodStart = getAlignedPeriodStart(today, startDayOfWeek);
   const periodEnd = endOfDay(addDays(periodStart, 6));
-  // NOTE (bug-hunt finding P3, DEFERRED): periods are numbered relative to the
-  // month being queried, so a period straddling a month boundary reports a
-  // different number depending on when you ask. That is the app's existing
-  // convention ("the week containing the 1st is week 1 of the new month"), and
-  // changing it is a product decision — see the memory note.
-  const { periodNumber, periodsInMonth } = getPeriodPositionInMonth(periodStart, today, 7);
+  // Numbered by the period's own start day (P3) — see getPeriodPositionInMonth.
+  const { periodNumber, periodsInMonth } = getPeriodPositionInMonth(periodStart, 7);
 
   return {
     start: periodStart,
@@ -172,7 +166,7 @@ function getWeeklyPeriod(settings: BudgetScheduleSettings, today: Date): BudgetP
     endStr: format(periodEnd, 'yyyy-MM-dd'),
     periodNumber,
     periodsInMonth,
-    owningMonth: toMonthKey(today),
+    owningMonth: toMonthKey(periodStart),
   };
 }
 
@@ -210,8 +204,7 @@ function getBiweeklyPeriod(settings: BudgetScheduleSettings, today: Date): Budge
   // Calculate period start
   const periodStart = startOfDay(addDays(referenceDate, biweeklyPeriodsSinceReference * 14));
   const periodEnd = endOfDay(addDays(periodStart, 13)); // 14 days total
-  // See the P3 note in getWeeklyPeriod — numbering stays query-relative.
-  const { periodNumber, periodsInMonth } = getPeriodPositionInMonth(periodStart, today, 14);
+  const { periodNumber, periodsInMonth } = getPeriodPositionInMonth(periodStart, 14);
 
   return {
     start: periodStart,
@@ -220,7 +213,7 @@ function getBiweeklyPeriod(settings: BudgetScheduleSettings, today: Date): Budge
     endStr: format(periodEnd, 'yyyy-MM-dd'),
     periodNumber,
     periodsInMonth,
-    owningMonth: toMonthKey(today),
+    owningMonth: toMonthKey(periodStart),
   };
 }
 
@@ -234,37 +227,38 @@ function getAlignedPeriodStart(referenceDate: Date, startDayOfWeek: number): Dat
 }
 
 /**
- * Determine the 1-based period number and total period count for the month that
- * contains `monthReferenceDate`, based on fixed-length periods.
+ * Number a fixed-length period by its START DAY (the payday).
+ *
+ * A period belongs to the month its start day falls in, and is numbered by
+ * counting start days within that month — so with Friday pay periods, a Friday
+ * landing April 27 is April's 4th period and stays period 4 until the next
+ * Friday, which opens May's period 1. Month boundaries are therefore crisp and
+ * a period's number is a stable property of the period itself, not of whenever
+ * it happened to be queried (bug-hunt finding P3).
  */
 function getPeriodPositionInMonth(
   periodStart: Date,
-  monthReferenceDate: Date,
   periodLengthDays: number
 ): { periodNumber: number; periodsInMonth: number } {
-  const monthStart = startOfMonth(monthReferenceDate);
-  const monthEnd = endOfMonth(monthReferenceDate);
+  const monthStart = startOfMonth(periodStart);
+  const monthEnd = endOfMonth(periodStart);
 
-  let firstPeriodStart = periodStart;
-  while (addDays(firstPeriodStart, periodLengthDays - 1) < monthStart) {
-    firstPeriodStart = addDays(firstPeriodStart, periodLengthDays);
-  }
-  while (firstPeriodStart > monthStart) {
-    firstPeriodStart = addDays(firstPeriodStart, -periodLengthDays);
-  }
-  while (addDays(firstPeriodStart, periodLengthDays - 1) < monthStart) {
-    firstPeriodStart = addDays(firstPeriodStart, periodLengthDays);
+  // Walk back to the earliest start day still inside this month.
+  let firstStartInMonth = periodStart;
+  while (addDays(firstStartInMonth, -periodLengthDays) >= monthStart) {
+    firstStartInMonth = addDays(firstStartInMonth, -periodLengthDays);
   }
 
+  const periodNumber =
+    Math.round(differenceInDays(periodStart, firstStartInMonth) / periodLengthDays) + 1;
+
+  // Count the start days that fall in this month.
   let periodsInMonth = 0;
-  let cursor = firstPeriodStart;
+  let cursor = firstStartInMonth;
   while (cursor <= monthEnd) {
     periodsInMonth += 1;
     cursor = addDays(cursor, periodLengthDays);
   }
-
-  const dayDifference = differenceInDays(periodStart, firstPeriodStart);
-  const periodNumber = Math.floor(dayDifference / periodLengthDays) + 1;
 
   return {
     periodNumber: Math.max(1, periodNumber),
