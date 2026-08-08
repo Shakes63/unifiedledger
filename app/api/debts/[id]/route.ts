@@ -1,7 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts, debtPayments, debtPayoffMilestones, accounts, budgetCategories } from '@/lib/db/schema';
+import { debts, debtPayments, debtPayoffMilestones, accounts, budgetCategories, transactions } from '@/lib/db/schema';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 import { eq, and } from 'drizzle-orm';
 import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
@@ -334,28 +335,40 @@ export async function DELETE(
       return new Response(JSON.stringify({ error: 'Debt not found' }), { status: 404 });
     }
 
-    // Delete milestones first (with household filter for safety)
-    await db
-      .delete(debtPayoffMilestones)
-      .where(
-        and(
-          eq(debtPayoffMilestones.debtId, id),
-          eq(debtPayoffMilestones.householdId, householdId)
-        )
-      );
+    // All-or-nothing delete (bug-hunt finding LC6): the three deletes ran on
+    // the raw handle, so a crash mid-way stripped a debt of its history while
+    // leaving the debt itself; and transactions kept a dangling debtId (plain
+    // text column, no FK) pointing at a deleted debt.
+    await runInDatabaseTransaction(async (tx) => {
+      // Delete milestones first (with household filter for safety)
+      await tx
+        .delete(debtPayoffMilestones)
+        .where(
+          and(
+            eq(debtPayoffMilestones.debtId, id),
+            eq(debtPayoffMilestones.householdId, householdId)
+          )
+        );
 
-    // Delete payments (with household filter for safety)
-    await db
-      .delete(debtPayments)
-      .where(
-        and(
-          eq(debtPayments.debtId, id),
-          eq(debtPayments.householdId, householdId)
-        )
-      );
+      // Delete payments (with household filter for safety)
+      await tx
+        .delete(debtPayments)
+        .where(
+          and(
+            eq(debtPayments.debtId, id),
+            eq(debtPayments.householdId, householdId)
+          )
+        );
 
-    // Delete debt
-    await db.delete(debts).where(eq(debts.id, id));
+      // Clear dangling references from the ledger.
+      await tx
+        .update(transactions)
+        .set({ debtId: null })
+        .where(and(eq(transactions.debtId, id), eq(transactions.householdId, householdId)));
+
+      // Delete debt
+      await tx.delete(debts).where(eq(debts.id, id));
+    });
 
     // Queue calendar sync for debt deletion (non-blocking)
     queueSync(userId, householdId, 'payoff_date', `debt-${id}`, 'delete');

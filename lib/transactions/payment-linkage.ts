@@ -6,6 +6,7 @@
  */
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { transactions } from '@/lib/db/schema';
 import { processBillPayment } from '@/lib/bills/bill-payment-utils';
 import {
@@ -104,32 +105,42 @@ export async function applyLegacyDebtPayment({
   paymentDate,
   transactionId,
   notes,
-  dbClient = db,
+  dbClient,
 }: ApplyLegacyDebtPaymentParams): Promise<boolean> {
-  const currentDebt = await loadScopedDebt({
-    dbClient,
-    debtId,
-    userId,
-    householdId,
-  });
+  const execute = async (client: PaymentLinkageDbClient): Promise<boolean> => {
+    const currentDebt = await loadScopedDebt({
+      dbClient: client,
+      debtId,
+      userId,
+      householdId,
+    });
 
-  if (!currentDebt) {
-    return false;
+    if (!currentDebt) {
+      return false;
+    }
+
+    await persistLegacyDebtPayment({
+      dbClient: client,
+      debtId,
+      userId,
+      householdId,
+      paymentAmount,
+      paymentDate,
+      transactionId,
+      notes,
+      currentDebt,
+    });
+
+    return true;
+  };
+
+  // A caller that passes a client is already inside a transaction. Without
+  // one, wrap the read-modify-write ourselves (bug-hunt finding LC2): the raw
+  // default let auto-linked payments race concurrent writes to the same debt.
+  if (dbClient) {
+    return execute(dbClient);
   }
-
-  await persistLegacyDebtPayment({
-    dbClient,
-    debtId,
-    userId,
-    householdId,
-    paymentAmount,
-    paymentDate,
-    transactionId,
-    notes,
-    currentDebt,
-  });
-
-  return true;
+  return runInDatabaseTransaction(async (tx) => execute(tx));
 }
 
 interface ProcessAndLinkTemplatePaymentParams {
